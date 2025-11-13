@@ -1,0 +1,19 @@
+﻿namespace MatchCV_Project.Models;   
+
+public class Job
+{
+    public int Id { get; set; }
+    public int UserId { get; set; }
+    public string Title { get; set; }
+    public string Company { get; set; }
+    public string RawText { get; set; }
+    public string JobDescription { get; set; }
+    public string Status { get; set; } = "Active";
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+    // Navigation properties
+    public virtual User User { get; set; }
+    public virtual ICollection<MatchResult> MatchResults { get; set; } = new List<MatchResult>();
+}
+

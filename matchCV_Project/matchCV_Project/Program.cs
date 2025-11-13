@@ -1,36 +1,86 @@
 
-namespace matchCV_Project
-{
-    public class Program
+using MatchCV_Project.Data;
+using MatchCV_Project.Interfaces;
+using MatchCV_Project.Repositories;
+using MatchCV_Project.Services;
+using Microsoft.EntityFrameworkCore;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Add services to the container
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
     {
-        public static void Main(string[] args)
-        {
-            var builder = WebApplication.CreateBuilder(args);
+        // Configure JSON serialization to use camelCase for property names
+        // This ensures compatibility with frontend (camelCase) while backend uses PascalCase
+        options.JsonSerializerOptions.PropertyNamingPolicy = null; // Keep PascalCase (ASP.NET default)
+        options.JsonSerializerOptions.PropertyNameCaseInsensitive = true; // Allow case-insensitive matching
+    });
 
-            // Add services to the container.
+// Add DbContext
+builder.Services.AddDbContext<MatchCvContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-            builder.Services.AddControllers();
-            // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-            builder.Services.AddEndpointsApiExplorer();
-            builder.Services.AddSwaggerGen();
+// Add Dependency Injection
+builder.Services.AddScoped(typeof(IBaseRepository<>), typeof(BaseRepository<>));
+builder.Services.AddScoped<IDocumentRepository, DocumentRepository>();
+builder.Services.AddScoped<IFileService, FileService>();
+builder.Services.AddScoped<IAnalyzerService, AnalyzerService>();
+builder.Services.AddScoped<IDocumentService, DocumentService>();
 
-            var app = builder.Build();
+// Add Swagger/OpenAPI
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo 
+    { 
+        Title = "MatchCV API", 
+        Version = "v1", 
+        Description = "CV Management System for Job Recruitment" 
+    });
+});
 
-            // Configure the HTTP request pipeline.
-            if (app.Environment.IsDevelopment())
-            {
-                app.UseSwagger();
-                app.UseSwaggerUI();
-            }
+// Add CORS
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", builder =>
+    {
+        builder.AllowAnyOrigin()
+               .AllowAnyMethod()
+               .AllowAnyHeader();
+    });
+});
 
-            app.UseHttpsRedirection();
+// Add logging
+builder.Services.AddLogging();
 
-            app.UseAuthorization();
+var app = builder.Build();
 
+// Configure the HTTP request pipeline
+app.UseSwagger();
+app.UseSwaggerUI(c =>
+{
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "MatchCV API v1");
+    c.RoutePrefix = "swagger"; // Set Swagger UI at /swagger
+});
 
-            app.MapControllers();
+app.UseHttpsRedirection();
+app.UseStaticFiles(); // For serving uploaded files
+app.UseCors("AllowAll");
+app.UseAuthorization();
 
-            app.Run();
-        }
-    }
+app.MapControllers();
+
+// Create wwwroot/uploads folder if not exists
+var webRootPath = app.Environment.WebRootPath;
+if (string.IsNullOrEmpty(webRootPath))
+{
+    webRootPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
 }
+
+var uploadsPath = Path.Combine(webRootPath, "uploads");
+if (!Directory.Exists(uploadsPath))
+{
+    Directory.CreateDirectory(uploadsPath);
+}
+
+app.Run();
