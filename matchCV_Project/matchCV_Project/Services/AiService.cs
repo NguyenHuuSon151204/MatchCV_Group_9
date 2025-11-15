@@ -13,16 +13,16 @@ public class AiService : IAiService
     public int ScoreMatch(Job job, Document cv)
     {
         // Load required skills for the job
-        var reqSkills = _db.RequiredSkill
+        var reqSkills = _db.RequiredSkills
             .Where(r => r.JobId == job.Id)
-            .Join(_db.Skill, r => r.SkillId, s => s.Id,
+            .Join(_db.Skills, r => r.SkillId, s => s.Id,
                 (r, s) => new { r.MustHave, r.Weight, s.NormName })
             .ToList();
 
         // Load document skills if available
-        var cvSkills = _db.DocumentSkill
+        var cvSkills = _db.DocumentSkills
             .Where(ds => ds.DocumentId == cv.Id)
-            .Join(_db.Skill, ds => ds.SkillId, s => s.Id,
+            .Join(_db.Skills, ds => ds.SkillId, s => s.Id,
                 (ds, s) => s.NormName)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 

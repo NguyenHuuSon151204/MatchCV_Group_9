@@ -118,7 +118,19 @@
         }
       }
     },
-    "/api/recruiter/jds": {
+    "/": {
+      "get": {
+        "tags": [
+          "matchCV_Project"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/recruiter/jobs": {
       "get": {
         "tags": [
           "Recruiter"
@@ -153,17 +165,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/JD"
+                "$ref": "#/components/schemas/Job"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/JD"
+                "$ref": "#/components/schemas/Job"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/JD"
+                "$ref": "#/components/schemas/Job"
               }
             }
           }
@@ -175,7 +187,7 @@
         }
       }
     },
-    "/api/recruiter/jds/{id}": {
+    "/api/recruiter/jobs/{id}": {
       "get": {
         "tags": [
           "Recruiter"
@@ -216,17 +228,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/JD"
+                "$ref": "#/components/schemas/Job"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/JD"
+                "$ref": "#/components/schemas/Job"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/JD"
+                "$ref": "#/components/schemas/Job"
               }
             }
           }
@@ -259,7 +271,7 @@
         }
       }
     },
-    "/api/recruiter/jds/{id}/applications": {
+    "/api/recruiter/jobs/{id}/applications": {
       "get": {
         "tags": [
           "Recruiter"
@@ -297,7 +309,7 @@
         }
       }
     },
-    "/api/recruiter/jds/{id}/apply": {
+    "/api/recruiter/jobs/{id}/apply": {
       "post": {
         "tags": [
           "Recruiter"
@@ -380,45 +392,6 @@
           }
         }
       }
-    },
-    "/WeatherForecast": {
-      "get": {
-        "tags": [
-          "WeatherForecast"
-        ],
-        "operationId": "GetWeatherForecast",
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "text/plain": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/WeatherForecast"
-                  }
-                }
-              },
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/WeatherForecast"
-                  }
-                }
-              },
-              "text/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/WeatherForecast"
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
     }
   },
   "components": {
@@ -437,18 +410,18 @@
         },
         "additionalProperties": false
       },
-      "Applications": {
+      "Application": {
         "type": "object",
         "properties": {
           "id": {
             "type": "integer",
             "format": "int32"
           },
-          "jdId": {
+          "jobId": {
             "type": "integer",
             "format": "int32"
           },
-          "cvId": {
+          "documentId": {
             "type": "integer",
             "format": "int32"
           },
@@ -463,8 +436,8 @@
             "nullable": true
           },
           "scoreSnapshot": {
-            "type": "integer",
-            "format": "int32",
+            "type": "number",
+            "format": "double",
             "nullable": true
           },
           "summary": {
@@ -481,13 +454,13 @@
             "nullable": true
           },
           "candidate": {
-            "$ref": "#/components/schemas/Users"
+            "$ref": "#/components/schemas/User"
           },
-          "cv": {
-            "$ref": "#/components/schemas/CV"
+          "document": {
+            "$ref": "#/components/schemas/Document"
           },
-          "jd": {
-            "$ref": "#/components/schemas/JD"
+          "job": {
+            "$ref": "#/components/schemas/Job"
           }
         },
         "additionalProperties": false
@@ -495,7 +468,7 @@
       "ApplyDto": {
         "type": "object",
         "properties": {
-          "cvId": {
+          "documentId": {
             "type": "integer",
             "format": "int32"
           },
@@ -506,34 +479,383 @@
         },
         "additionalProperties": false
       },
-      "CV": {
+      "Bullet": {
         "type": "object",
         "properties": {
           "id": {
             "type": "integer",
             "format": "int32"
           },
-          "ownerId": {
+          "sectionId": {
             "type": "integer",
             "format": "int32"
           },
-          "title": {
-            "maxLength": 200,
+          "ord": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "text": {
+            "type": "string",
+            "nullable": true
+          },
+          "section": {
+            "$ref": "#/components/schemas/Section"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Cvtemplate": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "key": {
+            "maxLength": 50,
             "minLength": 0,
             "type": "string",
             "nullable": true
           },
-          "filePath": {
+          "name": {
+            "maxLength": 180,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "maxLength": 300,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
+          "engine": {
+            "maxLength": 50,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
+          "templatePath": {
             "maxLength": 400,
             "minLength": 0,
             "type": "string",
             "nullable": true
           },
-          "score": {
+          "isActive": {
+            "type": "boolean"
+          },
+          "exports": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Export"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "Document": {
+        "type": "object",
+        "properties": {
+          "id": {
             "type": "integer",
             "format": "int32"
           },
-          "aiSummary": {
+          "userId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "docType": {
+            "maxLength": 30,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
+          "originalName": {
+            "maxLength": 250,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
+          "contentType": {
+            "maxLength": 100,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
+          "storagePath": {
+            "maxLength": 400,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
+          "fileHash": {
+            "maxLength": 128,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
+          "sizeBytes": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "pageCount": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "uploadedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "isDeleted": {
+            "type": "boolean"
+          },
+          "applications": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Application"
+            },
+            "nullable": true
+          },
+          "documentSkills": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DocumentSkill"
+            },
+            "nullable": true
+          },
+          "educations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Education"
+            },
+            "nullable": true
+          },
+          "experiences": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Experience"
+            },
+            "nullable": true
+          },
+          "exports": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Export"
+            },
+            "nullable": true
+          },
+          "matchRuns": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MatchRun"
+            },
+            "nullable": true
+          },
+          "ocrresults": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Ocrresult"
+            },
+            "nullable": true
+          },
+          "sections": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Section"
+            },
+            "nullable": true
+          },
+          "user": {
+            "$ref": "#/components/schemas/User"
+          }
+        },
+        "additionalProperties": false
+      },
+      "DocumentSkill": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "documentId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "skillId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "source": {
+            "maxLength": 30,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
+          "years": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "confidence": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "document": {
+            "$ref": "#/components/schemas/Document"
+          },
+          "skill": {
+            "$ref": "#/components/schemas/Skill"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Education": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "documentId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "degree": {
+            "maxLength": 150,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
+          "fieldOfStudy": {
+            "maxLength": 150,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
+          "schoolName": {
+            "maxLength": 200,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "score": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "activities": {
+            "type": "string",
+            "nullable": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "document": {
+            "$ref": "#/components/schemas/Document"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Experience": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "documentId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "jobTitle": {
+            "maxLength": 200,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
+          "companyName": {
+            "maxLength": 200,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
+          "industryName": {
+            "maxLength": 150,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "endDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "currentlyWorking": {
+            "type": "boolean"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "document": {
+            "$ref": "#/components/schemas/Document"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Export": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "documentId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "templateId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "outFormat": {
+            "maxLength": 30,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
+          "outputPath": {
+            "maxLength": 400,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
+          "engine": {
+            "maxLength": 50,
+            "minLength": 0,
             "type": "string",
             "nullable": true
           },
@@ -541,23 +863,35 @@
             "type": "string",
             "format": "date-time"
           },
-          "applications": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/Applications"
-            },
+          "status": {
+            "maxLength": 30,
+            "minLength": 0,
+            "type": "string",
             "nullable": true
           },
-          "owner": {
-            "$ref": "#/components/schemas/Users"
+          "errorMsg": {
+            "maxLength": 200,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
+          "document": {
+            "$ref": "#/components/schemas/Document"
+          },
+          "template": {
+            "$ref": "#/components/schemas/Cvtemplate"
           }
         },
         "additionalProperties": false
       },
-      "JD": {
+      "Job": {
         "type": "object",
         "properties": {
           "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "userId": {
             "type": "integer",
             "format": "int32"
           },
@@ -573,11 +907,7 @@
             "type": "string",
             "nullable": true
           },
-          "description": {
-            "type": "string",
-            "nullable": true
-          },
-          "skillsRequiredJson": {
+          "rawText": {
             "type": "string",
             "nullable": true
           },
@@ -585,17 +915,38 @@
             "type": "string",
             "format": "date-time"
           },
+          "mustHaveCheck": {
+            "type": "string",
+            "nullable": true
+          },
           "applications": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/Applications"
+              "$ref": "#/components/schemas/Application"
             },
             "nullable": true
+          },
+          "matchRuns": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MatchRun"
+            },
+            "nullable": true
+          },
+          "requiredSkills": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RequiredSkill"
+            },
+            "nullable": true
+          },
+          "user": {
+            "$ref": "#/components/schemas/User"
           }
         },
         "additionalProperties": false
       },
-      "LicenseKeys": {
+      "LicenseKey": {
         "type": "object",
         "properties": {
           "id": {
@@ -632,7 +983,371 @@
             "format": "date-time"
           },
           "assignedUser": {
-            "$ref": "#/components/schemas/Users"
+            "$ref": "#/components/schemas/User"
+          }
+        },
+        "additionalProperties": false
+      },
+      "MatchEvidence": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "matchId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "skillId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "snippet": {
+            "type": "string",
+            "nullable": true
+          },
+          "componentScore": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "evidenceType": {
+            "maxLength": 30,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
+          "match": {
+            "$ref": "#/components/schemas/MatchRun"
+          },
+          "skill": {
+            "$ref": "#/components/schemas/Skill"
+          }
+        },
+        "additionalProperties": false
+      },
+      "MatchRun": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "documentId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "jobId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "score": {
+            "type": "number",
+            "format": "double"
+          },
+          "durationMs": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "explanation": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "traceId": {
+            "maxLength": 180,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
+          "document": {
+            "$ref": "#/components/schemas/Document"
+          },
+          "job": {
+            "$ref": "#/components/schemas/Job"
+          },
+          "matchEvidences": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MatchEvidence"
+            },
+            "nullable": true
+          },
+          "missingItems": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MissingItem"
+            },
+            "nullable": true
+          },
+          "rewriteSuggestions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RewriteSuggestion"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "MissingItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "matchId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "skillId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "missingKeyword": {
+            "maxLength": 180,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
+          "reason": {
+            "maxLength": 300,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
+          "suggestion": {
+            "maxLength": 300,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
+          "mustHave": {
+            "type": "boolean"
+          },
+          "match": {
+            "$ref": "#/components/schemas/MatchRun"
+          },
+          "skill": {
+            "$ref": "#/components/schemas/Skill"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Ocrresult": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "documentId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "engine": {
+            "maxLength": 50,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
+          "avgConfidence": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "textBlob": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "document": {
+            "$ref": "#/components/schemas/Document"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RequiredSkill": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "jobId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "skillId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "mustHave": {
+            "type": "boolean"
+          },
+          "weight": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "note": {
+            "maxLength": 200,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
+          "job": {
+            "$ref": "#/components/schemas/Job"
+          },
+          "skill": {
+            "$ref": "#/components/schemas/Skill"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RewriteSuggestion": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "matchId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "bulletId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "suggestedText": {
+            "type": "string",
+            "nullable": true
+          },
+          "rationale": {
+            "type": "string",
+            "nullable": true
+          },
+          "accepted": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "acceptedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "match": {
+            "$ref": "#/components/schemas/MatchRun"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Section": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "documentId": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sectionType": {
+            "maxLength": 50,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
+          "ord": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "rawText": {
+            "type": "string",
+            "nullable": true
+          },
+          "bullets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Bullet"
+            },
+            "nullable": true
+          },
+          "document": {
+            "$ref": "#/components/schemas/Document"
+          }
+        },
+        "additionalProperties": false
+      },
+      "Skill": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "name": {
+            "maxLength": 180,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
+          "normName": {
+            "maxLength": 180,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
+          "category": {
+            "maxLength": 80,
+            "minLength": 0,
+            "type": "string",
+            "nullable": true
+          },
+          "documentSkills": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DocumentSkill"
+            },
+            "nullable": true
+          },
+          "matchEvidences": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MatchEvidence"
+            },
+            "nullable": true
+          },
+          "missingItems": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MissingItem"
+            },
+            "nullable": true
+          },
+          "requiredSkills": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RequiredSkill"
+            },
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -647,27 +1362,27 @@
         },
         "additionalProperties": false
       },
-      "Users": {
+      "User": {
         "type": "object",
         "properties": {
           "id": {
             "type": "integer",
             "format": "int32"
           },
-          "email": {
-            "maxLength": 200,
+          "displayName": {
+            "maxLength": 180,
             "minLength": 0,
             "type": "string",
             "nullable": true
           },
-          "name": {
-            "maxLength": 150,
+          "email": {
+            "maxLength": 250,
             "minLength": 0,
             "type": "string",
             "nullable": true
           },
           "role": {
-            "maxLength": 50,
+            "maxLength": 100,
             "minLength": 0,
             "type": "string",
             "nullable": true
@@ -679,45 +1394,29 @@
           "applications": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/Applications"
+              "$ref": "#/components/schemas/Application"
             },
             "nullable": true
           },
-          "cvs": {
+          "documents": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/CV"
+              "$ref": "#/components/schemas/Document"
+            },
+            "nullable": true
+          },
+          "jobs": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Job"
             },
             "nullable": true
           },
           "licenseKeys": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/LicenseKeys"
+              "$ref": "#/components/schemas/LicenseKey"
             },
-            "nullable": true
-          }
-        },
-        "additionalProperties": false
-      },
-      "WeatherForecast": {
-        "type": "object",
-        "properties": {
-          "date": {
-            "type": "string",
-            "format": "date"
-          },
-          "temperatureC": {
-            "type": "integer",
-            "format": "int32"
-          },
-          "temperatureF": {
-            "type": "integer",
-            "format": "int32",
-            "readOnly": true
-          },
-          "summary": {
-            "type": "string",
             "nullable": true
           }
         },

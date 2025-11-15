@@ -20,13 +20,13 @@ public class AdminController : ControllerBase
 
         var totals = new
         {
-            users = await _db.User.CountAsync(),
-            cvs = await _db.Document.CountAsync(d => d.DocType == "CV" && !d.IsDeleted),
-            jobs = await _db.Job.CountAsync(),
-            apps = await _db.Application.CountAsync()
+            users = await _db.Users.CountAsync(),
+            cvs = await _db.Documents.CountAsync(d => d.DocType == "CV" && !d.IsDeleted),
+            jobs = await _db.Jobs.CountAsync(),
+            apps = await _db.Applications.CountAsync()
         };
 
-        var avgScoreByDay = await _db.Application
+        var avgScoreByDay = await _db.Applications
             .Where(a => a.CreatedAt >= start && a.CreatedAt <= end && a.ScoreSnapshot.HasValue)
             .GroupBy(a => a.CreatedAt.Date)
             .Select(g => new { day = g.Key, avg = g.Average(x => x.ScoreSnapshot!.Value) })
@@ -35,14 +35,14 @@ public class AdminController : ControllerBase
 
         var skillCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
-        var req = await _db.RequiredSkill
-            .Join(_db.Skill, r => r.SkillId, s => s.Id, (r, s) => s.NormName)
+        var req = await _db.RequiredSkills
+            .Join(_db.Skills, r => r.SkillId, s => s.Id, (r, s) => s.NormName)
             .ToListAsync();
         foreach (var s in req)
             skillCounts[s] = skillCounts.TryGetValue(s, out var c) ? c + 1 : 1;
 
-        var docSkills = await _db.DocumentSkill
-            .Join(_db.Skill, ds => ds.SkillId, s => s.Id, (ds, s) => s.NormName)
+        var docSkills = await _db.DocumentSkills
+            .Join(_db.Skills, ds => ds.SkillId, s => s.Id, (ds, s) => s.NormName)
             .ToListAsync();
         foreach (var s in docSkills)
             skillCounts[s] = skillCounts.TryGetValue(s, out var c) ? c + 1 : 1;
@@ -53,9 +53,9 @@ public class AdminController : ControllerBase
             .Select(x => new { skill = x.Key, count = x.Value })
             .ToList();
 
-        int aiCalls = _db.ApicallLog != null
-            ? await _db.ApicallLog.CountAsync(l => l.CreatedAt >= start && l.CreatedAt <= end)
-            : await _db.Application.CountAsync(a => a.CreatedAt >= start && a.CreatedAt <= end);
+        int aiCalls = _db.ApicallLogs != null
+            ? await _db.ApicallLogs.CountAsync(l => l.CreatedAt >= start && l.CreatedAt <= end)
+            : await _db.Applications.CountAsync(a => a.CreatedAt >= start && a.CreatedAt <= end);
 
         return Ok(new { totals, range = new { start, end }, avgScoreByDay, topSkills, aiCalls });
     }
@@ -66,7 +66,7 @@ public class AdminController : ControllerBase
         var start = from ?? DateTime.UtcNow.AddDays(-7);
         var end = to ?? DateTime.UtcNow;
 
-        var logs = await _db.AdminLog
+        var logs = await _db.AdminLogs
             .Where(l => l.CreatedAt >= start && l.CreatedAt <= end)
             .OrderByDescending(l => l.CreatedAt)
             .Take(200)

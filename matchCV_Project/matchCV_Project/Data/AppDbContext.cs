@@ -16,55 +16,55 @@ public partial class AppDbContext : DbContext
     {
     }
 
-    public virtual DbSet<AdminLog> AdminLog { get; set; }
+    public virtual DbSet<AdminLog> AdminLogs { get; set; }
 
-    public virtual DbSet<ApicallLog> ApicallLog { get; set; }
+    public virtual DbSet<ApicallLog> ApicallLogs { get; set; }
 
-    public virtual DbSet<Apisetting> Apisetting { get; set; }
+    public virtual DbSet<Apisetting> Apisettings { get; set; }
 
-    public virtual DbSet<Application> Application { get; set; }
+    public virtual DbSet<Application> Applications { get; set; }
 
-    public virtual DbSet<Bullet> Bullet { get; set; }
+    public virtual DbSet<Bullet> Bullets { get; set; }
 
-    public virtual DbSet<Cvtemplate> Cvtemplate { get; set; }
+    public virtual DbSet<Cvtemplate> Cvtemplates { get; set; }
 
-    public virtual DbSet<Document> Document { get; set; }
+    public virtual DbSet<Document> Documents { get; set; }
 
-    public virtual DbSet<DocumentSkill> DocumentSkill { get; set; }
+    public virtual DbSet<DocumentSkill> DocumentSkills { get; set; }
 
-    public virtual DbSet<Education> Education { get; set; }
+    public virtual DbSet<Education> Educations { get; set; }
 
-    public virtual DbSet<Embedding> Embedding { get; set; }
+    public virtual DbSet<Embedding> Embeddings { get; set; }
 
-    public virtual DbSet<EmbeddingCache> EmbeddingCache { get; set; }
+    public virtual DbSet<EmbeddingCache> EmbeddingCaches { get; set; }
 
-    public virtual DbSet<EmbeddingOwnership> EmbeddingOwnership { get; set; }
+    public virtual DbSet<EmbeddingOwnership> EmbeddingOwnerships { get; set; }
 
-    public virtual DbSet<Experience> Experience { get; set; }
+    public virtual DbSet<Experience> Experiences { get; set; }
 
-    public virtual DbSet<Export> Export { get; set; }
+    public virtual DbSet<Export> Exports { get; set; }
 
-    public virtual DbSet<Job> Job { get; set; }
+    public virtual DbSet<Job> Jobs { get; set; }
 
-    public virtual DbSet<LicenseKey> LicenseKey { get; set; }
+    public virtual DbSet<LicenseKey> LicenseKeys { get; set; }
 
-    public virtual DbSet<MatchEvidence> MatchEvidence { get; set; }
+    public virtual DbSet<MatchEvidence> MatchEvidences { get; set; }
 
-    public virtual DbSet<MatchRun> MatchRun { get; set; }
+    public virtual DbSet<MatchRun> MatchRuns { get; set; }
 
-    public virtual DbSet<MissingItem> MissingItem { get; set; }
+    public virtual DbSet<MissingItem> MissingItems { get; set; }
 
-    public virtual DbSet<Ocrresult> Ocrresult { get; set; }
+    public virtual DbSet<Ocrresult> Ocrresults { get; set; }
 
-    public virtual DbSet<RequiredSkill> RequiredSkill { get; set; }
+    public virtual DbSet<RequiredSkill> RequiredSkills { get; set; }
 
-    public virtual DbSet<RewriteSuggestion> RewriteSuggestion { get; set; }
+    public virtual DbSet<RewriteSuggestion> RewriteSuggestions { get; set; }
 
-    public virtual DbSet<Section> Section { get; set; }
+    public virtual DbSet<Section> Sections { get; set; }
 
-    public virtual DbSet<Skill> Skill { get; set; }
+    public virtual DbSet<Skill> Skills { get; set; }
 
-    public virtual DbSet<User> User { get; set; }
+    public virtual DbSet<User> Users { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.

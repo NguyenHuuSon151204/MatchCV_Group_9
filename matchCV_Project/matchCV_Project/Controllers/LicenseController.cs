@@ -25,7 +25,7 @@ public class LicenseController : ControllerBase
     public async Task<IActionResult> Activate([FromBody] ActivateDto dto)
     {
         var hash = Sha256(dto.Key);
-        var lic = await _db.LicenseKey.FirstOrDefaultAsync(x => x.KeyHash == hash);
+        var lic = await _db.LicenseKeys.FirstOrDefaultAsync(x => x.KeyHash == hash);
         if (lic is null) return BadRequest("Invalid license key.");
 
         lic.IsActive = true;
@@ -40,7 +40,7 @@ public class LicenseController : ControllerBase
     [HttpGet("me")]
     public async Task<IActionResult> Me([FromQuery] int userId)
     {
-        var lic = await _db.LicenseKey
+        var lic = await _db.LicenseKeys
             .FirstOrDefaultAsync(x => x.AssignedUserId == userId && x.IsActive);
 
         if (lic is null)

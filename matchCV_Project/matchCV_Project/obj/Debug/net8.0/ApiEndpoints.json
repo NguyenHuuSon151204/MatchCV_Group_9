@@ -1,5 +1,21 @@
 [
   {
+    "ContainingType": "Program\u002B\u003C\u003Ec",
+    "Method": "\u003C\u003CMain\u003E$\u003Eb__0_3",
+    "RelativePath": "",
+    "HttpMethod": "GET",
+    "IsController": false,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": [
+      {
+        "Type": "System.Void",
+        "MediaTypes": [],
+        "StatusCode": 200
+      }
+    ]
+  },
+  {
     "ContainingType": "matchCV_Project.Controllers.AdminController",
     "Method": "Logs",
     "RelativePath": "api/admin/logs",
@@ -59,7 +75,7 @@
   },
   {
     "ContainingType": "matchCV_Project.Controllers.LicenseController",
-    "Method": "GetForUser",
+    "Method": "Me",
     "RelativePath": "api/license/me",
     "HttpMethod": "GET",
     "IsController": true,
@@ -96,8 +112,8 @@
   },
   {
     "ContainingType": "matchCV_Project.Controllers.RecruiterController",
-    "Method": "GetJds",
-    "RelativePath": "api/recruiter/jds",
+    "Method": "GetJobs",
+    "RelativePath": "api/recruiter/jobs",
     "HttpMethod": "GET",
     "IsController": true,
     "Order": 0,
@@ -117,15 +133,15 @@
   },
   {
     "ContainingType": "matchCV_Project.Controllers.RecruiterController",
-    "Method": "CreateJd",
-    "RelativePath": "api/recruiter/jds",
+    "Method": "CreateJob",
+    "RelativePath": "api/recruiter/jobs",
     "HttpMethod": "POST",
     "IsController": true,
     "Order": 0,
     "Parameters": [
       {
-        "Name": "jd",
-        "Type": "matchCV_Project.Models.JD",
+        "Name": "input",
+        "Type": "matchCV_Project.Models.Job",
         "IsRequired": true
       }
     ],
@@ -133,8 +149,8 @@
   },
   {
     "ContainingType": "matchCV_Project.Controllers.RecruiterController",
-    "Method": "GetJd",
-    "RelativePath": "api/recruiter/jds/{id}",
+    "Method": "GetJob",
+    "RelativePath": "api/recruiter/jobs/{id}",
     "HttpMethod": "GET",
     "IsController": true,
     "Order": 0,
@@ -149,8 +165,8 @@
   },
   {
     "ContainingType": "matchCV_Project.Controllers.RecruiterController",
-    "Method": "UpdateJd",
-    "RelativePath": "api/recruiter/jds/{id}",
+    "Method": "UpdateJob",
+    "RelativePath": "api/recruiter/jobs/{id}",
     "HttpMethod": "PUT",
     "IsController": true,
     "Order": 0,
@@ -162,7 +178,7 @@
       },
       {
         "Name": "input",
-        "Type": "matchCV_Project.Models.JD",
+        "Type": "matchCV_Project.Models.Job",
         "IsRequired": true
       }
     ],
@@ -170,8 +186,8 @@
   },
   {
     "ContainingType": "matchCV_Project.Controllers.RecruiterController",
-    "Method": "DeleteJd",
-    "RelativePath": "api/recruiter/jds/{id}",
+    "Method": "DeleteJob",
+    "RelativePath": "api/recruiter/jobs/{id}",
     "HttpMethod": "DELETE",
     "IsController": true,
     "Order": 0,
@@ -187,7 +203,7 @@
   {
     "ContainingType": "matchCV_Project.Controllers.RecruiterController",
     "Method": "GetApplications",
-    "RelativePath": "api/recruiter/jds/{id}/applications",
+    "RelativePath": "api/recruiter/jobs/{id}/applications",
     "HttpMethod": "GET",
     "IsController": true,
     "Order": 0,
@@ -213,7 +229,7 @@
   {
     "ContainingType": "matchCV_Project.Controllers.RecruiterController",
     "Method": "Apply",
-    "RelativePath": "api/recruiter/jds/{id}/apply",
+    "RelativePath": "api/recruiter/jobs/{id}/apply",
     "HttpMethod": "POST",
     "IsController": true,
     "Order": 0,
@@ -230,26 +246,5 @@
       }
     ],
     "ReturnTypes": []
-  },
-  {
-    "ContainingType": "matchCV_Project.Controllers.WeatherForecastController",
-    "Method": "Get",
-    "RelativePath": "WeatherForecast",
-    "HttpMethod": "GET",
-    "IsController": true,
-    "Order": 0,
-    "Parameters": [],
-    "ReturnTypes": [
-      {
-        "Type": "System.Collections.Generic.IEnumerable\u00601[[matchCV_Project.WeatherForecast, matchCV_Project, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null]]",
-        "MediaTypes": [
-          "text/plain",
-          "application/json",
-          "text/json"
-        ],
-        "StatusCode": 200
-      }
-    ],
-    "EndpointName": "GetWeatherForecast"
   }
 ]

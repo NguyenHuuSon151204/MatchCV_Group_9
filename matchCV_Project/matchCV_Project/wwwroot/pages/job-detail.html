@@ -1,0 +1,144 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>MatchCV – Job Detail</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/components/header.css">
+    <link rel="stylesheet" href="/css/components/sidebar.css">
+    <link rel="stylesheet" href="/css/components/topbar.css">
+</head>
+<body>
+    <div class="app-shell">
+        <div id="sidebar"></div>
+
+        <main class="main">
+            <div id="header"></div>
+            <div id="topbar"></div>
+
+            <div class="content">
+                <div class="section-header">
+                    <div>
+                        <h1 class="section-title" id="jobTitle">Job Detail</h1>
+                        <p class="section-subtitle" id="jobMeta"></p>
+                    </div>
+                    <div class="flex">
+                        <button class="btn btn-outline" onclick="window.location.href='/pages/recruiter.html'">← Back</button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Job Description</h2>
+                    </div>
+                    <p id="jobDescription" class="small"></p>
+                </div>
+
+                <div class="card mt-3">
+                    <div class="card-header">
+                        <h2 class="card-title">Applicants</h2>
+                        <div class="flex">
+                            <input id="filterStatus" class="input" placeholder="Filter by status (Pending/Reviewed/...)" style="width:200px;">
+                            <input id="filterScore" class="input" placeholder="Min score" style="width:120px;">
+                            <button class="btn btn-outline" id="btnFilter">Filter</button>
+                        </div>
+                    </div>
+                    <div class="table-wrapper">
+                        <table class="table" id="appTable">
+                            <thead>
+                                <tr>
+                                    <th>Applicant</th>
+                                    <th>AI Score</th>
+                                    <th>Summary</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="/js/main.js"></script>
+    <script>
+        const params = new URLSearchParams(location.search);
+        const jobId = params.get("id") || 0;
+
+        Promise.all([
+            loadPartial("#sidebar", "/partials/sidebar.html"),
+            loadPartial("#header", "/partials/header.html"),
+            loadPartial("#topbar", "/partials/topbar.html")
+        ]).then(() => {
+            setActiveNav("nav-jobs");
+            initJobDetail();
+        });
+
+        async function initJobDetail() {
+            document.getElementById("btnFilter").addEventListener("click", loadApplications);
+            await loadJob();
+            await loadApplications();
+        }
+
+        async function loadJob() {
+            try {
+                const job = await apiGet(`/api/recruiter/jobs/${jobId}`);
+                document.getElementById("jobTitle").innerText = job.title;
+                const created = job.createdAt ? job.createdAt.substring(0, 10) : "";
+                document.getElementById("jobMeta").innerText = `${job.company} • Created ${created}`;
+                document.getElementById("jobDescription").innerText = job.rawText || "(No description)";
+            } catch (e) {
+                alert("Failed to load job: " + e.message);
+            }
+        }
+
+        async function loadApplications() {
+            let url = `/api/recruiter/jobs/${jobId}/applications?`;
+            const st = document.getElementById("filterStatus").value.trim();
+            const sc = document.getElementById("filterScore").value.trim();
+            if (st) url += `status=${encodeURIComponent(st)}&`;
+            if (sc) url += `minScore=${encodeURIComponent(sc)}`;
+
+            try {
+                const apps = await apiGet(url);
+                renderApps(apps);
+            } catch (e) {
+                alert("Failed to load applications: " + e.message);
+            }
+        }
+
+        function renderApps(apps) {
+            const tbody = document.querySelector("#appTable tbody");
+            tbody.innerHTML = "";
+            if (!apps || apps.length === 0) {
+                const tr = document.createElement("tr");
+                tr.innerHTML = `<td colspan="4">No applicants found.</td>`;
+                tbody.appendChild(tr);
+                return;
+            }
+
+            apps.forEach(a => {
+                const tr = document.createElement("tr");
+                const scoreText = a.scoreSnapshot != null ? a.scoreSnapshot + "%" : "–";
+                const cls = (() => {
+                    switch (a.status) {
+                        case "Hired": return "badge-open";
+                        case "Rejected": return "badge-closed";
+                        case "Reviewed": return "badge-reviewing";
+                        default: return "badge-neutral";
+                    }
+                })();
+                tr.innerHTML = `
+            <td>${a.candidate.displayName}<br><span class="small">${a.candidate.email}</span></td>
+            <td>${scoreText}</td>
+            <td>${a.summary ?? ""}</td>
+            <td><span class="badge ${cls}">${a.status}</span></td>
+          `;
+                tbody.appendChild(tr);
+            });
+        }
+    </script>
+</body>
+</html>

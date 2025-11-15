@@ -1,6 +1,72 @@
-@matchCV_Project_HostAddress = http://localhost:5185
-
-GET {{matchCV_Project_HostAddress}}/weatherforecast/
-Accept: application/json
+﻿@host = https://localhost:5001
+# Nếu chạy HTTP:
+# @host = http://localhost:5000
 
 ###
+# Recruiter - Get all jobs
+GET {{host}}/api/recruiter/jobs
+
+###
+# Recruiter - Search jobs
+GET {{host}}/api/recruiter/jobs?q=Backend
+
+###
+# Recruiter - Create job
+POST {{host}}/api/recruiter/jobs
+Content-Type: application/json
+
+{
+  "title": "Backend .NET Developer",
+  "company": "Acme",
+  "rawText": "We are looking for a .NET developer with SQL and Azure experience.",
+  "userId": 2
+}
+
+###
+# Recruiter - Get job by id
+GET {{host}}/api/recruiter/jobs/1
+
+###
+# Recruiter - Get applications for a job
+GET {{host}}/api/recruiter/jobs/1/applications
+
+###
+# Recruiter - Apply CV to job
+POST {{host}}/api/recruiter/jobs/1/apply
+Content-Type: application/json
+
+{
+  "documentId": 1,
+  "candidateId": 3
+}
+
+###
+# Recruiter - Update application status
+PATCH {{host}}/api/recruiter/applications/1/status
+Content-Type: application/json
+
+{
+  "status": "Reviewed"
+}
+
+###
+# License - Activate key
+POST {{host}}/api/license/activate
+Content-Type: application/json
+
+{
+  "key": "YOUR_LICENSE_KEY_PLAIN",
+  "userId": 2
+}
+
+###
+# License - Get current plan of user
+GET {{host}}/api/license/me?userId=2
+
+###
+# Admin - Summary dashboard
+GET {{host}}/api/admin/summary
+
+###
+# Admin - Logs
+GET {{host}}/api/admin/logs

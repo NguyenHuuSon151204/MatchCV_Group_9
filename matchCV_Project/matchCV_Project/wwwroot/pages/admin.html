@@ -1,0 +1,187 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Admin Dashboard – MatchCV</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/components/header.css">
+    <link rel="stylesheet" href="/css/components/sidebar.css">
+    <link rel="stylesheet" href="/css/components/topbar.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="app-shell">
+        <div id="sidebar"></div>
+
+        <main class="main">
+            <div id="header"></div>
+            <div id="topbar"></div>
+
+            <div class="content">
+                <div class="section-header">
+                    <div>
+                        <h1 class="section-title">Admin Dashboard</h1>
+                        <p class="section-subtitle">
+                            Monitor system usage, AI calls, and matching performance.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="main-grid">
+                    <section>
+                        <div class="card">
+                            <div class="card-header">
+                                <h2 class="card-title">Overview</h2>
+                                <div class="small" id="summaryRange"></div>
+                            </div>
+                            <div class="flex" style="flex-wrap:wrap; gap:12px;">
+                                <div>
+                                    <span class="small">Users</span><br>
+                                    <span id="sumUsers" style="font-size:18px;font-weight:600;">–</span>
+                                </div>
+                                <div>
+                                    <span class="small">CVs</span><br>
+                                    <span id="sumCvs" style="font-size:18px;font-weight:600;">–</span>
+                                </div>
+                                <div>
+                                    <span class="small">Jobs</span><br>
+                                    <span id="sumJobs" style="font-size:18px;font-weight:600;">–</span>
+                                </div>
+                                <div>
+                                    <span class="small">Applications</span><br>
+                                    <span id="sumApps" style="font-size:18px;font-weight:600;">–</span>
+                                </div>
+                                <div>
+                                    <span class="small">AI Calls</span><br>
+                                    <span id="sumAiCalls" style="font-size:18px;font-weight:600;">–</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card mt-3">
+                            <div class="card-header">
+                                <h2 class="card-title">Average Application Score by Day</h2>
+                            </div>
+                            <canvas id="scoreChart" height="100"></canvas>
+                        </div>
+                    </section>
+
+                    <aside>
+                        <div class="card">
+                            <h2 class="card-title">Top Skills</h2>
+                            <div id="adminSkills" class="skill-tags"></div>
+                        </div>
+
+                        <div class="card">
+                            <h2 class="card-title">Recent Admin Logs</h2>
+                            <ul id="adminLogs" class="notes-list"></ul>
+                        </div>
+                    </aside>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="/js/main.js"></script>
+    <script>
+        let chartInstance = null;
+
+        Promise.all([
+            loadPartial("#sidebar", "/partials/sidebar.html"),
+            loadPartial("#header", "/partials/header.html"),
+            loadPartial("#topbar", "/partials/topbar.html")
+        ]).then(() => {
+            setActiveNav("nav-insights");
+            initAdmin();
+        });
+
+        async function initAdmin() {
+            await Promise.all([
+                loadSummary(),
+                loadSkills(),
+                loadLogs()
+            ]);
+        }
+
+        async function loadSummary() {
+            try {
+                const data = await apiGet("/api/admin/summary");
+
+                const t = data.totals || {};
+                document.getElementById("sumUsers").innerText = t.users ?? 0;
+                document.getElementById("sumCvs").innerText = t.cvs ?? 0;
+                document.getElementById("sumJobs").innerText = t.jobs ?? 0;
+                document.getElementById("sumApps").innerText = t.apps ?? 0;
+                document.getElementById("sumAiCalls").innerText = data.aiCalls ?? 0;
+
+                const start = data.range.start.substring(0, 10);
+                const end = data.range.end.substring(0, 10);
+                document.getElementById("summaryRange").innerText = `From ${start} to ${end}`;
+
+                const labels = data.avgScoreByDay.map(x => x.day.substring(0, 10));
+                const values = data.avgScoreByDay.map(x => x.avg);
+
+                const ctx = document.getElementById("scoreChart").getContext("2d");
+                if (chartInstance) chartInstance.destroy();
+                chartInstance = new Chart(ctx, {
+                    type: "line",
+                    data: {
+                        labels,
+                        datasets: [{
+                            label: "Average score",
+                            data: values,
+                            tension: 0.3
+                        }]
+                    },
+                    options: {
+                        scales: {
+                            y: { beginAtZero: true, max: 100 }
+                        }
+                    }
+                });
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        async function loadSkills() {
+            try {
+                const data = await apiGet("/api/admin/summary");
+                const el = document.getElementById("adminSkills");
+                el.innerHTML = "";
+                (data.topSkills || []).forEach(s => {
+                    const span = document.createElement("span");
+                    span.className = "pill";
+                    span.textContent = `${s.skill} (${s.count})`;
+                    el.appendChild(span);
+                });
+                if (!data.topSkills || data.topSkills.length === 0) {
+                    const span = document.createElement("span");
+                    span.className = "pill";
+                    span.textContent = "No data yet";
+                    el.appendChild(span);
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        async function loadLogs() {
+            try {
+                const logs = await apiGet("/api/admin/logs");
+                const ul = document.getElementById("adminLogs");
+                ul.innerHTML = "";
+                logs.slice(0, 20).forEach(l => {
+                    const li = document.createElement("li");
+                    const ts = l.createdAt.substring(0, 19).replace("T", " ");
+                    li.textContent = `[${ts}] ${l.actor} - ${l.action} ${l.entity}#${l.entityId ?? ""}`;
+                    ul.appendChild(li);
+                });
+            } catch (e) {
+                console.error(e);
+            }
+        }
+    </script>
+</body>
+</html>

@@ -23,7 +23,7 @@ public class RecruiterController : ControllerBase
     [HttpGet("jobs")]
     public async Task<IActionResult> GetJobs([FromQuery] string? q, [FromQuery] string? company)
     {
-        var query = _db.Job.AsQueryable();
+        var query = _db.Jobs.AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(q))
             query = query.Where(j => j.Title.Contains(q) || j.RawText.Contains(q));
@@ -39,7 +39,7 @@ public class RecruiterController : ControllerBase
                 j.Title,
                 j.Company,
                 j.CreatedAt,
-                Applications = _db.Application.Count(a => a.JobId == j.Id)
+                Applications = _db.Applications.Count(a => a.JobId == j.Id)
             })
             .ToListAsync();
 
@@ -50,7 +50,7 @@ public class RecruiterController : ControllerBase
     [HttpGet("jobs/{id:int}")]
     public async Task<IActionResult> GetJob(int id)
     {
-        var job = await _db.Job.FindAsync(id);
+        var job = await _db.Jobs.FindAsync(id);
         return job is null ? NotFound("Job not found.") : Ok(job);
     }
 
@@ -63,12 +63,12 @@ public class RecruiterController : ControllerBase
 
         input.CreatedAt = DateTime.UtcNow;
         if (input.UserId == 0)
-            input.UserId = await _db.User
+            input.UserId = await _db.Users
                 .Where(u => u.Role == "Recruiter")
                 .Select(u => u.Id)
                 .FirstOrDefaultAsync();
 
-        _db.Job.Add(input);
+        _db.Jobs.Add(input);
         await _db.SaveChangesAsync();
         return CreatedAtAction(nameof(GetJob), new { id = input.Id }, input);
     }
@@ -78,7 +78,7 @@ public class RecruiterController : ControllerBase
     public async Task<IActionResult> UpdateJob(int id, [FromBody] Job input)
     {
         if (id != input.Id) return BadRequest("ID mismatch.");
-        var exists = await _db.Job.AnyAsync(j => j.Id == id);
+        var exists = await _db.Jobs.AnyAsync(j => j.Id == id);
         if (!exists) return NotFound("Job not found.");
 
         _db.Entry(input).State = EntityState.Modified;
@@ -90,9 +90,9 @@ public class RecruiterController : ControllerBase
     [HttpDelete("jobs/{id:int}")]
     public async Task<IActionResult> DeleteJob(int id)
     {
-        var job = await _db.Job.FindAsync(id);
+        var job = await _db.Jobs.FindAsync(id);
         if (job is null) return NotFound("Job not found.");
-        _db.Job.Remove(job);
+        _db.Jobs.Remove(job);
         await _db.SaveChangesAsync();
         return NoContent();
     }
@@ -103,13 +103,13 @@ public class RecruiterController : ControllerBase
         [FromQuery] string? status,
         [FromQuery] int? minScore)
     {
-        var jobExists = await _db.Job.AnyAsync(j => j.Id == id);
+        var jobExists = await _db.Jobs.AnyAsync(j => j.Id == id);
         if (!jobExists) return NotFound("Job not found.");
 
-        var q = _db.Application
+        var q = _db.Applications
             .Where(a => a.JobId == id)
-            .Join(_db.User, a => a.CandidateId, u => u.Id, (a, u) => new { a, Candidate = u })
-            .Join(_db.Document, x => x.a.DocumentId, d => d.Id, (x, d) => new { x.a, x.Candidate, Cv = d });
+            .Join(_db.Users, a => a.CandidateId, u => u.Id, (a, u) => new { a, Candidate = u })
+            .Join(_db.Documents, x => x.a.DocumentId, d => d.Id, (x, d) => new { x.a, x.Candidate, Cv = d });
 
         if (!string.IsNullOrWhiteSpace(status))
             q = q.Where(x => x.a.Status == status);
@@ -149,9 +149,9 @@ public class RecruiterController : ControllerBase
     [HttpPost("jobs/{id:int}/apply")]
     public async Task<IActionResult> Apply(int id, [FromBody] ApplyDto dto)
     {
-        var job = await _db.Job.FindAsync(id);
-        var cv = await _db.Document.FirstOrDefaultAsync(d => d.Id == dto.DocumentId && d.DocType == "CV");
-        var user = await _db.User.FindAsync(dto.CandidateId);
+        var job = await _db.Jobs.FindAsync(id);
+        var cv = await _db.Documents.FirstOrDefaultAsync(d => d.Id == dto.DocumentId && d.DocType == "CV");
+        var user = await _db.Users.FindAsync(dto.CandidateId);
 
         if (job is null || cv is null || user is null)
             return BadRequest("Invalid Job/CV/User.");
@@ -170,8 +170,8 @@ public class RecruiterController : ControllerBase
             CreatedAt = DateTime.UtcNow
         };
 
-        _db.Application.Add(app);
-        _db.AdminLog.Add(new AdminLog
+        _db.Applications.Add(app);
+        _db.AdminLogs.Add(new AdminLog
         {
             Actor = user.Email,
             Action = "Apply",
@@ -191,7 +191,7 @@ public class RecruiterController : ControllerBase
     [HttpPatch("applications/{id:int}/status")]
     public async Task<IActionResult> UpdateStatus(int id, [FromBody] StatusDto dto)
     {
-        var app = await _db.Application.FindAsync(id);
+        var app = await _db.Applications.FindAsync(id);
         if (app is null) return NotFound("Application not found.");
 
         app.Status = dto.Status;

@@ -1,0 +1,23 @@
+﻿:root {
+    --bg-body: #020617;
+    --bg-shell: radial-gradient(circle at top, #111827 0, #020617 45%, #000 100%);
+    --bg-sidebar: #020617;
+    --bg-card: #0b1120;
+    --bg-card-soft: #111827;
+    --bg-table-row-odd: rgba(15,23,42,0.95);
+    --bg-table-row-even: rgba(15,23,42,0.85);
+    --border-subtle: rgba(148,163,184,0.2);
+    --border-strong: rgba(15,23,42,0.8);
+    --accent: #6366f1;
+    --accent-soft: rgba(99,102,241,0.2);
+    --accent-strong: #22c55e;
+    --text-main: #e5e7eb;
+    --text-muted: #9ca3af;
+    --text-soft: #6b7280;
+    --danger: #ef4444;
+    --warning: #f59e0b;
+    --info: #38bdf8;
+    --radius-card: 18px;
+    --radius-pill: 999px;
+    --shadow-card: 0 24px 60px rgba(15,23,42,0.7);
+}
