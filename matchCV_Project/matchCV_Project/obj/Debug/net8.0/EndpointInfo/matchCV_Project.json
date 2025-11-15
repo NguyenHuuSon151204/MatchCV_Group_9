@@ -165,17 +165,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/Job"
+                "$ref": "#/components/schemas/CreateJobDto"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/Job"
+                "$ref": "#/components/schemas/CreateJobDto"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/Job"
+                "$ref": "#/components/schemas/CreateJobDto"
               }
             }
           }
@@ -500,6 +500,24 @@
           },
           "section": {
             "$ref": "#/components/schemas/Section"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateJobDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "nullable": true
+          },
+          "company": {
+            "type": "string",
+            "nullable": true
+          },
+          "rawText": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false

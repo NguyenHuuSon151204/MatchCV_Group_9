@@ -141,7 +141,7 @@
     "Parameters": [
       {
         "Name": "input",
-        "Type": "matchCV_Project.Models.Job",
+        "Type": "matchCV_Project.Controllers.RecruiterController\u002BCreateJobDto",
         "IsRequired": true
       }
     ],

@@ -1,6 +1,6 @@
 wwwroot\css\style.css
-wwwroot\pages\create-job.html
 wwwroot\pages\job-detail.html
+wwwroot\js\main.js
 wwwroot\css\site.css
 wwwroot\partials\topbar.html
 wwwroot\partials\sidebar.html
@@ -12,4 +12,4 @@ wwwroot\css\components\sidebar.css
 wwwroot\css\variables.css
 wwwroot\css\components\header.css
 wwwroot\pages\admin.html
-wwwroot\js\main.js
+wwwroot\pages\create-job.html

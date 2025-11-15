@@ -13,6 +13,13 @@ public class RecruiterController : ControllerBase
     private readonly AppDbContext _db;
     private readonly IAiService _ai;
 
+    public record CreateJobDto(
+    string Title,
+    string Company,
+    string RawText
+);
+
+
     public RecruiterController(AppDbContext db, IAiService ai)
     {
         _db = db;
@@ -56,22 +63,37 @@ public class RecruiterController : ControllerBase
 
     // POST: /api/recruiter/jobs
     [HttpPost("jobs")]
-    public async Task<IActionResult> CreateJob([FromBody] Job input)
+    public async Task<IActionResult> CreateJob([FromBody] CreateJobDto input)
     {
         if (string.IsNullOrWhiteSpace(input.Title) || string.IsNullOrWhiteSpace(input.Company))
             return BadRequest("Title and Company are required.");
 
-        input.CreatedAt = DateTime.UtcNow;
-        if (input.UserId == 0)
-            input.UserId = await _db.Users
-                .Where(u => u.Role == "Recruiter")
-                .Select(u => u.Id)
-                .FirstOrDefaultAsync();
+        // Tìm user recruiter mặc định (giống logic cũ)
+        var recruiterId = await _db.Users
+            .Where(u => u.Role == "Recruiter")
+            .Select(u => u.Id)
+            .FirstOrDefaultAsync();
 
-        _db.Jobs.Add(input);
+        if (recruiterId == 0)
+        {
+            return BadRequest("No recruiter user found to own this job.");
+        }
+
+        var job = new Job
+        {
+            Title = input.Title.Trim(),
+            Company = input.Company.Trim(),
+            RawText = input.RawText?.Trim() ?? "",
+            UserId = recruiterId,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _db.Jobs.Add(job);
         await _db.SaveChangesAsync();
-        return CreatedAtAction(nameof(GetJob), new { id = input.Id }, input);
+
+        return CreatedAtAction(nameof(GetJob), new { id = job.Id }, job);
     }
+
 
     // PUT: /api/recruiter/jobs/{id}
     [HttpPut("jobs/{id:int}")]
