@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Applicants – MatchCV</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/components/header.css">
+    <link rel="stylesheet" href="/css/components/sidebar.css">
+    <link rel="stylesheet" href="/css/components/topbar.css">
+</head>
+<body>
+    <div class="app-shell">
+        <div id="sidebar"></div>
+
+        <main class="main">
+            <div id="header"></div>
+            <div id="topbar"></div>
+
+            <div class="content">
+                <div class="section-header">
+                    <div>
+                        <h1 class="section-title">Applicants</h1>
+                        <p class="section-subtitle">View and manage all applicants across all jobs.</p>
+                    </div>
+                    <div class="flex">
+                        <button class="btn btn-outline" id="btnExport">Export Report</button>
+                    </div>
+                </div>
+
+                <!-- Filters -->
+                <div class="card mb-2">
+                    <div class="flex" style="flex-wrap: wrap; gap: 8px;">
+                        <select id="filterJob" class="select" style="width: 200px;">
+                            <option value="">All Jobs</option>
+                        </select>
+                        <select id="filterStatus" class="select" style="width: 150px;">
+                            <option value="">All Status</option>
+                            <option value="Pending">Pending</option>
+                            <option value="Reviewed">Reviewed</option>
+                            <option value="Hired">Hired</option>
+                            <option value="Rejected">Rejected</option>
+                        </select>
+                        <input id="filterMinScore" class="input" type="number" placeholder="Min Score" style="width: 120px;" min="0" max="100">
+                        <button class="btn btn-outline" id="btnFilter">Filter</button>
+                        <button class="btn btn-ghost" id="btnClearFilter">Clear</button>
+                    </div>
+                </div>
+
+                <!-- Applicants Table -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">All Applicants</h2>
+                        <span class="small" id="applicantCount">0 applicants</span>
+                    </div>
+                    <div class="table-wrapper">
+                        <table class="table" id="applicantTable">
+                            <thead>
+                                <tr>
+                                    <th>Applicant</th>
+                                    <th>Job</th>
+                                    <th>AI Score</th>
+                                    <th>Matching Skills</th>
+                                    <th>Status</th>
+                                    <th>Applied</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="/js/main.js"></script>
+    <script>
+        Promise.all([
+            loadPartial("#sidebar", "/partials/sidebar.html"),
+            loadPartial("#header", "/partials/header.html"),
+            loadPartial("#topbar", "/partials/topbar.html")
+        ]).then(() => {
+            setActiveNav("nav-applicants");
+            initApplicants();
+        });
+
+        let allJobs = [];
+        let allApplicants = [];
+
+        async function initApplicants() {
+            document.getElementById("btnExport").addEventListener("click", exportReport);
+            document.getElementById("btnFilter").addEventListener("click", loadApplicants);
+            document.getElementById("btnClearFilter").addEventListener("click", () => {
+                document.getElementById("filterJob").value = "";
+                document.getElementById("filterStatus").value = "";
+                document.getElementById("filterMinScore").value = "";
+                loadApplicants();
+            });
+
+            await loadJobs();
+            await loadApplicants();
+        }
+
+        async function loadJobs() {
+            try {
+                allJobs = await apiGet("/api/recruiter/jobs");
+                const select = document.getElementById("filterJob");
+                allJobs.forEach(job => {
+                    const option = document.createElement("option");
+                    option.value = job.id;
+                    option.textContent = `${job.title} (${job.company})`;
+                    select.appendChild(option);
+                });
+            } catch (e) {
+                console.error("Failed to load jobs:", e);
+            }
+        }
+
+        async function loadApplicants() {
+            try {
+                const jobId = document.getElementById("filterJob").value;
+                const status = document.getElementById("filterStatus").value;
+                const minScore = document.getElementById("filterMinScore").value;
+
+                // Load applicants từ tất cả jobs hoặc job cụ thể
+                if (jobId) {
+                    let url = `/api/recruiter/jobs/${jobId}/applications?`;
+                    if (status) url += `status=${encodeURIComponent(status)}&`;
+                    if (minScore) url += `minScore=${encodeURIComponent(minScore)}&`;
+                    
+                    allApplicants = await apiGet(url);
+                    // Thêm job info vào mỗi applicant
+                    const job = allJobs.find(j => j.id == parseInt(jobId));
+                    allApplicants = allApplicants.map(app => ({
+                        ...app,
+                        jobTitle: job?.title || "Unknown",
+                        jobCompany: job?.company || "Unknown"
+                    }));
+                } else {
+                    // Load từ tất cả jobs
+                    const promises = allJobs.map(job => {
+                        let url = `/api/recruiter/jobs/${job.id}/applications?`;
+                        if (status) url += `status=${encodeURIComponent(status)}&`;
+                        if (minScore) url += `minScore=${encodeURIComponent(minScore)}&`;
+                        return apiGet(url).then(apps => 
+                            apps.map(app => ({
+                                ...app,
+                                jobTitle: job.title,
+                                jobCompany: job.company,
+                                jobId: job.id
+                            }))
+                        );
+                    });
+                    const results = await Promise.all(promises);
+                    allApplicants = results.flat();
+                }
+
+                // Filter thêm theo minScore nếu chưa filter ở backend
+                if (minScore && !jobId) {
+                    allApplicants = allApplicants.filter(app => 
+                        app.scoreSnapshot != null && app.scoreSnapshot >= parseInt(minScore)
+                    );
+                }
+
+                // Sort by score descending
+                allApplicants.sort((a, b) => (b.scoreSnapshot || 0) - (a.scoreSnapshot || 0));
+
+                document.getElementById("applicantCount").innerText = `${allApplicants.length} applicant${allApplicants.length !== 1 ? 's' : ''}`;
+                renderApplicants();
+            } catch (e) {
+                alert("Failed to load applicants: " + e.message);
+            }
+        }
+
+        function renderApplicants() {
+            const tbody = document.querySelector("#applicantTable tbody");
+            tbody.innerHTML = "";
+
+            if (!allApplicants || allApplicants.length === 0) {
+                const tr = document.createElement("tr");
+                tr.innerHTML = `<td colspan="7">No applicants found.</td>`;
+                tbody.appendChild(tr);
+                return;
+            }
+
+            allApplicants.forEach(a => {
+                const tr = document.createElement("tr");
+                const statusClass = (() => {
+                    switch (a.status) {
+                        case "Hired": return "badge-open";
+                        case "Rejected": return "badge-closed";
+                        case "Reviewed": return "badge-reviewing";
+                        default: return "badge-neutral";
+                    }
+                })();
+                const scoreText = a.scoreSnapshot != null ? Math.round(a.scoreSnapshot) + "%" : "–";
+                
+                // Hiển thị Matching Skills dạng tags
+                const matchingSkillsHtml = (a.matchingSkills && a.matchingSkills.length > 0)
+                    ? a.matchingSkills.map(skill => `<span class="pill">${skill}</span>`).join(" ")
+                    : '<span class="small" style="color: var(--text-muted);">No matching skills</span>';
+                
+                const appliedDate = a.createdAt ? new Date(a.createdAt).toLocaleDateString() : "–";
+
+                tr.innerHTML = `
+                    <td>
+                        <strong>${a.candidate.displayName}</strong><br>
+                        <span class="small">${a.candidate.email}</span>
+                    </td>
+                    <td>
+                        <strong>${a.jobTitle || "Unknown"}</strong><br>
+                        <span class="small">${a.jobCompany || ""}</span>
+                    </td>
+                    <td><span class="pill" style="font-weight:600;">${scoreText}</span></td>
+                    <td><div style="display:flex;flex-wrap:wrap;gap:4px;">${matchingSkillsHtml}</div></td>
+                    <td><span class="badge ${statusClass}">${a.status}</span></td>
+                    <td class="small">${appliedDate}</td>
+                    <td class="text-right">
+                        <button class="btn btn-outline" style="font-size:11px;padding:4px 10px;" onclick="viewCv(${a.document.id})">View CV</button>
+                        ${a.jobId ? `<button class="btn btn-outline" style="font-size:11px;padding:4px 10px;" onclick="viewJob(${a.jobId})">View Job</button>` : ''}
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function viewCv(documentId) {
+            alert("CV viewer not implemented yet. Document ID: " + documentId);
+        }
+
+        function viewJob(jobId) {
+            window.location.href = `/pages/job-detail.html?id=${jobId}`;
+        }
+
+        async function exportReport() {
+            try {
+                // Tạo CSV report
+                const csvRows = ["Applicant,Email,Job,Company,AI Score,Matching Skills,Status,Applied Date"];
+                allApplicants.forEach(a => {
+                    const score = a.scoreSnapshot != null ? Math.round(a.scoreSnapshot) : "N/A";
+                    const skills = (a.matchingSkills && a.matchingSkills.length > 0) 
+                        ? a.matchingSkills.join("; ") 
+                        : "None";
+                    const appliedDate = a.createdAt ? new Date(a.createdAt).toLocaleDateString() : "N/A";
+                    csvRows.push(`"${a.candidate.displayName}","${a.candidate.email}","${a.jobTitle || "Unknown"}","${a.jobCompany || ""}",${score},"${skills}","${a.status}","${appliedDate}"`);
+                });
+
+                const csvContent = csvRows.join("\n");
+                const blob = new Blob([csvContent], { type: "text/csv" });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `applicants-report-${new Date().toISOString().split('T')[0]}.csv`;
+                a.click();
+                window.URL.revokeObjectURL(url);
+            } catch (e) {
+                alert("Failed to export report: " + e.message);
+            }
+        }
+    </script>
+</body>
+</html>
+

@@ -23,7 +23,7 @@
                         <h1 class="section-title">Create Job</h1>
                         <p class="section-subtitle">Post a new job and start receiving AI-scored applicants.</p>
                     </div>
-                    <button class="btn btn-outline" onclick="window.location.href='/pages/recruiter.html'">← Back</button>
+                    <button class="btn btn-outline" onclick="window.location.href='/pages/job-listings.html'">← Back</button>
                 </div>
 
                 <div class="card">
@@ -74,7 +74,7 @@
             try {
                 await apiSend("/api/recruiter/jobs", "POST", body);
                 alert("Job created successfully.");
-                window.location.href = "/pages/recruiter.html";
+                window.location.href = "/pages/job-listings.html";
             } catch (e) {
                 alert("Failed to create job: " + e.message);
             }

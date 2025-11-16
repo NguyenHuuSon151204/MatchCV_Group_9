@@ -41,6 +41,18 @@ body {
     align-items: flex-start;
 }
 
+@media (max-width: 1024px) {
+    .main-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+aside {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
 .content {
     margin-top: 10px;
 }
@@ -271,13 +283,40 @@ h1, h2, h3, h4 {
     margin-bottom: 8px;
 }
 
+.skill-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.notes-list {
+    list-style: none;
+    padding: 0;
+    margin: 8px 0 0 0;
+}
+
+.notes-list li {
+    padding: 6px 0;
+    font-size: 12px;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.notes-list li:last-child {
+    border-bottom: none;
+}
+
 .link {
     color: var(--accent);
     text-decoration: none;
     font-size: 12px;
+    font-weight: 500;
+    transition: color 0.2s;
 }
 
     .link:hover {
+        color: var(--accent-strong);
         text-decoration: underline;
     }
 

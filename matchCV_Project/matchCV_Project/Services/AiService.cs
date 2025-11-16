@@ -57,5 +57,56 @@ public class AiService : IAiService
     }
 
     public string SummarizeCv(Document cv)
-        => $"Summary of CV \"{cv.OriginalName}\" (Doc #{cv.Id}).";
+    {
+        var parts = new List<string>();
+
+        // Lấy thông tin skills
+        var skills = _db.DocumentSkills
+            .Where(ds => ds.DocumentId == cv.Id)
+            .Join(_db.Skills, ds => ds.SkillId, s => s.Id, (ds, s) => s.NormName)
+            .Take(5)
+            .ToList();
+
+        if (skills.Count > 0)
+        {
+            parts.Add($"Key skills: {string.Join(", ", skills)}");
+        }
+
+        // Lấy thông tin kinh nghiệm
+        var experiences = _db.Experiences
+            .Where(e => e.DocumentId == cv.Id)
+            .OrderByDescending(e => e.EndDate ?? e.StartDate)
+            .Take(2)
+            .ToList();
+
+        if (experiences.Count > 0)
+        {
+            var expSummary = experiences
+                .Select(e => $"{e.JobTitle} at {e.CompanyName}")
+                .FirstOrDefault();
+            if (!string.IsNullOrEmpty(expSummary))
+            {
+                parts.Add($"Recent: {expSummary}");
+            }
+        }
+
+        // Lấy thông tin học vấn
+        var education = _db.Educations
+            .Where(ed => ed.DocumentId == cv.Id)
+            .OrderByDescending(ed => ed.EndDate ?? ed.StartDate)
+            .FirstOrDefault();
+
+        if (education != null && !string.IsNullOrEmpty(education.Degree))
+        {
+            parts.Add($"Education: {education.Degree}");
+        }
+
+        // Tạo summary
+        if (parts.Count == 0)
+        {
+            return $"CV: {cv.OriginalName}";
+        }
+
+        return string.Join(" | ", parts);
+    }
 }

@@ -38,17 +38,42 @@ public class RecruiterController : ControllerBase
         if (!string.IsNullOrWhiteSpace(company))
             query = query.Where(j => j.Company == company);
 
-        var list = await query
+        var jobs = await query
             .OrderByDescending(j => j.CreatedAt)
-            .Select(j => new
+            .ToListAsync();
+
+        // Tính toán avgScore và topSkill cho mỗi job
+        var list = jobs.Select(j =>
+        {
+            var applications = _db.Applications
+                .Where(a => a.JobId == j.Id && a.ScoreSnapshot.HasValue)
+                .ToList();
+
+            // Tính avgScore
+            double? avgScore = applications.Count > 0
+                ? applications.Average(a => a.ScoreSnapshot!.Value)
+                : null;
+
+            // Tìm topSkill (skill xuất hiện nhiều nhất trong RequiredSkills)
+            var topSkill = _db.RequiredSkills
+                .Where(r => r.JobId == j.Id)
+                .Join(_db.Skills, r => r.SkillId, s => s.Id, (r, s) => s.NormName)
+                .GroupBy(s => s)
+                .OrderByDescending(g => g.Count())
+                .Select(g => g.Key)
+                .FirstOrDefault();
+
+            return new
             {
                 j.Id,
                 j.Title,
                 j.Company,
                 j.CreatedAt,
-                Applications = _db.Applications.Count(a => a.JobId == j.Id)
-            })
-            .ToListAsync();
+                Applications = applications.Count + _db.Applications.Count(a => a.JobId == j.Id && !a.ScoreSnapshot.HasValue),
+                AvgScore = avgScore.HasValue ? Math.Round(avgScore.Value, 1) : (double?)null,
+                TopSkill = topSkill
+            };
+        }).ToList();
 
         return Ok(list);
     }
@@ -128,6 +153,12 @@ public class RecruiterController : ControllerBase
         var jobExists = await _db.Jobs.AnyAsync(j => j.Id == id);
         if (!jobExists) return NotFound("Job not found.");
 
+        // Lấy danh sách RequiredSkills của job
+        var requiredSkillIds = await _db.RequiredSkills
+            .Where(r => r.JobId == id)
+            .Select(r => r.SkillId)
+            .ToListAsync();
+
         var q = _db.Applications
             .Where(a => a.JobId == id)
             .Join(_db.Users, a => a.CandidateId, u => u.Id, (a, u) => new { a, Candidate = u })
@@ -138,15 +169,28 @@ public class RecruiterController : ControllerBase
         if (minScore.HasValue)
             q = q.Where(x => (x.a.ScoreSnapshot ?? 0) >= minScore.Value);
 
-        var list = await q
+        var applications = await q
             .OrderByDescending(x => x.a.ScoreSnapshot)
-            .Select(x => new
+            .ToListAsync();
+
+        // Tính Matching Skills cho mỗi application
+        var list = applications.Select(x =>
+        {
+            // Lấy các skills của CV mà cũng là RequiredSkills của job
+            var matchingSkills = _db.DocumentSkills
+                .Where(ds => ds.DocumentId == x.Cv.Id && requiredSkillIds.Contains(ds.SkillId))
+                .Join(_db.Skills, ds => ds.SkillId, s => s.Id, (ds, s) => s.NormName)
+                .Distinct()
+                .ToList();
+
+            return new
             {
                 x.a.Id,
                 x.a.Status,
                 x.a.ScoreSnapshot,
                 x.a.Summary,
                 x.a.CreatedAt,
+                MatchingSkills = matchingSkills,
                 Candidate = new
                 {
                     x.Candidate.Id,
@@ -159,8 +203,8 @@ public class RecruiterController : ControllerBase
                     x.Cv.OriginalName,
                     x.Cv.StoragePath
                 }
-            })
-            .ToListAsync();
+            };
+        }).ToList();
 
         return Ok(list);
     }

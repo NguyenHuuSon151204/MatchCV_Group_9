@@ -7,6 +7,10 @@
       "RelativeMoniker": "D:0:0:{C1D5903F-CACE-4FFD-9999-8F961E49698E}|matchCV_Project\\matchCV_Project.csproj|solutionrelative:matchcv_project\\controllers\\recruitercontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
+      "AbsoluteMoniker": "D:0:0:{C1D5903F-CACE-4FFD-9999-8F961E49698E}|matchCV_Project\\matchCV_Project.csproj|c:\\users\\acer\\documents\\study\\fpt\\ojt\\project_matchcv\\matchcv\\matchcv_project\\matchcv_project\\wwwroot\\pages\\recruiter.html||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{C1D5903F-CACE-4FFD-9999-8F961E49698E}|matchCV_Project\\matchCV_Project.csproj|solutionrelative:matchcv_project\\wwwroot\\pages\\recruiter.html||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
       "AbsoluteMoniker": "D:0:0:{C1D5903F-CACE-4FFD-9999-8F961E49698E}|matchCV_Project\\matchCV_Project.csproj|c:\\users\\acer\\documents\\study\\fpt\\ojt\\project_matchcv\\matchcv\\matchcv_project\\matchcv_project\\controllers\\licensecontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{C1D5903F-CACE-4FFD-9999-8F961E49698E}|matchCV_Project\\matchCV_Project.csproj|solutionrelative:matchcv_project\\controllers\\licensecontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
@@ -21,10 +25,6 @@
     {
       "AbsoluteMoniker": "D:0:0:{C1D5903F-CACE-4FFD-9999-8F961E49698E}|matchCV_Project\\matchCV_Project.csproj|c:\\users\\acer\\documents\\study\\fpt\\ojt\\project_matchcv\\matchcv\\matchcv_project\\matchcv_project\\wwwroot\\pages\\job-detail.html||{40D31677-CBC0-4297-A9EF-89D907823A98}",
       "RelativeMoniker": "D:0:0:{C1D5903F-CACE-4FFD-9999-8F961E49698E}|matchCV_Project\\matchCV_Project.csproj|solutionrelative:matchcv_project\\wwwroot\\pages\\job-detail.html||{40D31677-CBC0-4297-A9EF-89D907823A98}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{C1D5903F-CACE-4FFD-9999-8F961E49698E}|matchCV_Project\\matchCV_Project.csproj|c:\\users\\acer\\documents\\study\\fpt\\ojt\\project_matchcv\\matchcv\\matchcv_project\\matchcv_project\\wwwroot\\pages\\recruiter.html||{40D31677-CBC0-4297-A9EF-89D907823A98}",
-      "RelativeMoniker": "D:0:0:{C1D5903F-CACE-4FFD-9999-8F961E49698E}|matchCV_Project\\matchCV_Project.csproj|solutionrelative:matchcv_project\\wwwroot\\pages\\recruiter.html||{40D31677-CBC0-4297-A9EF-89D907823A98}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{C1D5903F-CACE-4FFD-9999-8F961E49698E}|matchCV_Project\\matchCV_Project.csproj|c:\\users\\acer\\documents\\study\\fpt\\ojt\\project_matchcv\\matchcv\\matchcv_project\\matchcv_project\\wwwroot\\pages\\license.html||{40D31677-CBC0-4297-A9EF-89D907823A98}",
@@ -222,7 +222,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
+              "DocumentIndex": 3,
               "Title": "create-job.html",
               "DocumentMoniker": "C:\\Users\\ACER\\Documents\\Study\\FPT\\OJT\\Project_MatchCV\\matchcv\\matchCV_Project\\matchCV_Project\\wwwroot\\pages\\create-job.html",
               "RelativeDocumentMoniker": "matchCV_Project\\wwwroot\\pages\\create-job.html",
@@ -230,12 +230,11 @@
               "RelativeToolTip": "matchCV_Project\\wwwroot\\pages\\create-job.html",
               "ViewState": "AgIAACsAAAAAAAAAAAAAADwAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001512|",
-              "WhenOpened": "2025-11-11T03:38:09.009Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-11-11T03:38:09.009Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 4,
+              "DocumentIndex": 5,
               "Title": "job-detail.html",
               "DocumentMoniker": "C:\\Users\\ACER\\Documents\\Study\\FPT\\OJT\\Project_MatchCV\\matchcv\\matchCV_Project\\matchCV_Project\\wwwroot\\pages\\job-detail.html",
               "RelativeDocumentMoniker": "matchCV_Project\\wwwroot\\pages\\job-detail.html",
@@ -243,12 +242,11 @@
               "RelativeToolTip": "matchCV_Project\\wwwroot\\pages\\job-detail.html",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAcAAAA9AAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001512|",
-              "WhenOpened": "2025-11-11T03:38:25.411Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-11-11T03:38:25.411Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
+              "DocumentIndex": 4,
               "Title": "main.js",
               "DocumentMoniker": "C:\\Users\\ACER\\Documents\\Study\\FPT\\OJT\\Project_MatchCV\\matchcv\\matchCV_Project\\matchCV_Project\\wwwroot\\js\\main.js",
               "RelativeDocumentMoniker": "matchCV_Project\\wwwroot\\js\\main.js",
@@ -256,8 +254,7 @@
               "RelativeToolTip": "matchCV_Project\\wwwroot\\js\\main.js",
               "ViewState": "AgIAAAgAAAAAAAAAAAAswCUAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001646|",
-              "WhenOpened": "2025-11-13T11:38:01.019Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-11-13T11:38:01.019Z"
             },
             {
               "$type": "Document",
@@ -269,8 +266,7 @@
               "RelativeToolTip": "matchCV_Project\\wwwroot\\pages\\admin.html",
               "ViewState": "AgIAAI8AAAAAAAAAAAAUwLEAAABoAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001512|",
-              "WhenOpened": "2025-11-11T03:38:58.821Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-11-11T03:38:58.821Z"
             },
             {
               "$type": "Document",
@@ -282,18 +278,17 @@
               "RelativeToolTip": "matchCV_Project\\wwwroot\\pages\\license.html",
               "ViewState": "AgIAADAAAAAAAAAAAAAUwFMAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001512|",
-              "WhenOpened": "2025-11-11T03:38:48.998Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-11-11T03:38:48.998Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 5,
+              "DocumentIndex": 1,
               "Title": "recruiter.html",
               "DocumentMoniker": "C:\\Users\\ACER\\Documents\\Study\\FPT\\OJT\\Project_MatchCV\\matchcv\\matchCV_Project\\matchCV_Project\\wwwroot\\pages\\recruiter.html",
               "RelativeDocumentMoniker": "matchCV_Project\\wwwroot\\pages\\recruiter.html",
               "ToolTip": "C:\\Users\\ACER\\Documents\\Study\\FPT\\OJT\\Project_MatchCV\\matchcv\\matchCV_Project\\matchCV_Project\\wwwroot\\pages\\recruiter.html",
               "RelativeToolTip": "matchCV_Project\\wwwroot\\pages\\recruiter.html",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAwAAAAbAAAAAAAAAA==",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAF8BAAAgAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001512|",
               "WhenOpened": "2025-11-11T03:37:48.291Z",
               "EditorCaption": ""
@@ -306,14 +301,14 @@
               "RelativeDocumentMoniker": "matchCV_Project\\Controllers\\RecruiterController.cs",
               "ToolTip": "C:\\Users\\ACER\\Documents\\Study\\FPT\\OJT\\Project_MatchCV\\matchcv\\matchCV_Project\\matchCV_Project\\Controllers\\RecruiterController.cs",
               "RelativeToolTip": "matchCV_Project\\Controllers\\RecruiterController.cs",
-              "ViewState": "AgIAAEAAAAAAAAAAAAAAwEoAAAAjAAAAAAAAAA==",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAGMAAAAjAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-11-05T03:55:29.842Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 2,
               "Title": "LicenseController.cs",
               "DocumentMoniker": "C:\\Users\\ACER\\Documents\\Study\\FPT\\OJT\\Project_MatchCV\\matchcv\\matchCV_Project\\matchCV_Project\\Controllers\\LicenseController.cs",
               "RelativeDocumentMoniker": "matchCV_Project\\Controllers\\LicenseController.cs",
@@ -321,8 +316,7 @@
               "RelativeToolTip": "matchCV_Project\\Controllers\\LicenseController.cs",
               "ViewState": "AgIAAA0AAAAAAAAAAAAAADMAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-11-05T03:56:33.075Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-11-05T03:56:33.075Z"
             },
             {
               "$type": "Document",
@@ -382,8 +376,7 @@
               "RelativeToolTip": "matchCV_Project\\wwwroot\\css\\components\\topbar.css",
               "ViewState": "AgIAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003000|",
-              "WhenOpened": "2025-11-13T11:37:27.397Z",
-              "EditorCaption": ""
+              "WhenOpened": "2025-11-13T11:37:27.397Z"
             },
             {
               "$type": "Document",

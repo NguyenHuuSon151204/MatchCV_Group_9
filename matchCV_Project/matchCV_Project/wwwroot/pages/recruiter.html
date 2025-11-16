@@ -19,30 +19,28 @@
 
             <div class="main-grid">
                 <!-- Left: main dashboard -->
-                <section class="dashboard-main">
+                <section>
                     <div class="section-header">
                         <div>
                             <h1 class="section-title">Recruiter Dashboard</h1>
                             <p class="section-subtitle">
-                                Manage your job postings and evaluate candidates with AI-powered insights.
+                                Overview of your job postings and top candidates with AI-powered insights.
                             </p>
-                        </div>
-                        <div class="flex">
-                            <button class="btn btn-primary" id="btnNewJob">+ Post New Job</button>
-                            <button class="btn btn-outline" id="btnExport">Export Report</button>
                         </div>
                     </div>
 
-                    <!-- Job Listings -->
+                    <!-- Top Job Listings -->
                     <div class="card">
                         <div class="card-header">
-                            <h2 class="card-title">Job Listings</h2>
+                            <h2 class="card-title">Top Job Listings</h2>
+                            <a href="/pages/job-listings.html" class="link">View All →</a>
                         </div>
                         <div class="table-wrapper">
                             <table class="table" id="jobTable">
                                 <thead>
                                     <tr>
                                         <th>Job Title</th>
+                                        <th>Company</th>
                                         <th>Applicants</th>
                                         <th>Avg. Score</th>
                                         <th>Top Skill</th>
@@ -52,26 +50,33 @@
                                 <tbody></tbody>
                             </table>
                         </div>
+                        <div style="padding: 12px; text-align: center; border-top: 1px solid var(--border-subtle);">
+                            <a href="/pages/job-listings.html" class="link">View All Jobs →</a>
+                        </div>
                     </div>
 
-                    <!-- Applicants -->
+                    <!-- Top Applicants -->
                     <div class="card mt-3">
                         <div class="card-header">
-                            <h2 class="card-title">Applicants for <span id="currentJobTitle">–</span></h2>
+                            <h2 class="card-title">Top Applicants</h2>
+                            <a href="/pages/applicants.html" class="link">View All →</a>
                         </div>
                         <div class="table-wrapper">
                             <table class="table" id="applicantTable">
                                 <thead>
                                     <tr>
                                         <th>Applicant</th>
+                                        <th>Job</th>
                                         <th>AI Score</th>
-                                        <th>Matching Summary</th>
+                                        <th>Matching Skills</th>
                                         <th>Status</th>
-                                        <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody></tbody>
                             </table>
+                        </div>
+                        <div style="padding: 12px; text-align: center; border-top: 1px solid var(--border-subtle);">
+                            <a href="/pages/applicants.html" class="link">View All Applicants →</a>
                         </div>
                     </div>
                 </section>
@@ -79,37 +84,44 @@
                 <!-- Right: insights -->
                 <aside>
                     <div class="card">
-                        <h2 class="card-title">AI Recruitment Insights</h2>
-                        <div class="flex mt-2" style="flex-wrap:wrap; gap:12px;">
-                            <div>
-                                <span class="small">Total Jobs</span><br>
-                                <span id="insTotalJobs" style="font-size:18px;font-weight:600;">–</span>
+                        <div class="card-header">
+                            <h2 class="card-title">AI Recruitment Insights</h2>
+                        </div>
+                        <div class="flex mt-2" style="flex-wrap:wrap; gap:16px;">
+                            <div style="flex: 1; min-width: 100px;">
+                                <span class="small" style="display:block;margin-bottom:4px;">Total Jobs</span>
+                                <span id="insTotalJobs" style="font-size:20px;font-weight:700;color:var(--accent);">0</span>
                             </div>
-                            <div>
-                                <span class="small">Total Applicants</span><br>
-                                <span id="insTotalApps" style="font-size:18px;font-weight:600;">–</span>
+                            <div style="flex: 1; min-width: 100px;">
+                                <span class="small" style="display:block;margin-bottom:4px;">Total Applicants</span>
+                                <span id="insTotalApps" style="font-size:20px;font-weight:700;color:var(--accent);">0</span>
                             </div>
-                            <div>
-                                <span class="small">Avg. Score</span><br>
-                                <span id="insAvgScore" style="font-size:18px;font-weight:600;">–</span>
+                            <div style="flex: 1; min-width: 100px;">
+                                <span class="small" style="display:block;margin-bottom:4px;">Avg. Score</span>
+                                <span id="insAvgScore" style="font-size:20px;font-weight:700;color:var(--accent-strong);">–</span>
                             </div>
-                            <div>
-                                <span class="small">AI Calls</span><br>
-                                <span id="insAiCalls" style="font-size:18px;font-weight:600;">–</span>
+                            <div style="flex: 1; min-width: 100px;">
+                                <span class="small" style="display:block;margin-bottom:4px;">AI Calls</span>
+                                <span id="insAiCalls" style="font-size:20px;font-weight:700;color:var(--info);">0</span>
                             </div>
                         </div>
                     </div>
 
                     <div class="card">
-                        <h2 class="card-title">Skill Heatmap</h2>
+                        <div class="card-header">
+                            <h2 class="card-title">Skill Heatmap</h2>
+                        </div>
                         <div id="skillTags" class="skill-tags"></div>
                     </div>
 
                     <div class="card">
-                        <h2 class="card-title">AI Notes</h2>
+                        <div class="card-header">
+                            <h2 class="card-title">AI Notes</h2>
+                        </div>
                         <ul class="notes-list" id="notesList">
                             <li>Most successful candidates show strong experience in key skills.</li>
                             <li>Consider refining job descriptions to highlight core requirements.</li>
+                            <li>Review top applicants regularly to maintain quality hiring.</li>
                         </ul>
                     </div>
                 </aside>
@@ -129,28 +141,28 @@
             initRecruiterPage();
         });
 
-        let jobs = [];
-        let currentJobId = null;
-
         async function initRecruiterPage() {
-            document.getElementById("topSearchBtn").addEventListener("click", loadJobs);
-            document.getElementById("btnNewJob").addEventListener("click", () => {
-                window.location.href = "/pages/create-job.html";
-            });
-            document.getElementById("btnExport").addEventListener("click", () => {
-                alert("Export report is not implemented yet.");
-            });
-
-            await Promise.all([
-                loadAdminSummary(),
-                loadJobs()
-            ]);
+            console.log("Initializing recruiter page...");
+            try {
+                await Promise.all([
+                    loadAdminSummary(),
+                    loadTopJobs(),
+                    loadTopApplicants()
+                ]);
+                console.log("Dashboard loaded successfully");
+            } catch (e) {
+                console.error("Error initializing dashboard:", e);
+            }
         }
 
         async function loadAdminSummary() {
             try {
+                console.log("Loading admin summary...");
                 const data = await apiGet("/api/admin/summary");
+                console.log("Admin summary data:", data);
                 const t = data.totals || {};
+                
+                // Cập nhật AI Insights
                 document.getElementById("insTotalJobs").innerText = t.jobs ?? 0;
                 document.getElementById("insTotalApps").innerText = t.apps ?? 0;
 
@@ -162,68 +174,89 @@
                 document.getElementById("insAvgScore").innerText = avg === "–" ? "–" : avg + "%";
                 document.getElementById("insAiCalls").innerText = data.aiCalls ?? 0;
 
+                // Cập nhật Skill Heatmap
                 const container = document.getElementById("skillTags");
                 container.innerHTML = "";
-                (data.topSkills || []).forEach(s => {
-                    const span = document.createElement("span");
-                    span.className = "pill";
-                    span.textContent = s.skill;
-                    container.appendChild(span);
-                });
-                if (!data.topSkills || data.topSkills.length === 0) {
+                if (data.topSkills && data.topSkills.length > 0) {
+                    data.topSkills.forEach(s => {
+                        const span = document.createElement("span");
+                        span.className = "pill";
+                        span.textContent = s.skill;
+                        container.appendChild(span);
+                    });
+                } else {
                     const span = document.createElement("span");
                     span.className = "pill";
                     span.textContent = "No data yet";
                     container.appendChild(span);
                 }
             } catch (e) {
-                console.error(e);
+                console.error("Failed to load admin summary:", e);
+                // Hiển thị giá trị mặc định nếu lỗi
+                document.getElementById("insTotalJobs").innerText = "0";
+                document.getElementById("insTotalApps").innerText = "0";
+                document.getElementById("insAvgScore").innerText = "–";
+                document.getElementById("insAiCalls").innerText = "0";
+                
+                const container = document.getElementById("skillTags");
+                container.innerHTML = '<span class="pill">Loading...</span>';
             }
         }
 
-        async function loadJobs() {
-            const q = document.getElementById("topSearch").value || "";
+        async function loadTopJobs() {
+            const tbody = document.querySelector("#jobTable tbody");
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text-muted);">Loading jobs...</td></tr>`;
+            
             try {
-                jobs = await apiGet(`/api/recruiter/jobs?q=${encodeURIComponent(q)}`);
-                renderJobs();
-                if (jobs.length > 0) {
-                    selectJob(jobs[0].id);
-                } else {
-                    currentJobId = null;
-                    document.getElementById("currentJobTitle").innerText = "–";
-                    renderApplicants([]);
-                }
+                console.log("Loading jobs...");
+                const allJobs = await apiGet("/api/recruiter/jobs");
+                console.log("Jobs loaded:", allJobs.length);
+                
+                // Sắp xếp theo số applicants giảm dần, nếu không có applicants thì sắp theo avgScore, lấy top 5
+                const topJobs = allJobs
+                    .sort((a, b) => {
+                        const aApps = a.applications || 0;
+                        const bApps = b.applications || 0;
+                        if (aApps !== bApps) return bApps - aApps;
+                        return (b.avgScore || 0) - (a.avgScore || 0);
+                    })
+                    .slice(0, 5);
+                renderTopJobs(topJobs);
             } catch (e) {
-                alert("Failed to load jobs: " + e.message);
+                console.error("Failed to load jobs:", e);
+                // Hiển thị thông báo lỗi
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--danger);">Failed to load jobs: ${e.message}</td></tr>`;
             }
         }
 
-        function renderJobs() {
+        function renderTopJobs(jobs) {
             const tbody = document.querySelector("#jobTable tbody");
             tbody.innerHTML = "";
 
             if (!jobs || jobs.length === 0) {
                 const tr = document.createElement("tr");
-                tr.innerHTML = `<td colspan="5">No jobs found.</td>`;
+                tr.innerHTML = `<td colspan="6" style="text-align:center;padding:20px;color:var(--text-muted);">No jobs found. <a href="/pages/create-job.html" class="link">Create your first job</a></td>`;
                 tbody.appendChild(tr);
                 return;
             }
 
             jobs.forEach(j => {
                 const tr = document.createElement("tr");
-                tr.dataset.jobId = j.id;
-
                 const statusClass = pickStatusClass(j);
                 const statusLabel = pickStatusLabel(j);
 
                 tr.innerHTML = `
-            <td>${j.title}</td>
-            <td>${j.applications ?? 0}</td>
-            <td><span class="pill">${j.avgScore ? j.avgScore + "%" : "–"}</span></td>
-            <td><span class="pill">${j.topSkill || "–"}</span></td>
-            <td><span class="badge ${statusClass}">${statusLabel}</span></td>
-          `;
-                tr.addEventListener("click", () => selectJob(j.id));
+                    <td><strong>${j.title}</strong></td>
+                    <td>${j.company}</td>
+                    <td>${j.applications ?? 0}</td>
+                    <td><span class="pill">${j.avgScore != null ? Math.round(j.avgScore) + "%" : "–"}</span></td>
+                    <td><span class="pill">${j.topSkill || "–"}</span></td>
+                    <td><span class="badge ${statusClass}">${statusLabel}</span></td>
+                `;
+                tr.style.cursor = "pointer";
+                tr.addEventListener("click", () => {
+                    window.location.href = `/pages/job-detail.html?id=${j.id}`;
+                });
                 tbody.appendChild(tr);
             });
         }
@@ -244,27 +277,57 @@
             return "Closed";
         }
 
-        async function selectJob(id) {
-            currentJobId = id;
-            const job = jobs.find(j => j.id === id);
-            document.getElementById("currentJobTitle").innerText = job ? job.title : "Selected Job";
-
+        async function loadTopApplicants() {
+            const tbody = document.querySelector("#applicantTable tbody");
+            tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--text-muted);">Loading applicants...</td></tr>`;
+            
             try {
-                const apps = await apiGet(`/api/recruiter/jobs/${id}/applications`);
-                renderApplicants(apps);
+                console.log("Loading applicants...");
+                // Load tất cả jobs
+                const allJobs = await apiGet("/api/recruiter/jobs");
+                console.log("Jobs for applicants:", allJobs.length);
+                
+                if (allJobs.length === 0) {
+                    renderTopApplicants([]);
+                    return;
+                }
+                
+                // Load applicants từ tất cả jobs
+                const promises = allJobs.map(job => 
+                    apiGet(`/api/recruiter/jobs/${job.id}/applications`).then(apps => 
+                        apps.map(app => ({
+                            ...app,
+                            jobTitle: job.title,
+                            jobCompany: job.company,
+                            jobId: job.id
+                        }))
+                    ).catch(() => []) // Nếu lỗi thì trả về mảng rỗng
+                );
+                
+                const results = await Promise.all(promises);
+                const allApplicants = results.flat();
+                console.log("Total applicants loaded:", allApplicants.length);
+                
+                // Sắp xếp theo score giảm dần, lấy top 5
+                const topApplicants = allApplicants
+                    .sort((a, b) => (b.scoreSnapshot || 0) - (a.scoreSnapshot || 0))
+                    .slice(0, 5);
+                
+                renderTopApplicants(topApplicants);
             } catch (e) {
-                console.error(e);
-                renderApplicants([]);
+                console.error("Failed to load applicants:", e);
+                // Hiển thị thông báo lỗi
+                tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:20px;color:var(--danger);">Failed to load applicants: ${e.message}</td></tr>`;
             }
         }
 
-        function renderApplicants(apps) {
+        function renderTopApplicants(apps) {
             const tbody = document.querySelector("#applicantTable tbody");
             tbody.innerHTML = "";
 
             if (!apps || apps.length === 0) {
                 const tr = document.createElement("tr");
-                tr.innerHTML = `<td colspan="5">No applicants for this job yet.</td>`;
+                tr.innerHTML = `<td colspan="5" style="text-align:center;padding:20px;color:var(--text-muted);">No applicants yet. Applicants will appear here once candidates apply to your jobs.</td>`;
                 tbody.appendChild(tr);
                 return;
             }
@@ -279,22 +342,28 @@
                         default: return "badge-neutral";
                     }
                 })();
-                const scoreText = a.scoreSnapshot != null ? a.scoreSnapshot + "%" : "–";
+                const scoreText = a.scoreSnapshot != null ? Math.round(a.scoreSnapshot) + "%" : "–";
+                
+                // Hiển thị Matching Skills dạng tags
+                const matchingSkillsHtml = (a.matchingSkills && a.matchingSkills.length > 0)
+                    ? a.matchingSkills.map(skill => `<span class="pill">${skill}</span>`).join(" ")
+                    : '<span class="small" style="color: var(--text-muted);">No matching skills</span>';
+                
                 tr.innerHTML = `
-            <td>${a.candidate.displayName}<br><span class="small">${a.candidate.email}</span></td>
-            <td>${scoreText}</td>
-            <td>${a.summary ?? ""}</td>
-            <td><span class="badge ${statusClass}">${a.status}</span></td>
-            <td class="text-right">
-              <button class="btn btn-outline" style="font-size:11px;padding:4px 10px;" onclick="viewCv(${a.document.id})">View CV</button>
-            </td>
-          `;
+                    <td>
+                        <strong>${a.candidate.displayName}</strong><br>
+                        <span class="small">${a.candidate.email}</span>
+                    </td>
+                    <td>
+                        <strong>${a.jobTitle || "Unknown"}</strong><br>
+                        <span class="small">${a.jobCompany || ""}</span>
+                    </td>
+                    <td><span class="pill" style="font-weight:600;">${scoreText}</span></td>
+                    <td><div style="display:flex;flex-wrap:wrap;gap:4px;">${matchingSkillsHtml}</div></td>
+                    <td><span class="badge ${statusClass}">${a.status}</span></td>
+                `;
                 tbody.appendChild(tr);
             });
-        }
-
-        function viewCv(documentId) {
-            alert("CV viewer not implemented yet. Document ID: " + documentId);
         }
     </script>
 </body>

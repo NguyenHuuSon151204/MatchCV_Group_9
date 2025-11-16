@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("matchCV_Project")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+bde063813a12aff303d6d647dacd8b30c91378a6")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+b52a9fa3cafe09fead17f411f650b5e5bcce7dfc")]
 [assembly: System.Reflection.AssemblyProductAttribute("matchCV_Project")]
 [assembly: System.Reflection.AssemblyTitleAttribute("matchCV_Project")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
