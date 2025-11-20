@@ -7,6 +7,7 @@ function Applicants() {
   const [applicants, setApplicants] = useState([])
   const [jobs, setJobs] = useState([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [filters, setFilters] = useState({
     jobId: '',
     status: '',
@@ -30,6 +31,7 @@ function Applicants() {
   const loadApplicants = async () => {
     try {
       setLoading(true)
+      setError(null)
       if (filters.jobId) {
         const params = new URLSearchParams()
         if (filters.status) params.append('status', filters.status)
@@ -86,8 +88,39 @@ function Applicants() {
       }
     } catch (error) {
       console.error('Failed to load applicants:', error)
+      setError('Failed to load applicants. Please try again.')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleExportCSV = () => {
+    try {
+      const csvRows = ['Applicant,Email,Job,Company,AI Score,Matching Skills,Status,Applied Date']
+      applicants.forEach((app) => {
+        const score = app.scoreSnapshot != null ? Math.round(app.scoreSnapshot) : 'N/A'
+        const skills = (app.matchingSkills && app.matchingSkills.length > 0)
+          ? app.matchingSkills.join('; ')
+          : 'None'
+        const appliedDate = app.createdAt
+          ? new Date(app.createdAt).toLocaleDateString()
+          : 'N/A'
+        csvRows.push(
+          `"${app.candidate?.displayName || 'Unknown'}","${app.candidate?.email || ''}","${app.jobTitle || 'Unknown'}","${app.jobCompany || ''}",${score},"${skills}","${app.status}","${appliedDate}"`
+        )
+      })
+
+      const csvContent = csvRows.join('\n')
+      const blob = new Blob([csvContent], { type: 'text/csv' })
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `applicants-report-${new Date().toISOString().split('T')[0]}.csv`
+      a.click()
+      window.URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error('Failed to export CSV:', error)
+      alert('Failed to export CSV. Please try again.')
     }
   }
 
@@ -113,23 +146,28 @@ function Applicants() {
     <div className="applicants">
       <div className="page-header">
         <div>
-          <div className="breadcrumbs">Trang chủ / Applicants</div>
+          <div className="breadcrumbs">Home / Applicants</div>
           <h1 className="page-title">Applicants</h1>
+          <p className="page-subtitle">
+            View and manage all applicants across all jobs
+          </p>
         </div>
         <div className="header-actions">
-          <button className="btn btn-outline">Export CSV</button>
+          <button className="btn btn-outline" onClick={handleExportCSV}>
+            Export CSV
+          </button>
         </div>
       </div>
 
       <div className="filter-card">
-        <h3 className="filter-title">Tìm kiếm</h3>
+        <h3 className="filter-title">Search & Filter</h3>
         <div className="filter-row">
           <select
             className="filter-select"
             value={filters.jobId}
             onChange={(e) => handleFilterChange('jobId', e.target.value)}
           >
-            <option value="">Tất cả Jobs</option>
+            <option value="">All Jobs</option>
             {jobs.map((job) => (
               <option key={job.id} value={job.id}>
                 {job.title} ({job.company})
@@ -141,7 +179,7 @@ function Applicants() {
             value={filters.status}
             onChange={(e) => handleFilterChange('status', e.target.value)}
           >
-            <option value="">Tất cả Status</option>
+            <option value="">All Status</option>
             <option value="Pending">Pending</option>
             <option value="Reviewed">Reviewed</option>
             <option value="Hired">Hired</option>
@@ -155,9 +193,10 @@ function Applicants() {
             max="100"
             value={filters.minScore}
             onChange={(e) => handleFilterChange('minScore', e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
           />
           <button className="btn btn-primary" onClick={handleSearch}>
-            Tìm kiếm
+            Search
           </button>
           <button
             className="btn btn-outline"
@@ -166,19 +205,25 @@ function Applicants() {
               loadApplicants()
             }}
           >
-            Xóa bộ lọc
+            Clear Filters
           </button>
         </div>
       </div>
 
       <div className="table-card">
         <div className="table-header">
-          <h3 className="table-title">Danh sách Applicants</h3>
-          <span className="table-count">{applicants.length} applicants</span>
+          <h3 className="table-title">All Applicants</h3>
+          <span className="table-count">
+            {applicants.length} applicant{applicants.length !== 1 ? 's' : ''}
+          </span>
         </div>
 
+        {error && (
+          <div className="error-message">{error}</div>
+        )}
+
         {loading ? (
-          <div className="loading">Đang tải...</div>
+          <div className="loading">Loading applicants...</div>
         ) : (
           <table className="data-table">
             <thead>

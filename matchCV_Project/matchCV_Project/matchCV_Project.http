@@ -1,4 +1,4 @@
-﻿@host = https://localhost:5001
+﻿@host = https://localhost:5000
 # Nếu chạy HTTP:
 # @host = http://localhost:5000
 

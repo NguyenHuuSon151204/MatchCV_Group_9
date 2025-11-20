@@ -17,6 +17,13 @@
   font-size: 28px;
   font-weight: 700;
   color: var(--text-main);
+  margin-bottom: 8px;
+}
+
+.page-subtitle {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin: 0;
 }
 
 .stats-grid {
@@ -147,6 +154,14 @@
 .activity-text {
   font-size: 14px;
   color: var(--text-main);
+  line-height: 1.5;
+}
+
+.loading-text {
+  text-align: center;
+  padding: 20px;
+  color: var(--text-muted);
+  font-size: 14px;
 }
 
 .ai-status {

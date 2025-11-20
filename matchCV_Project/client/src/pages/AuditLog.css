@@ -1,4 +1,4 @@
-.applicants {
+.audit-log {
   max-width: 1400px;
   margin: 0 auto;
 }
@@ -23,15 +23,7 @@
 }
 
 .page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
   margin-bottom: 24px;
-}
-
-.header-actions {
-  display: flex;
-  gap: 12px;
 }
 
 .filter-card {
@@ -51,24 +43,35 @@
 
 .filter-row {
   display: flex;
-  gap: 12px;
+  gap: 16px;
+  align-items: flex-end;
   flex-wrap: wrap;
 }
 
-.filter-input,
-.filter-select {
-  flex: 1;
-  min-width: 200px;
+.date-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.date-input-group label {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.date-input {
   padding: 10px 14px;
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius);
   font-size: 14px;
   outline: none;
   transition: border-color 0.2s ease;
+  background: var(--bg-card);
+  color: var(--text-main);
 }
 
-.filter-input:focus,
-.filter-select:focus {
+.date-input:focus {
   border-color: var(--accent);
 }
 
@@ -128,6 +131,13 @@
   background: var(--bg-table-row);
 }
 
+.log-details {
+  max-width: 400px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .empty-state {
   text-align: center;
   padding: 40px !important;
@@ -151,25 +161,57 @@
   border: 1px solid #fecaca;
 }
 
-.skills-container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+[data-theme='dark'] .error-message {
+  background: #7f1d1d;
+  color: #fecaca;
+  border-color: #991b1b;
 }
 
-.skill-pill {
-  background: var(--accent-soft);
-  color: var(--accent);
-}
-
-.score-pill {
-  background: var(--accent-soft);
-  color: var(--accent);
-  font-weight: 600;
-}
-
-.text-muted {
-  color: var(--text-muted);
+.badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
   font-size: 12px;
+  font-weight: 500;
+}
+
+.badge-neutral {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.badge-success {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.badge-info {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.badge-danger {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+[data-theme='dark'] .badge-neutral {
+  background: #334155;
+  color: #cbd5e1;
+}
+
+[data-theme='dark'] .badge-success {
+  background: #065f46;
+  color: #d1fae5;
+}
+
+[data-theme='dark'] .badge-info {
+  background: #1e3a8a;
+  color: #dbeafe;
+}
+
+[data-theme='dark'] .badge-danger {
+  background: #7f1d1d;
+  color: #fecaca;
 }
 

@@ -5,16 +5,16 @@ function Sidebar() {
   const menuItems = [
     { path: '/dashboard', label: 'Dashboard', icon: '📊' },
     {
-      label: 'Quản lý tài khoản',
+      label: 'Account Management',
       icon: '⚙️',
       children: [
-        { path: '/candidates', label: 'Quản lý Candidate', icon: '👥' },
-        { path: '/recruiters', label: 'Quản lý Recruiter', icon: '🏢' },
+        { path: '/candidates', label: 'Candidate Management', icon: '👥' },
+        { path: '/recruiters', label: 'Recruiter Management', icon: '🏢' },
       ],
     },
-    { path: '/config', label: 'Cấu hình hệ thống', icon: '🔧' },
-    { path: '/reports', label: 'Báo cáo & Phân tích', icon: '📈' },
-    { path: '/logs', label: 'Nhật ký & Audit Log', icon: '📋' },
+    { path: '/config', label: 'System Configuration', icon: '🔧' },
+    { path: '/reports', label: 'Reports & Analytics', icon: '📈' },
+    { path: '/logs', label: 'Audit Log', icon: '📋' },
     { path: '/ai-status', label: 'AI Status', icon: '🧠' },
   ]
 

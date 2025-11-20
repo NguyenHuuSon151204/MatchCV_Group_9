@@ -34,30 +34,30 @@ function Dashboard() {
 
   const statCards = [
     {
-      title: 'TỔNG SỐ CANDIDATE',
+      title: 'TOTAL CANDIDATES',
       value: stats.totalCandidates.toLocaleString(),
-      change: '+12% vs tuần trước',
+      change: '+12% vs last week',
       icon: '👥',
       color: 'blue',
     },
     {
-      title: 'TỔNG SỐ RECRUITER',
+      title: 'TOTAL RECRUITERS',
       value: stats.totalRecruiters.toLocaleString(),
-      change: '+5% vs tuần trước',
+      change: '+5% vs last week',
       icon: '🏢',
       color: 'purple',
     },
     {
-      title: 'JD ĐANG MỞ',
+      title: 'OPEN JOBS',
       value: stats.openJobs.toLocaleString(),
-      change: '+8% vs tuần trước',
+      change: '+8% vs last week',
       icon: '💼',
       color: 'orange',
     },
     {
-      title: 'MATCH AI HÔM NAY',
+      title: 'AI MATCHES TODAY',
       value: stats.aiMatchesToday.toLocaleString(),
-      change: '+3% vs hôm qua',
+      change: '+3% vs yesterday',
       icon: '🤖',
       color: 'teal',
     },
@@ -67,8 +67,11 @@ function Dashboard() {
     <div className="dashboard">
       <div className="page-header">
         <div>
-          <div className="breadcrumbs">Trang chủ / Dashboard</div>
+          <div className="breadcrumbs">Home / Dashboard</div>
           <h1 className="page-title">Dashboard</h1>
+          <p className="page-subtitle">
+            Overview of your recruitment activities and AI-powered insights
+          </p>
         </div>
       </div>
 
@@ -87,56 +90,62 @@ function Dashboard() {
 
       <div className="dashboard-grid">
         <div className="dashboard-card">
-          <h2 className="card-title">Hoạt động gần đây</h2>
+          <h2 className="card-title">Recent Activity</h2>
           <div className="activity-list">
-            <div className="activity-item">
-              <div className="activity-time">10 phút trước</div>
-              <div className="activity-text">
-                Candidate Nguyễn A upload CV mới
-              </div>
-            </div>
-            <div className="activity-item">
-              <div className="activity-time">25 phút trước</div>
-              <div className="activity-text">
-                Recruiter Tech Corp tạo JD mới (Senior Developer)
-              </div>
-            </div>
-            <div className="activity-item">
-              <div className="activity-time">1 giờ trước</div>
-              <div className="activity-text">AI matched 12 CVs to JD #123</div>
-            </div>
-            <div className="activity-item">
-              <div className="activity-time">2 giờ trước</div>
-              <div className="activity-text">
-                Candidate Trần B apply cho JD #456
-              </div>
-            </div>
-            <div className="activity-item">
-              <div className="activity-time">3 giờ trước</div>
-              <div className="activity-text">
-                System backup completed successfully
-              </div>
-            </div>
+            {loading ? (
+              <div className="loading-text">Loading activities...</div>
+            ) : (
+              <>
+                <div className="activity-item">
+                  <div className="activity-time">10 minutes ago</div>
+                  <div className="activity-text">
+                    Candidate uploaded new CV
+                  </div>
+                </div>
+                <div className="activity-item">
+                  <div className="activity-time">25 minutes ago</div>
+                  <div className="activity-text">
+                    Recruiter created new job posting (Senior Developer)
+                  </div>
+                </div>
+                <div className="activity-item">
+                  <div className="activity-time">1 hour ago</div>
+                  <div className="activity-text">AI matched 12 CVs to Job #123</div>
+                </div>
+                <div className="activity-item">
+                  <div className="activity-time">2 hours ago</div>
+                  <div className="activity-text">
+                    Candidate applied for Job #456
+                  </div>
+                </div>
+                <div className="activity-item">
+                  <div className="activity-time">3 hours ago</div>
+                  <div className="activity-text">
+                    System backup completed successfully
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
 
         <div className="dashboard-card">
-          <h2 className="card-title">Trạng thái AI</h2>
+          <h2 className="card-title">AI System Status</h2>
           <div className="ai-status">
             <div className="status-info">
               <div className="status-label">Status:</div>
-              <div className="status-value online">ONLINE • Ổn định</div>
+              <div className="status-value online">ONLINE • Stable</div>
             </div>
             <div className="status-info">
               <div className="status-label">Last sync:</div>
-              <div className="status-value">2 phút trước</div>
+              <div className="status-value">2 minutes ago</div>
             </div>
             <div className="status-info">
-              <div className="status-label">MODEL:</div>
+              <div className="status-label">Model:</div>
               <div className="status-value">gpt-4.x</div>
             </div>
             <div className="status-info">
-              <div className="status-label">THỜI GIAN PHẢN HỒI:</div>
+              <div className="status-label">Response Time:</div>
               <div className="status-value">234ms</div>
             </div>
           </div>

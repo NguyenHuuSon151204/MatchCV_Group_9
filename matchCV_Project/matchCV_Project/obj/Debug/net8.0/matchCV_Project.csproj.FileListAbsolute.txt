@@ -26,7 +26,6 @@ C:\Users\ACER\Documents\Study\FPT\OJT\Project_MatchCV\matchcv\matchCV_Project\ma
 C:\Users\ACER\Documents\Study\FPT\OJT\Project_MatchCV\matchcv\matchCV_Project\matchCV_Project\obj\Debug\net8.0\staticwebassets.build.json.cache
 C:\Users\ACER\Documents\Study\FPT\OJT\Project_MatchCV\matchcv\matchCV_Project\matchCV_Project\obj\Debug\net8.0\staticwebassets.development.json
 C:\Users\ACER\Documents\Study\FPT\OJT\Project_MatchCV\matchcv\matchCV_Project\matchCV_Project\obj\Debug\net8.0\staticwebassets.build.endpoints.json
-C:\Users\ACER\Documents\Study\FPT\OJT\Project_MatchCV\matchcv\matchCV_Project\matchCV_Project\obj\Debug\net8.0\staticwebassets.upToDateCheck.txt
 C:\Users\ACER\Documents\Study\FPT\OJT\Project_MatchCV\matchcv\matchCV_Project\matchCV_Project\obj\Debug\net8.0\matchCV_.FFE064E4.Up2Date
 C:\Users\ACER\Documents\Study\FPT\OJT\Project_MatchCV\matchcv\matchCV_Project\matchCV_Project\obj\Debug\net8.0\matchCV_Project.dll
 C:\Users\ACER\Documents\Study\FPT\OJT\Project_MatchCV\matchcv\matchCV_Project\matchCV_Project\obj\Debug\net8.0\refint\matchCV_Project.dll

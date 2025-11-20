@@ -3,6 +3,10 @@
   "WorkspaceRootPath": "C:\\Users\\ACER\\Documents\\Study\\FPT\\OJT\\Project_MatchCV\\matchcv\\matchCV_Project\\",
   "Documents": [
     {
+      "AbsoluteMoniker": "D:0:0:{C1D5903F-CACE-4FFD-9999-8F961E49698E}|matchCV_Project\\matchCV_Project.csproj|c:\\users\\acer\\documents\\study\\fpt\\ojt\\project_matchcv\\matchcv\\matchcv_project\\matchcv_project\\matchcv_project.http||{5703B403-55E7-4C63-8C88-A8F52C7A45C5}",
+      "RelativeMoniker": "D:0:0:{C1D5903F-CACE-4FFD-9999-8F961E49698E}|matchCV_Project\\matchCV_Project.csproj|solutionrelative:matchcv_project\\matchcv_project.http||{5703B403-55E7-4C63-8C88-A8F52C7A45C5}"
+    },
+    {
       "AbsoluteMoniker": "D:0:0:{C1D5903F-CACE-4FFD-9999-8F961E49698E}|matchCV_Project\\matchCV_Project.csproj|c:\\users\\acer\\documents\\study\\fpt\\ojt\\project_matchcv\\matchcv\\matchcv_project\\matchcv_project\\models\\document.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{C1D5903F-CACE-4FFD-9999-8F961E49698E}|matchCV_Project\\matchCV_Project.csproj|solutionrelative:matchcv_project\\models\\document.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
@@ -57,10 +61,6 @@
     {
       "AbsoluteMoniker": "D:0:0:{C1D5903F-CACE-4FFD-9999-8F961E49698E}|matchCV_Project\\matchCV_Project.csproj|c:\\users\\acer\\documents\\study\\fpt\\ojt\\project_matchcv\\matchcv\\matchcv_project\\matchcv_project\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{C1D5903F-CACE-4FFD-9999-8F961E49698E}|matchCV_Project\\matchCV_Project.csproj|solutionrelative:matchcv_project\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{C1D5903F-CACE-4FFD-9999-8F961E49698E}|matchCV_Project\\matchCV_Project.csproj|c:\\users\\acer\\documents\\study\\fpt\\ojt\\project_matchcv\\matchcv\\matchcv_project\\matchcv_project\\matchcv_project.http||{5703B403-55E7-4C63-8C88-A8F52C7A45C5}",
-      "RelativeMoniker": "D:0:0:{C1D5903F-CACE-4FFD-9999-8F961E49698E}|matchCV_Project\\matchCV_Project.csproj|solutionrelative:matchcv_project\\matchcv_project.http||{5703B403-55E7-4C63-8C88-A8F52C7A45C5}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{C1D5903F-CACE-4FFD-9999-8F961E49698E}|matchCV_Project\\matchCV_Project.csproj|c:\\users\\acer\\documents\\study\\fpt\\ojt\\project_matchcv\\matchcv\\matchcv_project\\matchcv_project\\wwwroot\\partials\\topbar.html||{40D31677-CBC0-4297-A9EF-89D907823A98}",
@@ -182,7 +182,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 15,
+          "SelectedChildIndex": 14,
           "Children": [
             {
               "$type": "Bookmark",
@@ -214,31 +214,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
-              "Title": "Bullet.cs",
-              "DocumentMoniker": "C:\\Users\\ACER\\Documents\\Study\\FPT\\OJT\\Project_MatchCV\\matchcv\\matchCV_Project\\matchCV_Project\\Models\\Bullet.cs",
-              "RelativeDocumentMoniker": "matchCV_Project\\Models\\Bullet.cs",
-              "ToolTip": "C:\\Users\\ACER\\Documents\\Study\\FPT\\OJT\\Project_MatchCV\\matchcv\\matchCV_Project\\matchCV_Project\\Models\\Bullet.cs",
-              "RelativeToolTip": "matchCV_Project\\Models\\Bullet.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-11-18T01:56:39.797Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 4,
-              "Title": "create-job.html",
-              "DocumentMoniker": "C:\\Users\\ACER\\Documents\\Study\\FPT\\OJT\\Project_MatchCV\\matchcv\\matchCV_Project\\matchCV_Project\\wwwroot\\pages\\create-job.html",
-              "RelativeDocumentMoniker": "matchCV_Project\\wwwroot\\pages\\create-job.html",
-              "ToolTip": "C:\\Users\\ACER\\Documents\\Study\\FPT\\OJT\\Project_MatchCV\\matchcv\\matchCV_Project\\matchCV_Project\\wwwroot\\pages\\create-job.html",
-              "RelativeToolTip": "matchCV_Project\\wwwroot\\pages\\create-job.html",
-              "ViewState": "AgIAACsAAAAAAAAAAAAAADwAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001512|",
-              "WhenOpened": "2025-11-11T03:38:09.009Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 8,
+              "DocumentIndex": 9,
               "Title": "job-detail.html",
               "DocumentMoniker": "C:\\Users\\ACER\\Documents\\Study\\FPT\\OJT\\Project_MatchCV\\matchcv\\matchCV_Project\\matchCV_Project\\wwwroot\\pages\\job-detail.html",
               "RelativeDocumentMoniker": "matchCV_Project\\wwwroot\\pages\\job-detail.html",
@@ -250,7 +226,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 6,
+              "DocumentIndex": 7,
               "Title": "main.js",
               "DocumentMoniker": "C:\\Users\\ACER\\Documents\\Study\\FPT\\OJT\\Project_MatchCV\\matchcv\\matchCV_Project\\matchCV_Project\\wwwroot\\js\\main.js",
               "RelativeDocumentMoniker": "matchCV_Project\\wwwroot\\js\\main.js",
@@ -262,7 +238,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 9,
+              "DocumentIndex": 10,
               "Title": "admin.html",
               "DocumentMoniker": "C:\\Users\\ACER\\Documents\\Study\\FPT\\OJT\\Project_MatchCV\\matchcv\\matchCV_Project\\matchCV_Project\\wwwroot\\pages\\admin.html",
               "RelativeDocumentMoniker": "matchCV_Project\\wwwroot\\pages\\admin.html",
@@ -274,7 +250,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
+              "DocumentIndex": 4,
               "Title": "license.html",
               "DocumentMoniker": "C:\\Users\\ACER\\Documents\\Study\\FPT\\OJT\\Project_MatchCV\\matchcv\\matchCV_Project\\matchCV_Project\\wwwroot\\pages\\license.html",
               "RelativeDocumentMoniker": "matchCV_Project\\wwwroot\\pages\\license.html",
@@ -286,7 +262,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
+              "DocumentIndex": 3,
               "Title": "recruiter.html",
               "DocumentMoniker": "C:\\Users\\ACER\\Documents\\Study\\FPT\\OJT\\Project_MatchCV\\matchcv\\matchCV_Project\\matchCV_Project\\wwwroot\\pages\\recruiter.html",
               "RelativeDocumentMoniker": "matchCV_Project\\wwwroot\\pages\\recruiter.html",
@@ -298,7 +274,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 5,
+              "DocumentIndex": 6,
               "Title": "RecruiterController.cs",
               "DocumentMoniker": "C:\\Users\\ACER\\Documents\\Study\\FPT\\OJT\\Project_MatchCV\\matchcv\\matchCV_Project\\matchCV_Project\\Controllers\\RecruiterController.cs",
               "RelativeDocumentMoniker": "matchCV_Project\\Controllers\\RecruiterController.cs",
@@ -310,7 +286,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 0,
+              "DocumentIndex": 1,
               "Title": "Document.cs",
               "DocumentMoniker": "C:\\Users\\ACER\\Documents\\Study\\FPT\\OJT\\Project_MatchCV\\matchcv\\matchCV_Project\\matchCV_Project\\Models\\Document.cs",
               "RelativeDocumentMoniker": "matchCV_Project\\Models\\Document.cs",
@@ -323,7 +299,44 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 11,
+              "DocumentIndex": 0,
+              "Title": "matchCV_Project.http",
+              "DocumentMoniker": "C:\\Users\\ACER\\Documents\\Study\\FPT\\OJT\\Project_MatchCV\\matchcv\\matchCV_Project\\matchCV_Project\\matchCV_Project.http",
+              "RelativeDocumentMoniker": "matchCV_Project\\matchCV_Project.http",
+              "ToolTip": "C:\\Users\\ACER\\Documents\\Study\\FPT\\OJT\\Project_MatchCV\\matchcv\\matchCV_Project\\matchCV_Project\\matchCV_Project.http",
+              "RelativeToolTip": "matchCV_Project\\matchCV_Project.http",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABEAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003502|",
+              "WhenOpened": "2025-11-05T03:08:07.146Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "create-job.html",
+              "DocumentMoniker": "C:\\Users\\ACER\\Documents\\Study\\FPT\\OJT\\Project_MatchCV\\matchcv\\matchCV_Project\\matchCV_Project\\wwwroot\\pages\\create-job.html",
+              "RelativeDocumentMoniker": "matchCV_Project\\wwwroot\\pages\\create-job.html",
+              "ToolTip": "C:\\Users\\ACER\\Documents\\Study\\FPT\\OJT\\Project_MatchCV\\matchcv\\matchCV_Project\\matchCV_Project\\wwwroot\\pages\\create-job.html",
+              "RelativeToolTip": "matchCV_Project\\wwwroot\\pages\\create-job.html",
+              "ViewState": "AgIAACsAAAAAAAAAAAAAADwAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001512|",
+              "WhenOpened": "2025-11-11T03:38:09.009Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "Bullet.cs",
+              "DocumentMoniker": "C:\\Users\\ACER\\Documents\\Study\\FPT\\OJT\\Project_MatchCV\\matchcv\\matchCV_Project\\matchCV_Project\\Models\\Bullet.cs",
+              "RelativeDocumentMoniker": "matchCV_Project\\Models\\Bullet.cs",
+              "ToolTip": "C:\\Users\\ACER\\Documents\\Study\\FPT\\OJT\\Project_MatchCV\\matchcv\\matchCV_Project\\matchCV_Project\\Models\\Bullet.cs",
+              "RelativeToolTip": "matchCV_Project\\Models\\Bullet.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-18T01:56:39.797Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 12,
               "Title": "sidebar.css",
               "DocumentMoniker": "C:\\Users\\ACER\\Documents\\Study\\FPT\\OJT\\Project_MatchCV\\matchcv\\matchCV_Project\\matchCV_Project\\wwwroot\\css\\components\\sidebar.css",
               "RelativeDocumentMoniker": "matchCV_Project\\wwwroot\\css\\components\\sidebar.css",
@@ -335,7 +348,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 7,
+              "DocumentIndex": 8,
               "Title": "LicenseController.cs",
               "DocumentMoniker": "C:\\Users\\ACER\\Documents\\Study\\FPT\\OJT\\Project_MatchCV\\matchcv\\matchCV_Project\\matchCV_Project\\Controllers\\LicenseController.cs",
               "RelativeDocumentMoniker": "matchCV_Project\\Controllers\\LicenseController.cs",
@@ -347,7 +360,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 12,
+              "DocumentIndex": 13,
               "Title": "header.css",
               "DocumentMoniker": "C:\\Users\\ACER\\Documents\\Study\\FPT\\OJT\\Project_MatchCV\\matchcv\\matchCV_Project\\matchCV_Project\\wwwroot\\css\\components\\header.css",
               "RelativeDocumentMoniker": "matchCV_Project\\wwwroot\\css\\components\\header.css",
@@ -360,18 +373,6 @@
             {
               "$type": "Document",
               "DocumentIndex": 14,
-              "Title": "matchCV_Project.http",
-              "DocumentMoniker": "C:\\Users\\ACER\\Documents\\Study\\FPT\\OJT\\Project_MatchCV\\matchcv\\matchCV_Project\\matchCV_Project\\matchCV_Project.http",
-              "RelativeDocumentMoniker": "matchCV_Project\\matchCV_Project.http",
-              "ToolTip": "C:\\Users\\ACER\\Documents\\Study\\FPT\\OJT\\Project_MatchCV\\matchcv\\matchCV_Project\\matchCV_Project\\matchCV_Project.http",
-              "RelativeToolTip": "matchCV_Project\\matchCV_Project.http",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAJAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003502|",
-              "WhenOpened": "2025-11-05T03:08:07.146Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 13,
               "Title": "Program.cs",
               "DocumentMoniker": "C:\\Users\\ACER\\Documents\\Study\\FPT\\OJT\\Project_MatchCV\\matchcv\\matchCV_Project\\matchCV_Project\\Program.cs",
               "RelativeDocumentMoniker": "matchCV_Project\\Program.cs",
@@ -395,7 +396,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 10,
+              "DocumentIndex": 11,
               "Title": "topbar.css",
               "DocumentMoniker": "C:\\Users\\ACER\\Documents\\Study\\FPT\\OJT\\Project_MatchCV\\matchcv\\matchCV_Project\\matchCV_Project\\wwwroot\\css\\components\\topbar.css",
               "RelativeDocumentMoniker": "matchCV_Project\\wwwroot\\css\\components\\topbar.css",

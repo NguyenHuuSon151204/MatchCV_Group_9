@@ -74,4 +74,95 @@ public class AdminController : ControllerBase
 
         return Ok(logs);
     }
+
+    // GET: /api/admin/candidates
+    [HttpGet("candidates")]
+    public async Task<IActionResult> GetCandidates(
+        [FromQuery] string? search,
+        [FromQuery] string? status)
+    {
+        var query = _db.Users
+            .Where(u => u.Role == "Candidate" || string.IsNullOrEmpty(u.Role))
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            query = query.Where(u => 
+                u.DisplayName.Contains(search) || 
+                u.Email.Contains(search));
+        }
+
+        var candidates = await query
+            .OrderByDescending(u => u.CreatedAt)
+            .ToListAsync();
+
+        var list = candidates.Select(u =>
+        {
+            var cvCount = _db.Documents
+                .Count(d => d.UserId == u.Id && d.DocType == "CV" && !d.IsDeleted);
+
+            var lastActive = _db.Documents
+                .Where(d => d.UserId == u.Id)
+                .OrderByDescending(d => d.UploadedAt)
+                .Select(d => d.UploadedAt)
+                .FirstOrDefault();
+
+            return new
+            {
+                u.Id,
+                u.DisplayName,
+                u.Email,
+                u.Role,
+                u.CreatedAt,
+                CvCount = cvCount,
+                LastActive = lastActive
+            };
+        }).ToList();
+
+        return Ok(list);
+    }
+
+    // GET: /api/admin/recruiters
+    [HttpGet("recruiters")]
+    public async Task<IActionResult> GetRecruiters(
+        [FromQuery] string? search,
+        [FromQuery] string? accountType)
+    {
+        var query = _db.Users
+            .Where(u => u.Role == "Recruiter")
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            query = query.Where(u => 
+                u.DisplayName.Contains(search) || 
+                u.Email.Contains(search));
+        }
+
+        var recruiters = await query
+            .OrderByDescending(u => u.CreatedAt)
+            .ToListAsync();
+
+        var list = recruiters.Select(u =>
+        {
+            var openJobsCount = _db.Jobs
+                .Count(j => j.UserId == u.Id);
+
+            var license = _db.LicenseKeys
+                .FirstOrDefault(l => l.AssignedUserId == u.Id && l.IsActive);
+
+            return new
+            {
+                u.Id,
+                u.DisplayName,
+                u.Email,
+                u.CreatedAt,
+                OpenJobsCount = openJobsCount,
+                Plan = license?.Plan ?? "Free",
+                LicenseExpiry = license?.Expiry
+            };
+        }).ToList();
+
+        return Ok(list);
+    }
 }

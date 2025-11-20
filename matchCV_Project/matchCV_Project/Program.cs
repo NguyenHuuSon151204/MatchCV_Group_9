@@ -27,6 +27,18 @@ builder.Services.AddSwaggerGen();
 // Lowercase URLs (optional)
 builder.Services.AddRouting(o => o.LowercaseUrls = true);
 
+// CORS - Allow frontend to connect
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowReactApp", policy =>
+    {
+        policy.WithOrigins("http://localhost:3000", "http://localhost:5173", "https://localhost:3000")
+              .AllowAnyMethod()
+              .AllowAnyHeader()
+              .AllowCredentials();
+    });
+});
+
 var app = builder.Build();
 
 // Swagger only in Development
@@ -40,12 +52,16 @@ if (app.Environment.IsDevelopment())
 app.UseStaticFiles();
 
 app.UseRouting();
+
+// Enable CORS
+app.UseCors("AllowReactApp");
+
 app.UseAuthorization();
 
 // Map API controllers
 app.MapControllers();
 
-// Default route → Recruiter Dashboard page
-app.MapGet("/", () => Results.Redirect("/pages/recruiter.html"));
+// SPA fallback - serve React app for all non-API routes
+app.MapFallbackToFile("index.html");
 
 app.Run();
