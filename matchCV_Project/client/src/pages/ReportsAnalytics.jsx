@@ -1,4 +1,19 @@
 import { useEffect, useState } from 'react'
+import {
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from 'recharts'
 import './ReportsAnalytics.css'
 import '../components/Button.css'
 import api from '../services/api'
@@ -168,29 +183,48 @@ function ReportsAnalytics() {
               </div>
             </div>
 
-            <div className="report-card">
+            <div className="report-card chart-card">
               <h3 className="card-title">Average Score Trend</h3>
-              <div className="score-trend">
-                {stats.avgScoreByDay && stats.avgScoreByDay.length > 0 ? (
-                  <div className="trend-list">
-                    {stats.avgScoreByDay.slice(-7).map((item, index) => (
-                      <div key={index} className="trend-item">
-                        <div className="trend-date">{formatDate(item.day)}</div>
-                        <div className="trend-bar-container">
-                          <div
-                            className="trend-bar"
-                            style={{ width: `${item.avg}%` }}
-                          >
-                            {Math.round(item.avg)}%
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="empty-text">No score data available</div>
-                )}
-              </div>
+              {stats.avgScoreByDay && stats.avgScoreByDay.length > 0 ? (
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart
+                    data={stats.avgScoreByDay.map((item) => ({
+                      date: formatDate(item.day),
+                      score: Math.round(item.avg),
+                    }))}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" />
+                    <XAxis
+                      dataKey="date"
+                      stroke="var(--text-muted)"
+                      style={{ fontSize: '12px' }}
+                    />
+                    <YAxis
+                      stroke="var(--text-muted)"
+                      style={{ fontSize: '12px' }}
+                      domain={[0, 100]}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: 'var(--bg-card)',
+                        border: '1px solid var(--border-subtle)',
+                        borderRadius: 'var(--radius)',
+                      }}
+                    />
+                    <Legend />
+                    <Line
+                      type="monotone"
+                      dataKey="score"
+                      stroke="var(--accent)"
+                      strokeWidth={2}
+                      name="Match Score (%)"
+                      dot={{ fill: 'var(--accent)', r: 4 }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="empty-text">No score data available</div>
+              )}
             </div>
           </div>
         </>

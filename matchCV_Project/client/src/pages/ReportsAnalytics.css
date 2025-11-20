@@ -189,50 +189,8 @@
   color: var(--text-main);
 }
 
-.score-trend {
-  min-height: 200px;
-}
-
-.trend-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.trend-item {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.trend-date {
-  font-size: 12px;
-  color: var(--text-muted);
-  min-width: 100px;
-}
-
-.trend-bar-container {
-  flex: 1;
-  height: 24px;
-  background: var(--bg-body);
-  border-radius: 12px;
-  overflow: hidden;
-  position: relative;
-}
-
-.trend-bar {
-  height: 100%;
-  background: linear-gradient(90deg, var(--accent), var(--accent-hover));
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  padding-right: 8px;
-  color: white;
-  font-size: 11px;
-  font-weight: 600;
-  min-width: 40px;
-  transition: width 0.3s ease;
+.chart-card {
+  min-height: 400px;
 }
 
 .empty-text {

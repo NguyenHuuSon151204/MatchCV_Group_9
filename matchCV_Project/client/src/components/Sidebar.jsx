@@ -4,18 +4,13 @@ import './Sidebar.css'
 function Sidebar() {
   const menuItems = [
     { path: '/dashboard', label: 'Dashboard', icon: '📊' },
-    {
-      label: 'Account Management',
-      icon: '⚙️',
-      children: [
-        { path: '/candidates', label: 'Candidate Management', icon: '👥' },
-        { path: '/recruiters', label: 'Recruiter Management', icon: '🏢' },
-      ],
-    },
-    { path: '/config', label: 'System Configuration', icon: '🔧' },
+    { path: '/jobs', label: 'Job Management', icon: '💼' },
+    { path: '/applicants', label: 'Applicant Management', icon: '👤' },
+    { path: '/recruiters', label: 'Recruiter Management', icon: '🏢' },
     { path: '/reports', label: 'Reports & Analytics', icon: '📈' },
     { path: '/logs', label: 'Audit Log', icon: '📋' },
     { path: '/ai-status', label: 'AI Status', icon: '🧠' },
+    { path: '/config', label: 'System Configuration', icon: '🔧' },
   ]
 
   return (

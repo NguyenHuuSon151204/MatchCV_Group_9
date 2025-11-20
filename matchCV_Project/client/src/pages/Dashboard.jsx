@@ -1,4 +1,16 @@
 import { useEffect, useState } from 'react'
+import {
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from 'recharts'
 import './Dashboard.css'
 import '../components/Button.css'
 import api from '../services/api'
@@ -10,6 +22,8 @@ function Dashboard() {
     openJobs: 0,
     aiMatchesToday: 0,
   })
+  const [chartData, setChartData] = useState([])
+  const [topSkills, setTopSkills] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -25,6 +39,20 @@ function Dashboard() {
         openJobs: data.totals?.jobs || 0,
         aiMatchesToday: data.totals?.apps || 0,
       })
+
+      // Prepare chart data
+      if (data.avgScoreByDay && data.avgScoreByDay.length > 0) {
+        const formatted = data.avgScoreByDay.map((item) => ({
+          date: new Date(item.day).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          score: Math.round(item.avg),
+        }))
+        setChartData(formatted)
+      }
+
+      // Prepare top skills data
+      if (data.topSkills && data.topSkills.length > 0) {
+        setTopSkills(data.topSkills.slice(0, 5))
+      }
     } catch (error) {
       console.error('Failed to load dashboard data:', error)
     } finally {
@@ -86,6 +114,80 @@ function Dashboard() {
             </div>
           </div>
         ))}
+      </div>
+
+      <div className="dashboard-grid">
+        <div className="dashboard-card chart-card">
+          <h2 className="card-title">Average Match Score Trend</h2>
+          {loading ? (
+            <div className="loading-text">Loading chart data...</div>
+          ) : chartData.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" />
+                <XAxis
+                  dataKey="date"
+                  stroke="var(--text-muted)"
+                  style={{ fontSize: '12px' }}
+                />
+                <YAxis
+                  stroke="var(--text-muted)"
+                  style={{ fontSize: '12px' }}
+                  domain={[0, 100]}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: 'var(--bg-card)',
+                    border: '1px solid var(--border-subtle)',
+                    borderRadius: 'var(--radius)',
+                  }}
+                />
+                <Legend />
+                <Line
+                  type="monotone"
+                  dataKey="score"
+                  stroke="var(--accent)"
+                  strokeWidth={2}
+                  name="Match Score (%)"
+                  dot={{ fill: 'var(--accent)', r: 4 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="empty-chart">No chart data available</div>
+          )}
+        </div>
+
+        <div className="dashboard-card chart-card">
+          <h2 className="card-title">Top Skills</h2>
+          {loading ? (
+            <div className="loading-text">Loading skills data...</div>
+          ) : topSkills.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={topSkills} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-subtle)" />
+                <XAxis type="number" stroke="var(--text-muted)" style={{ fontSize: '12px' }} />
+                <YAxis
+                  dataKey="skill"
+                  type="category"
+                  stroke="var(--text-muted)"
+                  style={{ fontSize: '12px' }}
+                  width={100}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: 'var(--bg-card)',
+                    border: '1px solid var(--border-subtle)',
+                    borderRadius: 'var(--radius)',
+                  }}
+                />
+                <Bar dataKey="count" fill="var(--accent)" name="Mentions" />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="empty-chart">No skills data available</div>
+          )}
+        </div>
       </div>
 
       <div className="dashboard-grid">

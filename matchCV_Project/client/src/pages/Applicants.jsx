@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import './Applicants.css'
 import '../components/Button.css'
 import api from '../services/api'
@@ -8,16 +9,22 @@ function Applicants() {
   const [jobs, setJobs] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [selectedItems, setSelectedItems] = useState([])
   const [filters, setFilters] = useState({
     jobId: '',
+    company: '',
     status: '',
     minScore: '',
+    dateFrom: '',
+    dateTo: '',
   })
+  const [sortBy, setSortBy] = useState('scoreSnapshot')
+  const [sortOrder, setSortOrder] = useState('desc')
 
   useEffect(() => {
     loadJobs()
     loadApplicants()
-  }, [])
+  }, [filters, sortBy, sortOrder])
 
   const loadJobs = async () => {
     try {
@@ -32,6 +39,8 @@ function Applicants() {
     try {
       setLoading(true)
       setError(null)
+      let allApplicants = []
+
       if (filters.jobId) {
         const params = new URLSearchParams()
         if (filters.status) params.append('status', filters.status)
@@ -41,15 +50,13 @@ function Applicants() {
           `/recruiter/jobs/${filters.jobId}/applications?${params.toString()}`
         )
         const job = jobs.find((j) => j.id === parseInt(filters.jobId))
-        setApplicants(
-          (data || []).map((app) => ({
-            ...app,
-            jobTitle: job?.title || 'Unknown',
-            jobCompany: job?.company || '',
-          }))
-        )
+        allApplicants = (data || []).map((app) => ({
+          ...app,
+          jobTitle: job?.title || 'Unknown',
+          jobCompany: job?.company || '',
+          jobId: job?.id,
+        }))
       } else {
-        // Load from all jobs
         const allJobs = await api.get('/recruiter/jobs')
         const promises = allJobs.map((job) =>
           api
@@ -65,27 +72,61 @@ function Applicants() {
             .catch(() => [])
         )
         const results = await Promise.all(promises)
-        let allApplicants = results.flat()
-
-        // Apply filters
-        if (filters.status) {
-          allApplicants = allApplicants.filter(
-            (app) => app.status === filters.status
-          )
-        }
-        if (filters.minScore) {
-          allApplicants = allApplicants.filter(
-            (app) =>
-              app.scoreSnapshot != null &&
-              app.scoreSnapshot >= parseInt(filters.minScore)
-          )
-        }
-
-        allApplicants.sort(
-          (a, b) => (b.scoreSnapshot || 0) - (a.scoreSnapshot || 0)
-        )
-        setApplicants(allApplicants)
+        allApplicants = results.flat()
       }
+
+      // Apply client-side filters
+      if (filters.status) {
+        allApplicants = allApplicants.filter(
+          (app) => app.status === filters.status
+        )
+      }
+      if (filters.minScore) {
+        allApplicants = allApplicants.filter(
+          (app) =>
+            app.scoreSnapshot != null &&
+            app.scoreSnapshot >= parseInt(filters.minScore)
+        )
+      }
+      if (filters.company) {
+        allApplicants = allApplicants.filter(
+          (app) => app.jobCompany === filters.company
+        )
+      }
+      if (filters.dateFrom) {
+        allApplicants = allApplicants.filter((app) => {
+          const appDate = new Date(app.createdAt)
+          const fromDate = new Date(filters.dateFrom)
+          return appDate >= fromDate
+        })
+      }
+      if (filters.dateTo) {
+        allApplicants = allApplicants.filter((app) => {
+          const appDate = new Date(app.createdAt)
+          const toDate = new Date(filters.dateTo)
+          toDate.setHours(23, 59, 59, 999)
+          return appDate <= toDate
+        })
+      }
+
+      // Sort
+      allApplicants.sort((a, b) => {
+        let aVal = a[sortBy]
+        let bVal = b[sortBy]
+
+        if (sortBy === 'createdAt') {
+          aVal = new Date(aVal || 0).getTime()
+          bVal = new Date(bVal || 0).getTime()
+        }
+
+        if (sortOrder === 'asc') {
+          return aVal > bVal ? 1 : -1
+        } else {
+          return aVal < bVal ? 1 : -1
+        }
+      })
+
+      setApplicants(allApplicants)
     } catch (error) {
       console.error('Failed to load applicants:', error)
       setError('Failed to load applicants. Please try again.')
@@ -94,14 +135,50 @@ function Applicants() {
     }
   }
 
+  const handleFilterChange = (field, value) => {
+    setFilters((prev) => ({ ...prev, [field]: value }))
+  }
+
+  const handleSelectItem = (id) => {
+    setSelectedItems((prev) =>
+      prev.includes(id) ? prev.filter((itemId) => itemId !== id) : [...prev, id]
+    )
+  }
+
+  const handleSelectAll = () => {
+    if (selectedItems.length === applicants.length) {
+      setSelectedItems([])
+    } else {
+      setSelectedItems(applicants.map((app) => app.id))
+    }
+  }
+
+  const handleBulkDelete = async () => {
+    if (
+      !window.confirm(
+        `Are you sure you want to delete ${selectedItems.length} applicant(s)?`
+      )
+    ) {
+      return
+    }
+
+    // TODO: Implement bulk delete API
+    alert('Bulk delete functionality will be implemented soon.')
+    setSelectedItems([])
+  }
+
   const handleExportCSV = () => {
     try {
-      const csvRows = ['Applicant,Email,Job,Company,AI Score,Matching Skills,Status,Applied Date']
+      const csvRows = [
+        'Applicant,Email,Job,Company,AI Score,Matching Skills,Status,Applied Date',
+      ]
       applicants.forEach((app) => {
-        const score = app.scoreSnapshot != null ? Math.round(app.scoreSnapshot) : 'N/A'
-        const skills = (app.matchingSkills && app.matchingSkills.length > 0)
-          ? app.matchingSkills.join('; ')
-          : 'None'
+        const score =
+          app.scoreSnapshot != null ? Math.round(app.scoreSnapshot) : 'N/A'
+        const skills =
+          app.matchingSkills && app.matchingSkills.length > 0
+            ? app.matchingSkills.join('; ')
+            : 'None'
         const appliedDate = app.createdAt
           ? new Date(app.createdAt).toLocaleDateString()
           : 'N/A'
@@ -124,14 +201,6 @@ function Applicants() {
     }
   }
 
-  const handleFilterChange = (field, value) => {
-    setFilters((prev) => ({ ...prev, [field]: value }))
-  }
-
-  const handleSearch = () => {
-    loadApplicants()
-  }
-
   const getStatusBadge = (status) => {
     const badges = {
       Hired: { label: 'Hired', class: 'badge-success' },
@@ -142,173 +211,338 @@ function Applicants() {
     return badges[status] || { label: status, class: 'badge-neutral' }
   }
 
+  const getSortIcon = (field) => {
+    if (sortBy !== field) return '↕️'
+    return sortOrder === 'asc' ? '↑' : '↓'
+  }
+
+  const formatDateTime = (dateString) => {
+    if (!dateString) return 'N/A'
+    return new Date(dateString).toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+  }
+
+  const showBulkActions = selectedItems.length > 0
+
+  // Get unique companies for quick filter
+  const companies = [...new Set(jobs.map((j) => j.company))].sort()
+
   return (
     <div className="applicants">
       <div className="page-header">
         <div>
           <div className="breadcrumbs">Home / Applicants</div>
-          <h1 className="page-title">Applicants</h1>
+          <h1 className="page-title">Applicants Management</h1>
           <p className="page-subtitle">
-            View and manage all applicants across all jobs
+            Manage all applicants with advanced filtering, sorting, and bulk actions
           </p>
         </div>
         <div className="header-actions">
           <button className="btn btn-outline" onClick={handleExportCSV}>
-            Export CSV
+            📥 Export CSV
           </button>
         </div>
       </div>
 
+      {showBulkActions && (
+        <div className="bulk-actions-bar">
+          <div className="bulk-info">
+            <strong>{selectedItems.length}</strong> applicant(s) selected
+          </div>
+          <div className="bulk-buttons">
+            <button className="btn btn-danger" onClick={handleBulkDelete}>
+              Delete Selected
+            </button>
+            <button
+              className="btn btn-outline"
+              onClick={() => setSelectedItems([])}
+            >
+              Clear Selection
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="filter-card">
-        <h3 className="filter-title">Search & Filter</h3>
-        <div className="filter-row">
-          <select
-            className="filter-select"
-            value={filters.jobId}
-            onChange={(e) => handleFilterChange('jobId', e.target.value)}
-          >
-            <option value="">All Jobs</option>
-            {jobs.map((job) => (
-              <option key={job.id} value={job.id}>
-                {job.title} ({job.company})
-              </option>
-            ))}
-          </select>
-          <select
-            className="filter-select"
-            value={filters.status}
-            onChange={(e) => handleFilterChange('status', e.target.value)}
-          >
-            <option value="">All Status</option>
-            <option value="Pending">Pending</option>
-            <option value="Reviewed">Reviewed</option>
-            <option value="Hired">Hired</option>
-            <option value="Rejected">Rejected</option>
-          </select>
-          <input
-            type="number"
-            placeholder="Min Score"
-            className="filter-input"
-            min="0"
-            max="100"
-            value={filters.minScore}
-            onChange={(e) => handleFilterChange('minScore', e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-          />
-          <button className="btn btn-primary" onClick={handleSearch}>
-            Search
-          </button>
-          <button
-            className="btn btn-outline"
-            onClick={() => {
-              setFilters({ jobId: '', status: '', minScore: '' })
-              loadApplicants()
-            }}
-          >
-            Clear Filters
-          </button>
+        <h3 className="filter-title">Filters & Search</h3>
+        <p className="filter-description">
+          Use filters to quickly find the applicants you're looking for
+        </p>
+        <div className="filter-grid">
+          <div className="filter-group">
+            <label>Job</label>
+            <select
+              className="filter-select"
+              value={filters.jobId}
+              onChange={(e) => handleFilterChange('jobId', e.target.value)}
+            >
+              <option value="">All Jobs</option>
+              {jobs.map((job) => (
+                <option key={job.id} value={job.id}>
+                  {job.title} ({job.company})
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="filter-group">
+            <label>Company</label>
+            <select
+              className="filter-select"
+              value={filters.company || ''}
+              onChange={(e) => handleFilterChange('company', e.target.value)}
+            >
+              <option value="">All Companies</option>
+              {companies.map((company) => (
+                <option key={company} value={company}>
+                  {company}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="filter-group">
+            <label>Status</label>
+            <select
+              className="filter-select"
+              value={filters.status}
+              onChange={(e) => handleFilterChange('status', e.target.value)}
+            >
+              <option value="">All Status</option>
+              <option value="Pending">Pending</option>
+              <option value="Reviewed">Reviewed</option>
+              <option value="Hired">Hired</option>
+              <option value="Rejected">Rejected</option>
+            </select>
+          </div>
+          <div className="filter-group">
+            <label>Min AI Score</label>
+            <input
+              type="number"
+              placeholder="0-100"
+              className="filter-input"
+              min="0"
+              max="100"
+              value={filters.minScore}
+              onChange={(e) => handleFilterChange('minScore', e.target.value)}
+            />
+          </div>
+          <div className="filter-group">
+            <label>Date From</label>
+            <input
+              type="date"
+              className="filter-input"
+              value={filters.dateFrom}
+              onChange={(e) => handleFilterChange('dateFrom', e.target.value)}
+            />
+          </div>
+          <div className="filter-group">
+            <label>Date To</label>
+            <input
+              type="date"
+              className="filter-input"
+              value={filters.dateTo}
+              onChange={(e) => handleFilterChange('dateTo', e.target.value)}
+            />
+          </div>
+          <div className="filter-group">
+            <label>&nbsp;</label>
+            <button
+              className="btn btn-outline"
+              onClick={() => {
+                setFilters({
+                  jobId: '',
+                  status: '',
+                  minScore: '',
+                  dateFrom: '',
+                  dateTo: '',
+                  company: '',
+                })
+              }}
+            >
+              Clear All Filters
+            </button>
+          </div>
         </div>
       </div>
 
       <div className="table-card">
-        <div className="table-header">
-          <h3 className="table-title">All Applicants</h3>
-          <span className="table-count">
-            {applicants.length} applicant{applicants.length !== 1 ? 's' : ''}
-          </span>
+        <div className="table-header-bar">
+          <div className="table-info">
+            <h3 className="table-title">All Applicants</h3>
+            <span className="table-count">
+              {applicants.length} applicant{applicants.length !== 1 ? 's' : ''}
+            </span>
+          </div>
+          <div className="sort-controls">
+            <label>Sort by:</label>
+            <select
+              className="sort-select"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+            >
+              <option value="scoreSnapshot">AI Score</option>
+              <option value="createdAt">Applied Date</option>
+              <option value="status">Status</option>
+            </select>
+            <button
+              className="btn-icon"
+              onClick={() =>
+                setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')
+              }
+              title={`Sort ${sortOrder === 'asc' ? 'Descending' : 'Ascending'}`}
+            >
+              {sortOrder === 'asc' ? '↑' : '↓'}
+            </button>
+          </div>
         </div>
 
-        {error && (
-          <div className="error-message">{error}</div>
-        )}
+        {error && <div className="error-message">{error}</div>}
 
         {loading ? (
           <div className="loading">Loading applicants...</div>
         ) : (
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Applicant</th>
-                <th>Job</th>
-                <th>AI Score</th>
-                <th>Matching Skills</th>
-                <th>Status</th>
-                <th>Applied</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {applicants.length === 0 ? (
+          <div className="table-wrapper">
+            <table className="data-table">
+              <thead>
                 <tr>
-                  <td colSpan="7" className="empty-state">
-                    Không tìm thấy applicants nào.
-                  </td>
+                  <th className="checkbox-col">
+                    <input
+                      type="checkbox"
+                      checked={
+                        selectedItems.length === applicants.length &&
+                        applicants.length > 0
+                      }
+                      onChange={handleSelectAll}
+                    />
+                  </th>
+                  <th>Applicant</th>
+                  <th>Job</th>
+                  <th
+                    className="sortable"
+                    onClick={() => setSortBy('scoreSnapshot')}
+                  >
+                    AI Score {getSortIcon('scoreSnapshot')}
+                  </th>
+                  <th>Matching Skills</th>
+                  <th>Status</th>
+                  <th
+                    className="sortable"
+                    onClick={() => setSortBy('createdAt')}
+                  >
+                    Applied {getSortIcon('createdAt')}
+                  </th>
+                  <th>Actions</th>
                 </tr>
-              ) : (
-                applicants.map((app) => {
-                  const status = getStatusBadge(app.status)
-                  return (
-                    <tr key={app.id}>
-                      <td>
-                        <div>
-                          <strong>{app.candidate?.displayName || 'Unknown'}</strong>
-                          <br />
-                          <span className="text-muted">
-                            {app.candidate?.email || ''}
-                          </span>
-                        </div>
-                      </td>
-                      <td>
-                        <div>
-                          <strong>{app.jobTitle || 'Unknown'}</strong>
-                          <br />
-                          <span className="text-muted">{app.jobCompany || ''}</span>
-                        </div>
-                      </td>
-                      <td>
-                        <span className="pill score-pill">
-                          {app.scoreSnapshot != null
-                            ? `${Math.round(app.scoreSnapshot)}%`
-                            : '–'}
-                        </span>
-                      </td>
-                      <td>
-                        <div className="skills-container">
-                          {app.matchingSkills && app.matchingSkills.length > 0 ? (
-                            app.matchingSkills.map((skill, idx) => (
-                              <span key={idx} className="pill skill-pill">
-                                {skill}
-                              </span>
-                            ))
+              </thead>
+              <tbody>
+                {applicants.length === 0 ? (
+                  <tr>
+                    <td colSpan="8" className="empty-state">
+                      No applicants found. Applicants will appear here once
+                      candidates apply to your jobs.
+                    </td>
+                  </tr>
+                ) : (
+                  applicants.map((app) => {
+                    const status = getStatusBadge(app.status)
+                    const isSelected = selectedItems.includes(app.id)
+                    return (
+                      <tr key={app.id} className={isSelected ? 'selected' : ''}>
+                        <td className="checkbox-col">
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => handleSelectItem(app.id)}
+                          />
+                        </td>
+                        <td>
+                          <div className="applicant-info">
+                            <strong>{app.candidate?.displayName || 'Unknown'}</strong>
+                            <span className="applicant-email">
+                              {app.candidate?.email}
+                            </span>
+                          </div>
+                        </td>
+                        <td>
+                          <div className="job-info">
+                            {app.jobId ? (
+                              <Link
+                                to={`/jobs/${app.jobId}`}
+                                className="job-title-link"
+                              >
+                                <strong>{app.jobTitle || 'Unknown'}</strong>
+                              </Link>
+                            ) : (
+                              <strong>{app.jobTitle || 'Unknown'}</strong>
+                            )}
+                            <span className="job-company">{app.jobCompany}</span>
+                          </div>
+                        </td>
+                        <td>
+                          {app.scoreSnapshot != null ? (
+                            <span className="score-badge">
+                              {Math.round(app.scoreSnapshot)}%
+                            </span>
                           ) : (
-                            <span className="text-muted">No matching skills</span>
+                            <span className="score-badge neutral">N/A</span>
                           )}
-                        </div>
-                      </td>
-                      <td>
-                        <span className={`badge ${status.class}`}>
-                          {status.label}
-                        </span>
-                      </td>
-                      <td>
-                        {app.createdAt
-                          ? new Date(app.createdAt).toLocaleDateString('vi-VN')
-                          : '–'}
-                      </td>
-                      <td>
-                        <div className="action-buttons">
-                          <button className="btn-action btn-view">View CV</button>
-                          {app.jobId && (
-                            <button className="btn-action btn-edit">View Job</button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  )
-                })
-              )}
-            </tbody>
-          </table>
+                        </td>
+                        <td>
+                          <div className="skills-container">
+                            {app.matchingSkills && app.matchingSkills.length > 0 ? (
+                              <>
+                                {app.matchingSkills.slice(0, 3).map((skill, idx) => (
+                                  <span key={idx} className="skill-pill">
+                                    {skill}
+                                  </span>
+                                ))}
+                                {app.matchingSkills.length > 3 && (
+                                  <span className="skill-more">
+                                    +{app.matchingSkills.length - 3}
+                                  </span>
+                                )}
+                              </>
+                            ) : (
+                              <span className="text-muted">None</span>
+                            )}
+                          </div>
+                        </td>
+                        <td>
+                          <span className={`badge ${status.class}`}>
+                            {status.label}
+                          </span>
+                        </td>
+                        <td>{formatDateTime(app.createdAt)}</td>
+                        <td>
+                          <div className="action-buttons">
+                            {app.jobId && (
+                              <Link
+                                to={`/jobs/${app.jobId}`}
+                                className="btn-action btn-view"
+                                title="View Job"
+                              >
+                                👁️
+                              </Link>
+                            )}
+                            <button
+                              className="btn-action btn-edit"
+                              title="View Details"
+                            >
+                              ✏️
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </div>
@@ -316,4 +550,3 @@ function Applicants() {
 }
 
 export default Applicants
-
