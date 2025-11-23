@@ -21,6 +21,7 @@ public class AdminController : ControllerBase
         var totals = new
         {
             users = await _db.Users.CountAsync(),
+            recruiters = await _db.Users.CountAsync(u => u.Role == "Recruiter"),
             cvs = await _db.Documents.CountAsync(d => d.DocType == "CV" && !d.IsDeleted),
             jobs = await _db.Jobs.CountAsync(),
             apps = await _db.Applications.CountAsync()
@@ -165,4 +166,43 @@ public class AdminController : ControllerBase
 
         return Ok(list);
     }
+
+    // PUT: /api/admin/users/{id} - Update user information
+    [HttpPut("users/{id:int}")]
+    public async Task<IActionResult> UpdateUser(int id, [FromBody] UpdateUserDto dto)
+    {
+        var user = await _db.Users.FindAsync(id);
+        if (user == null)
+            return NotFound("User not found.");
+
+        // Check if email is already taken by another user
+        if (!string.IsNullOrWhiteSpace(dto.Email) && dto.Email != user.Email)
+        {
+            var emailExists = await _db.Users
+                .AnyAsync(u => u.Email == dto.Email && u.Id != id);
+            if (emailExists)
+                return BadRequest("Email is already taken by another user.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(dto.DisplayName))
+            user.DisplayName = dto.DisplayName;
+
+        if (!string.IsNullOrWhiteSpace(dto.Email))
+            user.Email = dto.Email;
+
+        await _db.SaveChangesAsync();
+
+        return Ok(new { 
+            Message = "User updated successfully.",
+            User = new
+            {
+                user.Id,
+                user.DisplayName,
+                user.Email,
+                user.Role
+            }
+        });
+    }
+
+    public record UpdateUserDto(string? DisplayName, string? Email);
 }

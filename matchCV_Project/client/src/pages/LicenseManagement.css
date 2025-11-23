@@ -1,5 +1,5 @@
-/* Recruiter Management Styles */
-.recruiter-management {
+/* License Management Styles */
+.license-management {
   max-width: 1600px;
   margin: 0 auto;
   padding: 0 4px;
@@ -90,11 +90,6 @@
   margin-bottom: 24px;
   border: 1px solid var(--border-subtle);
   box-shadow: var(--shadow);
-  transition: box-shadow 0.2s ease;
-}
-
-.filter-card:hover {
-  box-shadow: var(--shadow-lg);
 }
 
 .filter-title {
@@ -102,21 +97,12 @@
   font-weight: 600;
   color: var(--text-main);
   margin: 0 0 8px 0;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.filter-title::before {
-  content: '🔍';
-  font-size: 20px;
 }
 
 .filter-description {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--text-muted);
   margin: 0 0 20px 0;
-  font-style: italic;
 }
 
 .filter-grid {
@@ -322,7 +308,93 @@
   cursor: pointer;
 }
 
-/* Badges */
+/* User Info */
+.user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.user-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.user-info strong {
+  color: var(--text-main);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.user-role {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: var(--bg-body);
+  color: var(--text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border: 1px solid var(--border-subtle);
+}
+
+.user-email {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.btn-manage-plan {
+  margin-top: 4px;
+  padding: 4px 8px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--accent-soft);
+  color: var(--accent);
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.2s ease;
+}
+
+.btn-manage-plan:hover {
+  background: var(--accent);
+  color: white;
+  transform: scale(1.05);
+}
+
+/* Plan Badges */
+.plan-badge {
+  padding: 8px 14px;
+  border-radius: 14px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: inline-block;
+  min-width: 60px;
+  text-align: center;
+}
+
+.plan-badge.plan-free {
+  background: linear-gradient(135deg, var(--bg-body), #f3f4f6);
+  color: var(--text-muted);
+  border: 1px solid var(--border-subtle);
+}
+
+.plan-badge.plan-pro {
+  background: linear-gradient(135deg, var(--accent), #1e40af);
+  color: white;
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
+}
+
+.plan-badge.plan-enterprise {
+  background: linear-gradient(135deg, #7c3aed, #5b21b6);
+  color: white;
+  box-shadow: 0 2px 6px rgba(124, 58, 237, 0.3);
+}
+
+/* Status Badges */
 .badge {
   padding: 8px 14px;
   border-radius: 14px;
@@ -353,6 +425,41 @@
   border: 1px solid var(--border-subtle);
 }
 
+/* Days Remaining */
+.days-remaining {
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.days-remaining.warning {
+  color: var(--warning);
+  font-weight: 700;
+}
+
+/* View Key Button */
+.btn-view-key {
+  padding: 8px 12px;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  background: var(--accent-soft);
+  color: var(--accent);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.btn-view-key:hover {
+  background: var(--accent);
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(59, 130, 246, 0.2);
+}
+
 /* Action Buttons */
 .action-buttons {
   display: flex;
@@ -380,37 +487,26 @@
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
-.btn-action.btn-edit {
-  color: var(--accent);
-  border-color: var(--accent);
-}
-
-.btn-action.btn-edit:hover {
-  background: rgba(59, 130, 246, 0.1);
-  color: var(--accent);
-  box-shadow: 0 4px 8px rgba(59, 130, 246, 0.2);
-}
-
-.btn-action.btn-view {
-  color: var(--info);
-  border-color: var(--info);
-}
-
-.btn-action.btn-view:hover {
-  background: rgba(59, 130, 246, 0.1);
-  color: var(--info);
-  box-shadow: 0 4px 8px rgba(59, 130, 246, 0.2);
-}
-
-.btn-action.btn-plan {
+.btn-action.btn-warning {
   color: var(--warning);
   border-color: var(--warning);
 }
 
-.btn-action.btn-plan:hover {
+.btn-action.btn-warning:hover {
   background: rgba(245, 158, 11, 0.1);
   color: var(--warning);
   box-shadow: 0 4px 8px rgba(245, 158, 11, 0.2);
+}
+
+.btn-action.btn-delete {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+.btn-action.btn-delete:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--danger);
+  box-shadow: 0 4px 8px rgba(239, 68, 68, 0.2);
 }
 
 /* Loading & Error States */
@@ -461,6 +557,10 @@
   max-height: 90vh;
   overflow-y: auto;
   animation: slideUp 0.3s ease;
+}
+
+.modal-content.success-modal {
+  border: 2px solid var(--success);
 }
 
 .modal-header {
@@ -548,7 +648,136 @@
   margin-top: 4px;
 }
 
-/* User Plan Info */
+/* Generated Key Display */
+.generated-key-display {
+  margin-bottom: 24px;
+}
+
+.generated-key-display label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-main);
+  margin-bottom: 8px;
+}
+
+.key-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: var(--bg-body);
+  border: 2px solid var(--success);
+  border-radius: var(--radius);
+}
+
+.license-key {
+  flex: 1;
+  font-family: 'Courier New', monospace;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--success);
+  background: none;
+  padding: 0;
+  letter-spacing: 1px;
+}
+
+.btn-copy {
+  padding: 8px 12px;
+  border: 1px solid var(--success);
+  border-radius: var(--radius);
+  background: var(--success);
+  color: white;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.btn-copy:hover {
+  background: #059669;
+  transform: scale(1.05);
+}
+
+.key-details {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 20px;
+  padding: 16px;
+  background: var(--bg-body);
+  border-radius: var(--radius);
+  border: 1px solid var(--border-subtle);
+}
+
+.detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.detail-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.detail-value {
+  font-size: 14px;
+  color: var(--text-main);
+  font-weight: 600;
+}
+
+.user-detail-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.user-detail-info > div:first-child {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.user-detail-info strong {
+  font-weight: 600;
+}
+
+.user-detail-info .user-role {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 8px;
+  background: var(--bg-body);
+  color: var(--text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border: 1px solid var(--border-subtle);
+}
+
+.user-detail-info .user-email {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: normal;
+}
+
+.key-instructions {
+  padding: 16px;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius);
+  color: var(--text-main);
+}
+
+.key-instructions p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* User Plan Management */
 .user-plan-info {
   margin-bottom: 24px;
   padding: 16px;
@@ -571,7 +800,7 @@
 }
 
 .user-plan-info .current-plan {
-  margin: 4px 0;
+  margin: 0;
   font-size: 14px;
   color: var(--text-main);
 }

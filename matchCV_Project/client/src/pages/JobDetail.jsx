@@ -19,6 +19,8 @@ function JobDetail() {
   })
   const [saving, setSaving] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [selectedApplicant, setSelectedApplicant] = useState(null)
+  const [showApplicantModal, setShowApplicantModal] = useState(false)
 
   useEffect(() => {
     if (id) {
@@ -127,6 +129,32 @@ function JobDetail() {
       month: 'long',
       day: 'numeric',
     })
+  }
+
+  const formatDateTime = (dateString) => {
+    if (!dateString) return 'N/A'
+    return new Date(dateString).toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+  }
+
+  const handleViewApplicant = (app) => {
+    setSelectedApplicant(app)
+    setShowApplicantModal(true)
+  }
+
+  const getStatusBadge = (status) => {
+    const badges = {
+      Hired: { label: 'Hired', class: 'badge-success' },
+      Rejected: { label: 'Rejected', class: 'badge-danger' },
+      Reviewed: { label: 'Reviewed', class: 'badge-warning' },
+      Pending: { label: 'Pending', class: 'badge-neutral' },
+    }
+    return badges[status] || { label: status, class: 'badge-neutral' }
   }
 
   if (loading) {
@@ -277,9 +305,17 @@ function JobDetail() {
             ) : (
               <div className="applicants-list">
                 {applications.slice(0, 10).map((app) => (
-                  <div key={app.id} className="applicant-item">
+                  <div 
+                    key={app.id} 
+                    className="applicant-item"
+                    onClick={() => handleViewApplicant(app)}
+                    style={{ cursor: 'pointer' }}
+                  >
                     <div className="applicant-info">
-                      <strong>{app.candidate?.displayName || 'Unknown'}</strong>
+                      <strong>
+                        {app.candidate?.displayName || 'Unknown'}
+                        {app.candidate?.id && <span className="applicant-id"> (#{app.candidate.id})</span>}
+                      </strong>
                       <span className="applicant-email">{app.candidate?.email}</span>
                     </div>
                     <div className="applicant-score">
@@ -343,6 +379,117 @@ function JobDetail() {
           </div>
         </div>
       </div>
+
+      {/* Applicant Detail Modal */}
+      {showApplicantModal && selectedApplicant && (
+        <div className="modal-overlay" onClick={() => setShowApplicantModal(false)}>
+          <div className="modal-content applicant-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Applicant Details</h3>
+              <button 
+                className="modal-close" 
+                onClick={() => setShowApplicantModal(false)}
+              >
+                ×
+              </button>
+            </div>
+            <div className="modal-body">
+              <div className="applicant-detail-section">
+                <h4>Candidate Information</h4>
+                <div className="detail-grid">
+                  <div className="detail-item">
+                    <span className="detail-label">Name:</span>
+                    <span className="detail-value">
+                      {selectedApplicant.candidate?.displayName || 'Unknown'}
+                      {selectedApplicant.candidate?.id && <span className="id-badge"> (#{selectedApplicant.candidate.id})</span>}
+                    </span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">Email:</span>
+                    <span className="detail-value">{selectedApplicant.candidate?.email || 'N/A'}</span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">Plan:</span>
+                    <span className="detail-value">
+                      <span className={`plan-badge plan-${(selectedApplicant.candidate?.plan || 'free').toLowerCase()}`}>
+                        {selectedApplicant.candidate?.plan || 'Free'}
+                      </span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="applicant-detail-section">
+                <h4>Application Information</h4>
+                <div className="detail-grid">
+                  <div className="detail-item">
+                    <span className="detail-label">Status:</span>
+                    <span className="detail-value">
+                      <span className={`badge ${getStatusBadge(selectedApplicant.status).class}`}>
+                        {getStatusBadge(selectedApplicant.status).label}
+                      </span>
+                    </span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">AI Score:</span>
+                    <span className="detail-value">
+                      {selectedApplicant.scoreSnapshot != null ? (
+                        <span className="score-badge">
+                          {Math.round(selectedApplicant.scoreSnapshot)}%
+                        </span>
+                      ) : (
+                        <span className="score-badge neutral">N/A</span>
+                      )}
+                    </span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">Applied Date:</span>
+                    <span className="detail-value">{formatDateTime(selectedApplicant.createdAt)}</span>
+                  </div>
+                </div>
+              </div>
+
+              {selectedApplicant.summary && (
+                <div className="applicant-detail-section">
+                  <h4>Summary</h4>
+                  <p className="summary-text">{selectedApplicant.summary}</p>
+                </div>
+              )}
+
+              {selectedApplicant.matchingSkills && selectedApplicant.matchingSkills.length > 0 && (
+                <div className="applicant-detail-section">
+                  <h4>Matching Skills</h4>
+                  <div className="skills-container">
+                    {selectedApplicant.matchingSkills.map((skill, idx) => (
+                      <span key={idx} className="skill-pill">
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {selectedApplicant.document && (
+                <div className="applicant-detail-section">
+                  <h4>CV Document</h4>
+                  <div className="detail-item">
+                    <span className="detail-label">File Name:</span>
+                    <span className="detail-value">{selectedApplicant.document.originalName || 'N/A'}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="modal-footer">
+              <button 
+                className="btn btn-primary" 
+                onClick={() => setShowApplicantModal(false)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

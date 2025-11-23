@@ -7,6 +7,7 @@ function Sidebar() {
     { path: '/jobs', label: 'Job Management', icon: '💼' },
     { path: '/applicants', label: 'Applicant Management', icon: '👤' },
     { path: '/recruiters', label: 'Recruiter Management', icon: '🏢' },
+    { path: '/licenses', label: 'License Management', icon: '🔑' },
     { path: '/reports', label: 'Reports & Analytics', icon: '📈' },
     { path: '/logs', label: 'Audit Log', icon: '📋' },
     { path: '/ai-status', label: 'AI Status', icon: '🧠' },

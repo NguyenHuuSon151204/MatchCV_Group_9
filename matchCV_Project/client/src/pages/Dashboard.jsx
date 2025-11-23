@@ -33,9 +33,11 @@ function Dashboard() {
   const loadDashboardData = async () => {
     try {
       const data = await api.get('/admin/summary')
+      console.log('Dashboard API response:', data)
+      console.log('Recruiters count:', data.totals?.recruiters)
       setStats({
         totalCandidates: data.totals?.users || 0,
-        totalRecruiters: 0, // TODO: Add recruiter count endpoint
+        totalRecruiters: data.totals?.recruiters || 0,
         openJobs: data.totals?.jobs || 0,
         aiMatchesToday: data.totals?.apps || 0,
       })

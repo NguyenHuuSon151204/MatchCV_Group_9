@@ -14,6 +14,7 @@ function Applicants() {
     jobId: '',
     company: '',
     status: '',
+    plan: '',
     minScore: '',
     dateFrom: '',
     dateTo: '',
@@ -93,6 +94,11 @@ function Applicants() {
           (app) => app.jobCompany === filters.company
         )
       }
+      if (filters.plan) {
+        allApplicants = allApplicants.filter(
+          (app) => app.candidate?.plan === filters.plan
+        )
+      }
       if (filters.dateFrom) {
         allApplicants = allApplicants.filter((app) => {
           const appDate = new Date(app.createdAt)
@@ -162,9 +168,40 @@ function Applicants() {
       return
     }
 
-    // TODO: Implement bulk delete API
-    alert('Bulk delete functionality will be implemented soon.')
-    setSelectedItems([])
+    try {
+      await Promise.all(selectedItems.map(id => api.delete(`/recruiter/applications/${id}`)))
+      setSelectedItems([])
+      loadApplicants()
+      alert('Selected applicants deleted successfully!')
+    } catch (error) {
+      console.error('Failed to bulk delete:', error)
+      alert('Failed to delete some applicants. Please try again.')
+    }
+  }
+
+  const handleDeleteApplicant = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this application?')) {
+      return
+    }
+
+    try {
+      await api.delete(`/recruiter/applications/${id}`)
+      loadApplicants()
+      alert('Application deleted successfully!')
+    } catch (error) {
+      console.error('Failed to delete application:', error)
+      alert('Failed to delete application. Please try again.')
+    }
+  }
+
+  const handleEditStatus = async (id, newStatus) => {
+    try {
+      await api.patch(`/recruiter/applications/${id}/status`, { status: newStatus })
+      loadApplicants()
+    } catch (error) {
+      console.error('Failed to update status:', error)
+      alert('Failed to update application status. Please try again.')
+    }
   }
 
   const handleExportCSV = () => {
@@ -319,6 +356,19 @@ function Applicants() {
             </select>
           </div>
           <div className="filter-group">
+            <label>Plan</label>
+            <select
+              className="filter-select"
+              value={filters.plan}
+              onChange={(e) => handleFilterChange('plan', e.target.value)}
+            >
+              <option value="">All Plans</option>
+              <option value="Free">Free</option>
+              <option value="Pro">Pro</option>
+              <option value="Enterprise">Enterprise</option>
+            </select>
+          </div>
+          <div className="filter-group">
             <label>Min AI Score</label>
             <input
               type="number"
@@ -355,11 +405,12 @@ function Applicants() {
               onClick={() => {
                 setFilters({
                   jobId: '',
+                  company: '',
                   status: '',
+                  plan: '',
                   minScore: '',
                   dateFrom: '',
                   dateTo: '',
-                  company: '',
                 })
               }}
             >
@@ -427,6 +478,7 @@ function Applicants() {
                   >
                     AI Score {getSortIcon('scoreSnapshot')}
                   </th>
+                  <th>Plan</th>
                   <th>Matching Skills</th>
                   <th>Status</th>
                   <th
@@ -441,7 +493,7 @@ function Applicants() {
               <tbody>
                 {applicants.length === 0 ? (
                   <tr>
-                    <td colSpan="8" className="empty-state">
+                    <td colSpan="9" className="empty-state">
                       No applicants found. Applicants will appear here once
                       candidates apply to your jobs.
                     </td>
@@ -461,7 +513,10 @@ function Applicants() {
                         </td>
                         <td>
                           <div className="applicant-info">
-                            <strong>{app.candidate?.displayName || 'Unknown'}</strong>
+                            <strong>
+                              {app.candidate?.displayName || 'Unknown'}
+                              {app.candidate?.id && <span className="applicant-id"> (#{app.candidate.id})</span>}
+                            </strong>
                             <span className="applicant-email">
                               {app.candidate?.email}
                             </span>
@@ -474,10 +529,16 @@ function Applicants() {
                                 to={`/jobs/${app.jobId}`}
                                 className="job-title-link"
                               >
-                                <strong>{app.jobTitle || 'Unknown'}</strong>
+                                <strong>
+                                  {app.jobTitle || 'Unknown'}
+                                  {app.jobId && <span className="job-id"> (#{app.jobId})</span>}
+                                </strong>
                               </Link>
                             ) : (
-                              <strong>{app.jobTitle || 'Unknown'}</strong>
+                              <strong>
+                                {app.jobTitle || 'Unknown'}
+                                {app.jobId && <span className="job-id"> (#{app.jobId})</span>}
+                              </strong>
                             )}
                             <span className="job-company">{app.jobCompany}</span>
                           </div>
@@ -490,6 +551,11 @@ function Applicants() {
                           ) : (
                             <span className="score-badge neutral">N/A</span>
                           )}
+                        </td>
+                        <td>
+                          <span className={`plan-badge plan-${(app.candidate?.plan || 'free').toLowerCase()}`}>
+                            {app.candidate?.plan || 'Free'}
+                          </span>
                         </td>
                         <td>
                           <div className="skills-container">
@@ -528,11 +594,23 @@ function Applicants() {
                                 👁️
                               </Link>
                             )}
-                            <button
-                              className="btn-action btn-edit"
-                              title="View Details"
+                            <select
+                              className="status-select"
+                              value={app.status}
+                              onChange={(e) => handleEditStatus(app.id, e.target.value)}
+                              title="Change Status"
                             >
-                              ✏️
+                              <option value="Pending">Pending</option>
+                              <option value="Reviewed">Reviewed</option>
+                              <option value="Hired">Hired</option>
+                              <option value="Rejected">Rejected</option>
+                            </select>
+                            <button
+                              className="btn-action btn-delete"
+                              title="Delete Application"
+                              onClick={() => handleDeleteApplicant(app.id)}
+                            >
+                              🗑️
                             </button>
                           </div>
                         </td>

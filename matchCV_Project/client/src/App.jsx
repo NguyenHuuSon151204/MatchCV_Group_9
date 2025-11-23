@@ -6,6 +6,7 @@ import JobDetail from './pages/JobDetail'
 import Applicants from './pages/Applicants'
 import AdminDashboard from './pages/AdminDashboard'
 import RecruiterManagement from './pages/RecruiterManagement'
+import LicenseManagement from './pages/LicenseManagement'
 import ReportsAnalytics from './pages/ReportsAnalytics'
 import AuditLog from './pages/AuditLog'
 import AIStatus from './pages/AIStatus'
@@ -22,6 +23,7 @@ function App() {
         <Route path="/applicants" element={<Applicants />} />
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/recruiters" element={<RecruiterManagement />} />
+        <Route path="/licenses" element={<LicenseManagement />} />
         <Route path="/reports" element={<ReportsAnalytics />} />
         <Route path="/logs" element={<AuditLog />} />
         <Route path="/ai-status" element={<AIStatus />} />

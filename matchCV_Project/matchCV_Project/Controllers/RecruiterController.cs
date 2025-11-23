@@ -183,6 +183,11 @@ public class RecruiterController : ControllerBase
                 .Distinct()
                 .ToList();
 
+            // Get candidate's plan
+            var license = _db.LicenseKeys
+                .FirstOrDefault(l => l.AssignedUserId == x.Candidate.Id && l.IsActive);
+            var candidatePlan = license?.Plan ?? "Free";
+
             return new
             {
                 x.a.Id,
@@ -195,7 +200,8 @@ public class RecruiterController : ControllerBase
                 {
                     x.Candidate.Id,
                     x.Candidate.DisplayName,
-                    x.Candidate.Email
+                    x.Candidate.Email,
+                    Plan = candidatePlan
                 },
                 Document = new
                 {
@@ -262,6 +268,18 @@ public class RecruiterController : ControllerBase
 
         app.Status = dto.Status;
         app.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+        return NoContent();
+    }
+
+    // DELETE: /api/recruiter/applications/{id}
+    [HttpDelete("applications/{id:int}")]
+    public async Task<IActionResult> DeleteApplication(int id)
+    {
+        var app = await _db.Applications.FindAsync(id);
+        if (app is null) return NotFound("Application not found.");
+
+        _db.Applications.Remove(app);
         await _db.SaveChangesAsync();
         return NoContent();
     }

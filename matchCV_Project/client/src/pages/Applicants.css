@@ -385,6 +385,36 @@
   color: var(--text-muted);
 }
 
+.applicant-id,
+.job-id {
+  font-size: 11px;
+  color: var(--text-soft);
+  font-weight: normal;
+  margin-left: 4px;
+}
+
+.status-select {
+  padding: 6px 10px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius);
+  background: var(--bg-card);
+  color: var(--text-main);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.status-select:hover {
+  border-color: var(--accent);
+  background: var(--bg-body);
+}
+
+.status-select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+
 .job-info {
   display: flex;
   flex-direction: column;
@@ -460,6 +490,37 @@
   color: var(--text-muted);
   border: 1px solid var(--border-subtle);
   box-shadow: none;
+}
+
+/* Plan Badges */
+.plan-badge {
+  padding: 6px 12px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: inline-block;
+  min-width: 50px;
+  text-align: center;
+}
+
+.plan-badge.plan-free {
+  background: linear-gradient(135deg, var(--bg-body), #f3f4f6);
+  color: var(--text-muted);
+  border: 1px solid var(--border-subtle);
+}
+
+.plan-badge.plan-pro {
+  background: linear-gradient(135deg, var(--accent), #1e40af);
+  color: white;
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
+}
+
+.plan-badge.plan-enterprise {
+  background: linear-gradient(135deg, #7c3aed, #5b21b6);
+  color: white;
+  box-shadow: 0 2px 6px rgba(124, 58, 237, 0.3);
 }
 
 .text-muted {

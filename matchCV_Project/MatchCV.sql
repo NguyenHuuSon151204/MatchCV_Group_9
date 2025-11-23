@@ -3,6 +3,9 @@ GO
 USE MatchCV;
 GO
 
+ALTER TABLE LicenseKeys 
+ADD OriginalKey NVARCHAR(50) NULL
+
 /* 1. USERS
    - Từ ERD: Users (DisplayName, EmailHash, Role, CreatedAt)
    - Từ DB cũ: Users (Email, Name, Role,...)

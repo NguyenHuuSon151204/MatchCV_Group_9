@@ -367,6 +367,13 @@
   transform: translateX(4px);
 }
 
+.job-id-inline {
+  font-size: 11px;
+  color: var(--text-soft);
+  font-weight: normal;
+  margin-left: 4px;
+}
+
 .job-title-link strong {
   display: inline-block;
   transition: all 0.2s ease;

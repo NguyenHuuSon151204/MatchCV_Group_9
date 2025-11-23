@@ -445,7 +445,10 @@ function JobManagement() {
                         <td>#{job.id}</td>
                         <td>
                           <Link to={`/jobs/${job.id}`} className="job-title-link">
-                            <strong>{job.title}</strong>
+                            <strong>
+                              {job.title}
+                              <span className="job-id-inline"> (#{job.id})</span>
+                            </strong>
                           </Link>
                         </td>
                         <td>{job.company}</td>

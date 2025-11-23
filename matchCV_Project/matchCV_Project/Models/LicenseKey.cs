@@ -15,6 +15,9 @@ public partial class LicenseKey
     [StringLength(200)]
     public string KeyHash { get; set; } = null!;
 
+    [StringLength(50)]
+    public string? OriginalKey { get; set; }
+
     [StringLength(30)]
     public string Plan { get; set; } = null!;
 
