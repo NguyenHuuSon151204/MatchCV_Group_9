@@ -24,9 +24,12 @@ builder.Services.AddDbContext<MatchCvContext>(options =>
 // Add Dependency Injection
 builder.Services.AddScoped(typeof(IBaseRepository<>), typeof(BaseRepository<>));
 builder.Services.AddScoped<IDocumentRepository, DocumentRepository>();
+builder.Services.AddScoped<IJobRepository, JobRepository>();
 builder.Services.AddScoped<IFileService, FileService>();
 builder.Services.AddScoped<IAnalyzerService, AnalyzerService>();
+builder.Services.AddScoped<IPdfExtractionService, PdfExtractionService>();
 builder.Services.AddScoped<IDocumentService, DocumentService>();
+builder.Services.AddScoped<IJobService, JobService>();
 
 // Add Swagger/OpenAPI
 builder.Services.AddSwaggerGen(c =>

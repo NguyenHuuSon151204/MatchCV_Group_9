@@ -7,6 +7,8 @@ public class Skill
     public string NormalizeName { get; set; }
     public string Category { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime UpdatedAt { get; set; }
+    public bool IsDeleted { get; set; }
 
     // Navigation properties
     public virtual ICollection<DocumentSkill> DocumentSkills { get; set; } = new List<DocumentSkill>();

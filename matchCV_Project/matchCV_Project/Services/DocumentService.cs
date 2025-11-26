@@ -3,6 +3,7 @@ using MatchCV_Project.Interfaces;
 using MatchCV_Project.Models;
 using MatchCV_Project.Models.Dtos;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Hosting;
 
 namespace MatchCV_Project.Services;
 
@@ -11,21 +12,27 @@ public class DocumentService : IDocumentService
     private readonly IDocumentRepository _documentRepository;
     private readonly IFileService _fileService;
     private readonly IAnalyzerService _analyzerService;
+    private readonly IPdfExtractionService _pdfExtractionService;
     private readonly MatchCvContext _context;
     private readonly ILogger<DocumentService> _logger;
+    private readonly IWebHostEnvironment _environment;
 
     public DocumentService(
         IDocumentRepository documentRepository,
         IFileService fileService,
         IAnalyzerService analyzerService,
+        IPdfExtractionService pdfExtractionService,
         MatchCvContext context,
-        ILogger<DocumentService> logger)
+        ILogger<DocumentService> logger,
+        IWebHostEnvironment environment)
     {
         _documentRepository = documentRepository;
         _fileService = fileService;
         _analyzerService = analyzerService;
+        _pdfExtractionService = pdfExtractionService;
         _context = context;
         _logger = logger;
+        _environment = environment;
     }
 
     public async Task<DocumentDto> CreateDocumentAsync(CreateDocumentDto dto, int userId)
@@ -132,6 +139,31 @@ public class DocumentService : IDocumentService
             document.DocType = Path.GetExtension(file.FileName).ToUpper();
             document.Status = "Uploaded";
             document.UpdatedAt = DateTime.UtcNow;
+
+            // Extract text from PDF if it's a PDF file
+            if (file.ContentType == "application/pdf" || Path.GetExtension(file.FileName).ToLower() == ".pdf")
+            {
+                try
+                {
+                    var fullPath = Path.Combine(_environment.WebRootPath, storagePath);
+                    if (File.Exists(fullPath))
+                    {
+                        var extractedText = await _pdfExtractionService.ExtractTextFromPdfAsync(fullPath);
+                        var structuredData = await _pdfExtractionService.ExtractStructuredDataAsync(fullPath);
+                        
+                        // Store extracted text in a field if available, or log it
+                        _logger.LogInformation($"Extracted {extractedText.Length} characters from PDF for document {documentId}");
+                        
+                        // You can store this in a separate table or add a RawText field to Document model
+                        // For now, we'll use it during analysis
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning($"Failed to extract PDF content for document {documentId}: {ex.Message}");
+                    // Don't fail the upload if extraction fails
+                }
+            }
 
             await _documentRepository.UpdateAsync(document);
             await _documentRepository.SaveChangesAsync();
