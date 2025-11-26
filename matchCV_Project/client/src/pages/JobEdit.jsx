@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import './JobEdit.css'
 import '../components/Button.css'
 import api from '../services/api'
+import SkillChipsInput from '../components/SkillChipsInput'
 
 function JobEdit() {
   const { id } = useParams()
@@ -11,6 +12,7 @@ function JobEdit() {
     title: '',
     company: '',
     rawText: '',
+    skills: [],
   })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -29,6 +31,7 @@ function JobEdit() {
         title: data.title || '',
         company: data.company || '',
         rawText: data.rawText || '',
+        skills: data.skills || [],
       })
     } catch (error) {
       console.error('Failed to load job:', error)
@@ -49,12 +52,10 @@ function JobEdit() {
 
     try {
       await api.put(`/recruiter/jobs/${id}`, {
-        id: parseInt(id),
         title: job.title.trim(),
         company: job.company.trim(),
-        rawText: job.rawText.trim(),
-        userId: job.userId || 1, // Keep existing userId
-        createdAt: job.createdAt || new Date().toISOString(),
+        description: job.rawText.trim(),
+        skills: job.skills,
       })
       alert('Job updated successfully!')
       navigate(`/jobs/${id}`)
@@ -132,6 +133,14 @@ function JobEdit() {
             <p className="form-help">
               Include job responsibilities, required skills, qualifications, and benefits.
             </p>
+          </div>
+
+          <div className="form-group">
+            <SkillChipsInput
+              label="Required Skills"
+              skills={job.skills}
+              onChange={(skills) => setJob((prev) => ({ ...prev, skills }))}
+            />
           </div>
         </div>
 

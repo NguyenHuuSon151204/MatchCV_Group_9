@@ -541,6 +541,53 @@ const data = await api.get('/jobs') // Có thể throw error
 
 Chúc bạn học React vui vẻ! 🎉
 
+---
+
+## 🖥️ Backend (.NET) Overview
+
+### `Program.cs`
+- Khởi tạo `AppDbContext` kết nối SQL Server và đăng ký DI cho `IAiService`, `IEmailService`.
+- Bật CORS (`AllowReactApp`) cho phép frontend từ `http://localhost:3000/5173`.
+- Map controller với prefix `/api/*`, bật Swagger ở môi trường Development và cấu hình SPA fallback về `wwwroot/index.html`.
+
+### `AppDbContext.cs`
+- Được scaffold từ database thực tế (`MatchCV`) nên có đầy đủ `DbSet` cho `Users`, `Jobs`, `Applications`, `LicenseKeys`, `Skills`, v.v.
+- Tùy chỉnh quan hệ, default value (`CreatedAt`, `Status`), khóa ngoại giữa CV/Job/Application.
+
+### Controllers chính
+- `AdminController`: `/api/admin/*` trả dashboard summary, danh sách candidate/recruiter, update user profile.
+- `RecruiterController`: `/api/recruiter/*` quản lý job (CRUD), dashboard recruiter, lấy ứng viên, thực hiện apply (gọi `AiService` để tính điểm + `EmailService` để gửi mail).
+- `LicenseController`: `/api/license/*` kích hoạt/generate license key, đổi plan user, xem license hiện tại.
+
+### Services
+- `AiService`: Tính AI score dựa trên chồng kỹ năng yêu cầu vs kỹ năng CV, tạo summary nhanh.
+- `EmailService`: Gửi email SMTP (đọc thiết lập trong `appsettings.json` → `Email:*`).
+
+---
+
+## 🔗 Frontend ↔ API Flow
+1. Component React (ví dụ `RecruiterManagement.jsx`) gọi `api.get('/admin/recruiters')`.
+2. `axios` instance tự động thêm `/api` + token từ `localStorage`.
+3. Vite proxy chuyển tiếp tới backend (`https://localhost:5001/api/admin/recruiters`).
+4. ASP.NET Core xử lý, truy vấn DB bằng EF Core, trả JSON.
+5. Axios interceptor trả `response.data`, component `setState` và UI cập nhật.
+
+Ví dụ cụ thể trong `RecruiterManagement.jsx`:
+- `loadRecruiters()` dựng query string, gọi `/api/admin/recruiters`, lọc theo plan phía client.
+- Tiếp tục gọi `/api/recruiter/jobs` + `/api/recruiter/jobs/{id}` để map job theo recruiter và hiển thị bảng kèm số lượng job.
+- `handleUpdateRecruiter()` gửi `PUT /api/admin/users/{id}` để cập nhật tên/email.
+
+---
+
+## 📁 Tóm tắt chức năng trang chính
+- `Dashboard.jsx` / `AdminDashboard.jsx`: hiển thị tổng quan users/jobs, biểu đồ `avgScoreByDay`, top skills.
+- `JobManagement.jsx` + `JobDetail.jsx` + `JobEdit.jsx` + `JobCreate.jsx`: CRUD JD, chỉnh mô tả, skill yêu cầu.
+- `Applicants.jsx`: danh sách ứng viên theo job, lọc theo status/score, liệt kê matching skills.
+- `RecruiterDashboard.jsx`: cards job + ứng viên mới nhất, top skill cho mỗi JD.
+- `RecruiterManagement.jsx`: quản lý recruiter, lọc/search, hiển thị plan, license expiry, export CSV.
+- `LicenseManagement.jsx`: xem/generates/activate license, cập nhật plan cho user.
+- `AuditLog.jsx`, `AIStatus.jsx`, `SystemConfiguration.jsx`: theo dõi log admin, trạng thái AI/API, cấu hình hệ thống.
+
 
 
 

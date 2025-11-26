@@ -630,6 +630,221 @@
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.modal-content {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  padding: 0;
+  max-width: 600px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+}
+
+.applicant-modal {
+  max-width: 600px;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px;
+  border-bottom: 2px solid var(--border-subtle);
+}
+
+.modal-header h3 {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-main);
+  margin: 0;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 32px;
+  color: var(--text-muted);
+  cursor: pointer;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius);
+  transition: all 0.2s ease;
+  line-height: 1;
+}
+
+.modal-close:hover {
+  background: var(--bg-body);
+  color: var(--text-main);
+  transform: rotate(90deg);
+}
+
+.modal-body {
+  padding: 24px;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.applicant-detail-section {
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.applicant-detail-section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.applicant-detail-section h4 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-main);
+  margin: 0 0 16px 0;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.detail-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.detail-value {
+  font-size: 14px;
+  color: var(--text-main);
+  font-weight: 500;
+}
+
+.id-badge {
+  font-size: 11px;
+  color: var(--text-soft);
+  font-weight: normal;
+  margin-left: 4px;
+}
+
+.summary-text {
+  font-size: 14px;
+  color: var(--text-main);
+  line-height: 1.6;
+  margin: 0;
+  padding: 12px;
+  background: var(--bg-body);
+  border-radius: var(--radius);
+  border: 1px solid var(--border-subtle);
+}
+
+.status-select-modal {
+  padding: 8px 12px;
+  border: 2px solid var(--border-subtle);
+  border-radius: var(--radius);
+  background: var(--bg-card);
+  color: var(--text-main);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  outline: none;
+  font-family: inherit;
+}
+
+.status-select-modal:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--bg-body);
+}
+
+.status-select-modal:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.status-select-modal:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.summary-textarea {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid var(--border-subtle);
+  border-radius: var(--radius);
+  background: var(--bg-card);
+  color: var(--text-main);
+  font-size: 14px;
+  font-family: inherit;
+  line-height: 1.6;
+  resize: vertical;
+  min-height: 120px;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.summary-textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.summary-textarea:disabled {
+  background: var(--bg-body);
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 24px;
+  border-top: 2px solid var(--border-subtle);
+  background: var(--bg-body);
+}
+
+.modal-footer .btn {
+  padding: 12px 24px;
+  font-weight: 600;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 2px solid transparent;
+}
+
+.modal-footer .btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 @media (max-width: 768px) {
   .filter-grid {
     grid-template-columns: 1fr;
@@ -647,6 +862,21 @@
   .data-table th,
   .data-table td {
     padding: 8px;
+  }
+
+  .modal-content {
+    max-width: 100%;
+    max-height: 100vh;
+    border-radius: 0;
+  }
+
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .btn-action {
+    font-size: 12px;
+    padding: 6px 10px;
   }
 }
 

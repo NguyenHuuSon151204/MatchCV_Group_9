@@ -156,6 +156,24 @@
   overflow: hidden;
 }
 
+.secondary-card {
+  margin-top: 32px;
+}
+
+.table-description {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+  max-width: 360px;
+}
+
+.btn-upgrade {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+}
+
 .table-header-bar {
   display: flex;
   justify-content: space-between;

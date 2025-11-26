@@ -4,6 +4,7 @@ import './Sidebar.css'
 function Sidebar() {
   const menuItems = [
     { path: '/dashboard', label: 'Dashboard', icon: '📊' },
+    { path: '/recruiter', label: 'Recruiter Dashboard', icon: '🧑‍💼' },
     { path: '/jobs', label: 'Job Management', icon: '💼' },
     { path: '/applicants', label: 'Applicant Management', icon: '👤' },
     { path: '/recruiters', label: 'Recruiter Management', icon: '🏢' },

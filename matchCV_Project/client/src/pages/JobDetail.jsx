@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import './JobDetail.css'
 import '../components/Button.css'
 import api from '../services/api'
+import SkillChipsInput from '../components/SkillChipsInput'
 
 function JobDetail() {
   const { id } = useParams()
@@ -16,6 +17,7 @@ function JobDetail() {
     title: '',
     company: '',
     rawText: '',
+    skills: [],
   })
   const [saving, setSaving] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -39,6 +41,7 @@ function JobDetail() {
         title: data.title || '',
         company: data.company || '',
         rawText: data.rawText || '',
+        skills: data.skills || [],
       })
     } catch (error) {
       console.error('Failed to load job:', error)
@@ -68,6 +71,7 @@ function JobDetail() {
         title: job.title || '',
         company: job.company || '',
         rawText: job.rawText || '',
+        skills: job.skills || [],
       })
     }
   }
@@ -75,12 +79,20 @@ function JobDetail() {
   const handleSave = async () => {
     try {
       setSaving(true)
-      const updatedJob = {
-        ...job,
-        ...editForm,
+      const payload = {
+        title: editForm.title.trim(),
+        company: editForm.company.trim(),
+        description: editForm.rawText.trim(),
+        skills: editForm.skills,
       }
-      await api.put(`/recruiter/jobs/${id}`, updatedJob)
-      await loadJob()
+      const updated = await api.put(`/recruiter/jobs/${id}`, payload)
+      setJob(updated)
+      setEditForm({
+        title: updated.title || '',
+        company: updated.company || '',
+        rawText: updated.rawText || '',
+        skills: updated.skills || [],
+      })
       setIsEditing(false)
       alert('Job updated successfully!')
     } catch (error) {
@@ -364,6 +376,28 @@ function JobDetail() {
                 <span className="info-value">{applications.length}</span>
               </div>
             </div>
+          </div>
+
+          <div className="content-card">
+            <h3 className="card-title">Required Skills</h3>
+            {isEditing ? (
+              <SkillChipsInput
+                skills={editForm.skills}
+                onChange={(skills) => setEditForm((prev) => ({ ...prev, skills }))}
+              />
+            ) : (
+              <div className="skills-collection">
+                {job.skills && job.skills.length > 0 ? (
+                  job.skills.map((skill) => (
+                    <span key={skill} className="skill-pill">
+                      {skill}
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-muted">No skills have been added.</span>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="content-card">

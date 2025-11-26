@@ -11,8 +11,9 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("Default")));
 
-// AI Service
+// AI + email services
 builder.Services.AddScoped<IAiService, AiService>();
+builder.Services.AddScoped<IEmailService, EmailService>();
 
 // Controllers + FluentValidation
 builder.Services

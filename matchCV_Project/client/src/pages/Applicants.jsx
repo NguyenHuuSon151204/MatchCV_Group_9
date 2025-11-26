@@ -21,6 +21,13 @@ function Applicants() {
   })
   const [sortBy, setSortBy] = useState('scoreSnapshot')
   const [sortOrder, setSortOrder] = useState('desc')
+  const [showApplicantModal, setShowApplicantModal] = useState(false)
+  const [selectedApplicant, setSelectedApplicant] = useState(null)
+  const [editForm, setEditForm] = useState({
+    status: '',
+    summary: '',
+  })
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     loadJobs()
@@ -194,14 +201,45 @@ function Applicants() {
     }
   }
 
-  const handleEditStatus = async (id, newStatus) => {
+  const handleViewApplicant = async (appId) => {
     try {
-      await api.patch(`/recruiter/applications/${id}/status`, { status: newStatus })
-      loadApplicants()
+      const data = await api.get(`/recruiter/applications/${appId}`)
+      setSelectedApplicant(data)
+      setEditForm({
+        status: data.status || 'Pending',
+        summary: data.summary || '',
+      })
+      setShowApplicantModal(true)
     } catch (error) {
-      console.error('Failed to update status:', error)
-      alert('Failed to update application status. Please try again.')
+      console.error('Failed to load applicant details:', error)
+      alert('Failed to load applicant details. Please try again.')
     }
+  }
+
+  const handleSaveChanges = async () => {
+    if (!selectedApplicant) return
+
+    try {
+      setSaving(true)
+      await api.patch(`/recruiter/applications/${selectedApplicant.id}/status`, {
+        status: editForm.status,
+      })
+      await loadApplicants()
+      setSelectedApplicant({ ...selectedApplicant, status: editForm.status, summary: editForm.summary })
+      alert('Applicant information updated successfully!')
+      handleCloseModal()
+    } catch (error) {
+      console.error('Failed to update applicant:', error)
+      alert('Failed to update applicant information. Please try again.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleCloseModal = () => {
+    setShowApplicantModal(false)
+    setSelectedApplicant(null)
+    setEditForm({ status: '', summary: '' })
   }
 
   const handleExportCSV = () => {
@@ -585,26 +623,13 @@ function Applicants() {
                         <td>{formatDateTime(app.createdAt)}</td>
                         <td>
                           <div className="action-buttons">
-                            {app.jobId && (
-                              <Link
-                                to={`/jobs/${app.jobId}`}
-                                className="btn-action btn-view"
-                                title="View Job"
-                              >
-                                👁️
-                              </Link>
-                            )}
-                            <select
-                              className="status-select"
-                              value={app.status}
-                              onChange={(e) => handleEditStatus(app.id, e.target.value)}
-                              title="Change Status"
+                            <button
+                              className="btn-action btn-view"
+                              title="View & Edit Details"
+                              onClick={() => handleViewApplicant(app.id)}
                             >
-                              <option value="Pending">Pending</option>
-                              <option value="Reviewed">Reviewed</option>
-                              <option value="Hired">Hired</option>
-                              <option value="Rejected">Rejected</option>
-                            </select>
+                              👁️
+                            </button>
                             <button
                               className="btn-action btn-delete"
                               title="Delete Application"
@@ -623,6 +648,170 @@ function Applicants() {
           </div>
         )}
       </div>
+
+      {/* Applicant Detail Modal */}
+      {showApplicantModal && selectedApplicant && (
+        <div className="modal-overlay" onClick={handleCloseModal}>
+          <div className="modal-content applicant-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Applicant Details</h3>
+              <button className="modal-close" onClick={handleCloseModal}>
+                ×
+              </button>
+            </div>
+            <div className="modal-body">
+              <div className="applicant-detail-section">
+                <h4>Candidate Information</h4>
+                <div className="detail-grid">
+                  <div className="detail-item">
+                    <span className="detail-label">Name:</span>
+                    <span className="detail-value">
+                      {selectedApplicant.candidate?.displayName || 'Unknown'}
+                      {selectedApplicant.candidate?.id && (
+                        <span className="id-badge"> (#{selectedApplicant.candidate.id})</span>
+                      )}
+                    </span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">Email:</span>
+                    <span className="detail-value">
+                      {selectedApplicant.candidate?.email || 'N/A'}
+                    </span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">Plan:</span>
+                    <span className="detail-value">
+                      <span
+                        className={`plan-badge plan-${(
+                          selectedApplicant.candidate?.plan || 'free'
+                        ).toLowerCase()}`}
+                      >
+                        {selectedApplicant.candidate?.plan || 'Free'}
+                      </span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="applicant-detail-section">
+                <h4>Job Information</h4>
+                <div className="detail-grid">
+                  <div className="detail-item">
+                    <span className="detail-label">Job Title:</span>
+                    <span className="detail-value">
+                      {selectedApplicant.job?.title || 'Unknown'}
+                    </span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">Company:</span>
+                    <span className="detail-value">
+                      {selectedApplicant.job?.company || 'N/A'}
+                    </span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">AI Score:</span>
+                    <span className="detail-value">
+                      {selectedApplicant.scoreSnapshot != null ? (
+                        <span className="score-badge">
+                          {Math.round(selectedApplicant.scoreSnapshot)}%
+                        </span>
+                      ) : (
+                        <span className="score-badge neutral">N/A</span>
+                      )}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="applicant-detail-section">
+                <h4>Application Information</h4>
+                <div className="detail-grid">
+                  <div className="detail-item">
+                    <span className="detail-label">Status:</span>
+                    <span className="detail-value">
+                      <select
+                        className="status-select-modal"
+                        value={editForm.status}
+                        onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
+                        disabled={saving}
+                      >
+                        <option value="Pending">Pending</option>
+                        <option value="Reviewed">Reviewed</option>
+                        <option value="Hired">Hired</option>
+                        <option value="Rejected">Rejected</option>
+                      </select>
+                    </span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">Applied Date:</span>
+                    <span className="detail-value">
+                      {formatDateTime(selectedApplicant.createdAt)}
+                    </span>
+                  </div>
+                  {selectedApplicant.updatedAt && (
+                    <div className="detail-item">
+                      <span className="detail-label">Last Updated:</span>
+                      <span className="detail-value">
+                        {formatDateTime(selectedApplicant.updatedAt)}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="applicant-detail-section">
+                <h4>Summary</h4>
+                <textarea
+                  className="summary-textarea"
+                  value={editForm.summary}
+                  onChange={(e) => setEditForm({ ...editForm, summary: e.target.value })}
+                  rows="6"
+                  placeholder="Enter summary..."
+                  disabled={saving}
+                />
+              </div>
+
+              {selectedApplicant.matchingSkills &&
+                selectedApplicant.matchingSkills.length > 0 && (
+                  <div className="applicant-detail-section">
+                    <h4>Matching Skills</h4>
+                    <div className="skills-container">
+                      {selectedApplicant.matchingSkills.map((skill, idx) => (
+                        <span key={idx} className="skill-pill">
+                          {skill}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+              {selectedApplicant.document && (
+                <div className="applicant-detail-section">
+                  <h4>CV Document</h4>
+                  <div className="detail-item">
+                    <span className="detail-label">File Name:</span>
+                    <span className="detail-value">
+                      {selectedApplicant.document.originalName || 'N/A'}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-outline" onClick={handleCloseModal} disabled={saving}>
+                Cancel
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={handleSaveChanges}
+                disabled={saving}
+              >
+                {saving ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

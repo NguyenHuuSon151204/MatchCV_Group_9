@@ -480,13 +480,6 @@ function JobManagement() {
                             >
                               👁️
                             </Link>
-                            <Link
-                              to={`/jobs/${job.id}`}
-                              className="btn-action btn-edit"
-                              title="Edit"
-                            >
-                              ✏️
-                            </Link>
                             <button
                               className="btn-action btn-delete"
                               onClick={() => handleDelete(job.id)}

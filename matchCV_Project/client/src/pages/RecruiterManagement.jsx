@@ -10,8 +10,8 @@ function RecruiterManagement() {
   const [error, setError] = useState(null)
   const [selectedItems, setSelectedItems] = useState([])
   const [showEditModal, setShowEditModal] = useState(false)
-  const [showPlanModal, setShowPlanModal] = useState(false)
   const [selectedRecruiter, setSelectedRecruiter] = useState(null)
+  const [recruiterJobs, setRecruiterJobs] = useState({})
   const [filters, setFilters] = useState({
     search: '',
     plan: '',
@@ -22,10 +22,6 @@ function RecruiterManagement() {
   const [editForm, setEditForm] = useState({
     displayName: '',
     email: '',
-  })
-  const [planForm, setPlanForm] = useState({
-    plan: 'Pro',
-    expiryDays: 365,
   })
 
   useEffect(() => {
@@ -46,6 +42,37 @@ function RecruiterManagement() {
       // Apply client-side plan filter
       if (filters.plan) {
         filtered = filtered.filter(r => r.plan === filters.plan)
+      }
+
+      // Load jobs for each recruiter
+      try {
+        const allJobs = await api.get(`/recruiter/jobs`)
+        const jobsMap = {}
+        
+        // Load job details to get userId
+        const jobsPromises = filtered.map(async (recruiter) => {
+          const recruiterJobs = []
+          for (const job of allJobs) {
+            try {
+              const jobDetail = await api.get(`/recruiter/jobs/${job.id}`)
+              if (jobDetail.userId === recruiter.id) {
+                recruiterJobs.push(job)
+              }
+            } catch (error) {
+              // Skip if can't load job detail
+            }
+          }
+          return { recruiterId: recruiter.id, jobs: recruiterJobs }
+        })
+        
+        const jobsResults = await Promise.all(jobsPromises)
+        jobsResults.forEach(({ recruiterId, jobs }) => {
+          jobsMap[recruiterId] = jobs
+        })
+        setRecruiterJobs(jobsMap)
+      } catch (error) {
+        console.error('Failed to load jobs:', error)
+        setRecruiterJobs({})
       }
 
       // Sort
@@ -121,36 +148,6 @@ function RecruiterManagement() {
     }
   }
 
-  const handleManagePlan = (recruiter) => {
-    setSelectedRecruiter(recruiter)
-    setPlanForm({
-      plan: recruiter.plan || 'Pro',
-      expiryDays: recruiter.licenseExpiry ? 
-        Math.ceil((new Date(recruiter.licenseExpiry) - new Date()) / (1000 * 60 * 60 * 24)) : 
-        365
-    })
-    setShowPlanModal(true)
-  }
-
-  const handleUpdatePlan = async () => {
-    if (!selectedRecruiter) return
-
-    try {
-      const response = await api.put(`/license/user/${selectedRecruiter.id}/plan`, {
-        plan: planForm.plan,
-        expiryDays: planForm.expiryDays || null,
-      })
-      
-      alert(`Recruiter plan updated successfully! ${response.licenseKey ? `New license key: ${response.licenseKey}` : ''}`)
-      setShowPlanModal(false)
-      setSelectedRecruiter(null)
-      setPlanForm({ plan: 'Pro', expiryDays: 365 })
-      loadRecruiters()
-    } catch (error) {
-      console.error('Failed to update plan:', error)
-      alert('Failed to update recruiter plan. Please try again.')
-    }
-  }
 
   const handleExportCSV = () => {
     try {
@@ -354,6 +351,7 @@ function RecruiterManagement() {
                   >
                     Open Jobs {getSortIcon('openJobsCount')}
                   </th>
+                  <th>Jobs</th>
                   <th
                     className="sortable"
                     onClick={() => setSortBy('plan')}
@@ -378,7 +376,7 @@ function RecruiterManagement() {
               <tbody>
                 {recruiters.length === 0 ? (
                   <tr>
-                    <td colSpan="9" className="empty-state">
+                    <td colSpan="10" className="empty-state">
                       No recruiters found.
                     </td>
                   </tr>
@@ -406,6 +404,24 @@ function RecruiterManagement() {
                           </span>
                         </td>
                         <td>
+                          <div className="jobs-list">
+                            {recruiterJobs[recruiter.id] && recruiterJobs[recruiter.id].length > 0 ? (
+                              recruiterJobs[recruiter.id].slice(0, 3).map((job) => (
+                                <span key={job.id} className="job-tag" title={job.title}>
+                                  {job.title}
+                                </span>
+                              ))
+                            ) : (
+                              <span className="text-muted">No jobs</span>
+                            )}
+                            {recruiterJobs[recruiter.id] && recruiterJobs[recruiter.id].length > 3 && (
+                              <span className="job-more">
+                                +{recruiterJobs[recruiter.id].length - 3} more
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td>
                           <span className={`badge ${planBadge.class}`}>
                             {planBadge.label}
                           </span>
@@ -416,25 +432,11 @@ function RecruiterManagement() {
                           <div className="action-buttons">
                             <button
                               className="btn-action btn-edit"
-                              title="Edit Recruiter"
+                              title="Edit Recruiter Information"
                               onClick={() => handleEditRecruiter(recruiter)}
                             >
                               ⚙️
                             </button>
-                            <button
-                              className="btn-action btn-plan"
-                              title="Manage Plan"
-                              onClick={() => handleManagePlan(recruiter)}
-                            >
-                              🔑
-                            </button>
-                            <Link
-                              to={`/jobs?recruiter=${recruiter.id}`}
-                              className="btn-action btn-view"
-                              title="View Jobs"
-                            >
-                              👁️
-                            </Link>
                           </div>
                         </td>
                       </tr>
@@ -461,30 +463,59 @@ function RecruiterManagement() {
               </button>
             </div>
             <div className="modal-body">
-              <div className="user-plan-info">
-                <h4>Recruiter ID: #{selectedRecruiter.id}</h4>
-                <p className="current-plan">Current Plan: <strong>{selectedRecruiter.plan || 'Free'}</strong></p>
-                <p className="current-plan">Open Jobs: <strong>{selectedRecruiter.openJobsCount || 0}</strong></p>
+              <div className="recruiter-detail-section">
+                <h4>Recruiter Information</h4>
+                <div className="detail-grid">
+                  <div className="detail-item">
+                    <span className="detail-label">Recruiter ID:</span>
+                    <span className="detail-value">#{selectedRecruiter.id}</span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">Current Plan:</span>
+                    <span className="detail-value">
+                      <span className={`plan-badge plan-${(selectedRecruiter.plan || 'free').toLowerCase()}`}>
+                        {selectedRecruiter.plan || 'Free'}
+                      </span>
+                    </span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">Open Jobs:</span>
+                    <span className="detail-value">
+                      <strong>{selectedRecruiter.openJobsCount || 0}</strong>
+                    </span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">License Expiry:</span>
+                    <span className="detail-value">{formatDate(selectedRecruiter.licenseExpiry)}</span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">Joined Date:</span>
+                    <span className="detail-value">{formatDate(selectedRecruiter.createdAt)}</span>
+                  </div>
+                </div>
               </div>
-              <div className="form-group">
-                <label>Display Name</label>
-                <input
-                  type="text"
-                  className="form-input"
-                  placeholder="Enter display name"
-                  value={editForm.displayName}
-                  onChange={(e) => setEditForm(prev => ({ ...prev, displayName: e.target.value }))}
-                />
-              </div>
-              <div className="form-group">
-                <label>Email</label>
-                <input
-                  type="email"
-                  className="form-input"
-                  placeholder="Enter email address"
-                  value={editForm.email}
-                  onChange={(e) => setEditForm(prev => ({ ...prev, email: e.target.value }))}
-                />
+              <div className="recruiter-detail-section">
+                <h4>Edit Information</h4>
+                <div className="form-group">
+                  <label>Display Name</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="Enter display name"
+                    value={editForm.displayName}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, displayName: e.target.value }))}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Email</label>
+                  <input
+                    type="email"
+                    className="form-input"
+                    placeholder="Enter email address"
+                    value={editForm.email}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, email: e.target.value }))}
+                  />
+                </div>
               </div>
             </div>
             <div className="modal-footer">
@@ -505,71 +536,6 @@ function RecruiterManagement() {
         </div>
       )}
 
-      {/* Manage Plan Modal */}
-      {showPlanModal && selectedRecruiter && (
-        <div className="modal-overlay" onClick={() => setShowPlanModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>⚙️ Manage Recruiter Plan</h3>
-              <button 
-                className="modal-close" 
-                onClick={() => setShowPlanModal(false)}
-              >
-                ×
-              </button>
-            </div>
-            <div className="modal-body">
-              <div className="user-plan-info">
-                <h4>{selectedRecruiter.displayName}</h4>
-                <p className="user-email">{selectedRecruiter.email}</p>
-                <p className="current-plan">Current Plan: <strong>{selectedRecruiter.plan || 'Free'}</strong></p>
-                <p className="current-plan">Open Jobs: <strong>{selectedRecruiter.openJobsCount || 0}</strong></p>
-              </div>
-              <div className="form-group">
-                <label>New Plan</label>
-                <select
-                  className="form-input"
-                  value={planForm.plan}
-                  onChange={(e) => setPlanForm(prev => ({ ...prev, plan: e.target.value }))}
-                >
-                  <option value="Free">Free</option>
-                  <option value="Pro">Pro</option>
-                  <option value="Enterprise">Enterprise</option>
-                </select>
-              </div>
-              {planForm.plan !== 'Free' && (
-                <div className="form-group">
-                  <label>Expiry (Days)</label>
-                  <input
-                    type="number"
-                    className="form-input"
-                    placeholder="365"
-                    min="1"
-                    max="3650"
-                    value={planForm.expiryDays}
-                    onChange={(e) => setPlanForm(prev => ({ ...prev, expiryDays: parseInt(e.target.value) || null }))}
-                  />
-                  <small className="form-hint">Leave empty for unlimited duration</small>
-                </div>
-              )}
-            </div>
-            <div className="modal-footer">
-              <button 
-                className="btn btn-outline" 
-                onClick={() => setShowPlanModal(false)}
-              >
-                Cancel
-              </button>
-              <button 
-                className="btn btn-primary" 
-                onClick={handleUpdatePlan}
-              >
-                Update Plan
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

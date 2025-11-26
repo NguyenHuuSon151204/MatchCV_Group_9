@@ -1,4 +1,5 @@
-.job-edit {
+.job-edit,
+.job-create {
   max-width: 900px;
   margin: 0 auto;
 }

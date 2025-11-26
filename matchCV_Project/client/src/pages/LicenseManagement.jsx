@@ -5,6 +5,7 @@ import api from '../services/api'
 
 function LicenseManagement() {
   const [licenses, setLicenses] = useState([])
+  const [freePlanUsers, setFreePlanUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [selectedItems, setSelectedItems] = useState([])
@@ -41,10 +42,14 @@ function LicenseManagement() {
       
       const params = new URLSearchParams()
       if (filters.search) params.append('search', filters.search)
-      if (filters.plan) params.append('plan', filters.plan)
 
       const data = await api.get(`/license/all?${params.toString()}`)
       let filteredData = data || []
+
+      // Apply plan filter client-side
+      if (filters.plan) {
+        filteredData = filteredData.filter(license => license.plan === filters.plan)
+      }
 
       // Apply client-side status filter
       if (filters.status) {
@@ -69,6 +74,31 @@ function LicenseManagement() {
       })
 
       setLicenses(filteredData)
+
+      // Build free plan users list
+      try {
+        const assignedIds = new Set((data || [])
+          .map(license => license.assignedUser?.id)
+          .filter(Boolean))
+
+        const [recruiters = [], candidates = []] = await Promise.all([
+          api.get('/admin/recruiters').catch(() => []),
+          api.get('/admin/candidates').catch(() => []),
+        ])
+
+        const userMap = new Map()
+        ;[...recruiters, ...candidates].forEach(user => {
+          if (!userMap.has(user.id)) {
+            userMap.set(user.id, user)
+          }
+        })
+
+        const freeUsers = Array.from(userMap.values()).filter(user => !assignedIds.has(user.id))
+        setFreePlanUsers(freeUsers)
+      } catch (userError) {
+        console.error('Failed to load free plan users:', userError)
+        setFreePlanUsers([])
+      }
     } catch (error) {
       console.error('Failed to load licenses:', error)
       setError('Failed to load licenses. Please try again.')
@@ -180,11 +210,17 @@ function LicenseManagement() {
     setShowKeyModal(true)
   }
 
-  const handleManageUserPlan = (user) => {
-    setSelectedUser(user)
-    setUserPlanForm({ 
-      plan: user.plan || 'Pro', 
-      expiryDays: user.daysRemaining || 365 
+  const openPlanModal = (user, currentPlan = 'Free', daysRemaining = null) => {
+    setSelectedUser({
+      id: user.id,
+      name: user.displayName || user.name,
+      email: user.email,
+      plan: currentPlan,
+      daysRemaining: daysRemaining,
+    })
+    setUserPlanForm({
+      plan: currentPlan === 'Free' ? 'Pro' : currentPlan,
+      expiryDays: daysRemaining && daysRemaining > 0 ? daysRemaining : 365,
     })
     setShowUserPlanModal(true)
   }
@@ -228,6 +264,26 @@ function LicenseManagement() {
   }
 
   const showBulkActions = selectedItems.length > 0
+
+  const filteredFreeUsers = freePlanUsers
+    .filter(user => {
+      if (filters.search) {
+        const keyword = filters.search.toLowerCase()
+        const name = (user.displayName || user.name || '').toLowerCase()
+        const email = (user.email || '').toLowerCase()
+        if (!name.includes(keyword) && !email.includes(keyword)) {
+          return false
+        }
+      }
+      if (filters.plan && filters.plan !== 'Free') {
+        return false
+      }
+      if (filters.status && filters.status !== '' && filters.status !== 'Active') {
+        return false
+      }
+      return true
+    })
+    .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
 
   return (
     <div className="license-management">
@@ -418,19 +474,15 @@ function LicenseManagement() {
                                 </span>
                               </div>
                               <span className="user-email">{license.assignedUser.email}</span>
-                              <button 
-                                className="btn-manage-plan"
-                                onClick={() => handleManageUserPlan({
-                                  id: license.assignedUser.id,
-                                  name: license.assignedUser.displayName,
-                                  email: license.assignedUser.email,
-                                  plan: license.plan,
-                                  daysRemaining: license.daysRemaining
-                                })}
-                                title="Manage User Plan"
-                              >
-                                ⚙️
-                              </button>
+                              {license.assignedUser && (
+                                <button 
+                                  className="btn btn-outline btn-manage-plan"
+                                  onClick={() => openPlanModal(license.assignedUser, license.plan, license.daysRemaining)}
+                                  title="Manage User Plan"
+                                >
+                                  ⚙️ Manage
+                                </button>
+                              )}
                             </div>
                           ) : (
                             <span className="text-muted">Unassigned</span>
@@ -494,6 +546,65 @@ function LicenseManagement() {
             </table>
           </div>
         )}
+      </div>
+
+      <div className="table-card secondary-card">
+        <div className="table-header-bar">
+          <div className="table-info">
+            <h3 className="table-title">Free Plan Users</h3>
+            <span className="table-count">
+              {filteredFreeUsers.length} user{filteredFreeUsers.length !== 1 ? 's' : ''}
+            </span>
+          </div>
+          <p className="table-description">
+            Users currently on the Free plan. Upgrade them directly from here.
+          </p>
+        </div>
+        <div className="table-wrapper">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Joined</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredFreeUsers.length === 0 ? (
+                <tr>
+                  <td colSpan="5" className="empty-state">
+                    No free plan users found.
+                  </td>
+                </tr>
+              ) : (
+                filteredFreeUsers.map((user) => (
+                  <tr key={`free-${user.id}`}>
+                    <td>
+                      <strong>{user.displayName || user.name || 'Unnamed User'}</strong>
+                    </td>
+                    <td>{user.email}</td>
+                    <td>
+                      <span className="badge badge-neutral">
+                        {getDisplayRole(user.role)}
+                      </span>
+                    </td>
+                    <td>{formatDateTime(user.createdAt)}</td>
+                    <td>
+                      <button
+                        className="btn btn-primary btn-upgrade"
+                        onClick={() => openPlanModal(user, 'Free', null)}
+                      >
+                        ⚙️ Upgrade Plan
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Generate License Modal */}
