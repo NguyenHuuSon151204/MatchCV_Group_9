@@ -58,7 +58,23 @@ public class AdminController : ControllerBase
             ? await _db.ApicallLogs.CountAsync(l => l.CreatedAt >= start && l.CreatedAt <= end)
             : await _db.Applications.CountAsync(a => a.CreatedAt >= start && a.CreatedAt <= end);
 
-        return Ok(new { totals, range = new { start, end }, avgScoreByDay, topSkills, aiCalls });
+        // Get recent admin logs
+        var recentLogs = await _db.AdminLogs
+            .Where(l => l.CreatedAt >= start && l.CreatedAt <= end)
+            .OrderByDescending(l => l.CreatedAt)
+            .Take(10)
+            .Select(l => new
+            {
+                l.Id,
+                l.Actor,
+                l.Action,
+                l.Entity,
+                l.EntityId,
+                l.CreatedAt
+            })
+            .ToListAsync();
+
+        return Ok(new { totals, range = new { start, end }, avgScoreByDay, topSkills, aiCalls, logs = recentLogs });
     }
 
     [HttpGet("logs")]
@@ -165,6 +181,29 @@ public class AdminController : ControllerBase
         }).ToList();
 
         return Ok(list);
+    }
+
+    // GET: /api/admin/recruiters/{id}/jobs - Get jobs for a specific recruiter
+    [HttpGet("recruiters/{id:int}/jobs")]
+    public async Task<IActionResult> GetRecruiterJobs(int id)
+    {
+        var recruiter = await _db.Users.FindAsync(id);
+        if (recruiter == null || recruiter.Role != "Recruiter")
+            return NotFound("Recruiter not found.");
+
+        var jobs = await _db.Jobs
+            .Where(j => j.UserId == id)
+            .Select(j => new
+            {
+                j.Id,
+                j.Title,
+                j.Company,
+                j.CreatedAt
+            })
+            .OrderByDescending(j => j.CreatedAt)
+            .ToListAsync();
+
+        return Ok(jobs);
     }
 
     // PUT: /api/admin/users/{id} - Update user information

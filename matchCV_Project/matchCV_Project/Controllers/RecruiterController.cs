@@ -174,11 +174,26 @@ public class RecruiterController : ControllerBase
             })
             .ToListAsync();
 
+        // Get top required skills across all jobs
+        var topSkills = await _db.RequiredSkills
+            .AsNoTracking()
+            .Join(_db.Skills, rs => rs.SkillId, s => s.Id, (rs, s) => new { rs.JobId, SkillName = s.NormName })
+            .GroupBy(x => x.SkillName)
+            .Select(g => new
+            {
+                name = g.Key,
+                count = g.Count()
+            })
+            .OrderByDescending(x => x.count)
+            .Take(8)
+            .ToListAsync();
+
         return Ok(new
         {
             summary,
             jobs,
-            recentApplicants
+            recentApplicants,
+            topSkills
         });
     }
 

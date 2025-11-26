@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
 import './AdminDashboard.css'
+import '../components/Button.css'
 import api from '../services/api'
 
 function AdminDashboard() {
   const [summary, setSummary] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
     loadSummary()
@@ -12,10 +14,12 @@ function AdminDashboard() {
 
   const loadSummary = async () => {
     try {
+      setError(null)
       const data = await api.get('/admin/summary')
       setSummary(data)
     } catch (error) {
       console.error('Failed to load admin summary:', error)
+      setError(error.message || 'Failed to load admin summary. Please try again.')
     } finally {
       setLoading(false)
     }
@@ -23,6 +27,23 @@ function AdminDashboard() {
 
   if (loading) {
     return <div className="loading">Đang tải...</div>
+  }
+
+  if (error) {
+    return (
+      <div className="admin-dashboard">
+        <div className="page-header">
+          <div>
+            <div className="breadcrumbs">Trang chủ / Admin Dashboard</div>
+            <h1 className="page-title">Admin Dashboard</h1>
+          </div>
+        </div>
+        <div className="error-message">{error}</div>
+        <button className="btn btn-primary" onClick={loadSummary}>
+          Retry
+        </button>
+      </div>
+    )
   }
 
   return (
@@ -98,7 +119,7 @@ function AdminDashboard() {
                 </div>
               ))
             ) : (
-              <span className="text-muted">No logs yet</span>
+              <span className="text-muted">No logs yet. Logs are loaded from /api/admin/logs endpoint.</span>
             )}
           </div>
         </div>

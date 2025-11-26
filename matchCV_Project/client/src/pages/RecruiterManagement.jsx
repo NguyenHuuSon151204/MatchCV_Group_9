@@ -37,35 +37,43 @@ function RecruiterManagement() {
       if (filters.accountType) params.append('accountType', filters.accountType)
 
       const data = await api.get(`/admin/recruiters?${params.toString()}`)
-      let filtered = data || []
+      
+      // Handle both array and object responses
+      let recruitersList = Array.isArray(data) ? data : (data?.data || data || [])
+      
+      // Normalize property names (handle both PascalCase and camelCase)
+      let filtered = recruitersList.map(r => ({
+        id: r.id || r.Id,
+        displayName: r.displayName || r.DisplayName || '',
+        email: r.email || r.Email || '',
+        createdAt: r.createdAt || r.CreatedAt,
+        openJobsCount: r.openJobsCount || r.OpenJobsCount || 0,
+        plan: (r.plan || r.Plan || 'Free'),
+        licenseExpiry: r.licenseExpiry || r.LicenseExpiry,
+        accountType: r.accountType || r.AccountType
+      }))
 
       // Apply client-side plan filter
       if (filters.plan) {
         filtered = filtered.filter(r => r.plan === filters.plan)
       }
 
-      // Load jobs for each recruiter
+      // Load jobs for each recruiter (optimized: use dedicated endpoint)
       try {
-        const allJobs = await api.get(`/recruiter/jobs`)
-        const jobsMap = {}
-        
-        // Load job details to get userId
         const jobsPromises = filtered.map(async (recruiter) => {
-          const recruiterJobs = []
-          for (const job of allJobs) {
-            try {
-              const jobDetail = await api.get(`/recruiter/jobs/${job.id}`)
-              if (jobDetail.userId === recruiter.id) {
-                recruiterJobs.push(job)
-              }
-            } catch (error) {
-              // Skip if can't load job detail
-            }
+          try {
+            const recruiterJobs = await api.get(`/admin/recruiters/${recruiter.id}/jobs`)
+            const jobsList = Array.isArray(recruiterJobs) ? recruiterJobs : (recruiterJobs?.data || [])
+            return { recruiterId: recruiter.id, jobs: jobsList || [] }
+          } catch (error) {
+            // If endpoint doesn't exist or fails, return empty array
+            console.warn(`Failed to load jobs for recruiter ${recruiter.id}:`, error.message)
+            return { recruiterId: recruiter.id, jobs: [] }
           }
-          return { recruiterId: recruiter.id, jobs: recruiterJobs }
         })
         
         const jobsResults = await Promise.all(jobsPromises)
+        const jobsMap = {}
         jobsResults.forEach(({ recruiterId, jobs }) => {
           jobsMap[recruiterId] = jobs
         })
@@ -95,7 +103,10 @@ function RecruiterManagement() {
       setRecruiters(filtered)
     } catch (error) {
       console.error('Failed to load recruiters:', error)
-      setError('Failed to load recruiters. Please try again.')
+      const errorMessage = error?.message || error?.response?.data?.message || 'Failed to load recruiters. Please try again.'
+      setError(errorMessage)
+      setRecruiters([])
+      setRecruiterJobs({})
     } finally {
       setLoading(false)
     }
@@ -405,19 +416,25 @@ function RecruiterManagement() {
                         </td>
                         <td>
                           <div className="jobs-list">
-                            {recruiterJobs[recruiter.id] && recruiterJobs[recruiter.id].length > 0 ? (
-                              recruiterJobs[recruiter.id].slice(0, 3).map((job) => (
-                                <span key={job.id} className="job-tag" title={job.title}>
-                                  {job.title}
-                                </span>
-                              ))
+                            {recruiterJobs[recruiter.id] && Array.isArray(recruiterJobs[recruiter.id]) && recruiterJobs[recruiter.id].length > 0 ? (
+                              <>
+                                {recruiterJobs[recruiter.id].slice(0, 3).map((job) => {
+                                  const jobTitle = job.title || job.Title || 'Untitled Job'
+                                  const jobId = job.id || job.Id || Math.random()
+                                  return (
+                                    <span key={jobId} className="job-tag" title={jobTitle}>
+                                      {jobTitle}
+                                    </span>
+                                  )
+                                })}
+                                {recruiterJobs[recruiter.id].length > 3 && (
+                                  <span className="job-more">
+                                    +{recruiterJobs[recruiter.id].length - 3} more
+                                  </span>
+                                )}
+                              </>
                             ) : (
                               <span className="text-muted">No jobs</span>
-                            )}
-                            {recruiterJobs[recruiter.id] && recruiterJobs[recruiter.id].length > 3 && (
-                              <span className="job-more">
-                                +{recruiterJobs[recruiter.id].length - 3} more
-                              </span>
                             )}
                           </div>
                         </td>

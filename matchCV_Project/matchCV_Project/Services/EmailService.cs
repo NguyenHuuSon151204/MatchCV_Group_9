@@ -62,18 +62,18 @@ public class EmailService : IEmailService
 
         var bodyLines = new List<string>
         {
-            $"Xin chào {recruiterName ?? "Recruiter"},",
+            $"Hello {recruiterName ?? "Recruiter"},",
             "",
-            $"Bạn vừa nhận được một CV mới cho JD \"{jobTitle}\".",
-            $"Ứng viên: {candidateName}",
-            score.HasValue ? $"Điểm AI Score: {Math.Round(score.Value, 1)}%" : "Điểm AI Score: N/A",
+            $"You have received a new CV for JD \"{jobTitle}\".",
+            $"Candidate: {candidateName}",
+            score.HasValue ? $"AI Score: {Math.Round(score.Value, 1)}%" : "AI Score: N/A",
             "",
-            "Vui lòng đăng nhập MatchCV để xem chi tiết."
+            "Please log in to MatchCV to view details."
         };
 
         var mail = new MailMessage(fromAddress, toEmail)
         {
-            Subject = $"[MatchCV] CV mới cho JD {jobTitle}",
+            Subject = $"[MatchCV] New CV for JD {jobTitle}",
             Body = string.Join(Environment.NewLine, bodyLines),
             IsBodyHtml = false
         };

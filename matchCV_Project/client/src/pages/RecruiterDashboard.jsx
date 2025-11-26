@@ -7,13 +7,22 @@ import api from '../services/api'
 function RecruiterDashboard() {
   const [summary, setSummary] = useState(null)
   const [jobs, setJobs] = useState([])
+  const [filteredJobs, setFilteredJobs] = useState([])
   const [recentApplicants, setRecentApplicants] = useState([])
+  const [topSkills, setTopSkills] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [sortBy, setSortBy] = useState('createdAt')
+  const [sortOrder, setSortOrder] = useState('desc')
 
   useEffect(() => {
     loadDashboard()
   }, [])
+
+  useEffect(() => {
+    filterAndSortJobs()
+  }, [jobs, searchQuery, sortBy, sortOrder])
 
   const loadDashboard = async () => {
     try {
@@ -23,6 +32,7 @@ function RecruiterDashboard() {
       setSummary(data.summary || {})
       setJobs(data.jobs || [])
       setRecentApplicants(data.recentApplicants || [])
+      setTopSkills(data.topSkills || [])
     } catch (err) {
       console.error('Failed to load recruiter dashboard:', err)
       setError(err.message || 'Failed to load dashboard.')
@@ -58,6 +68,78 @@ function RecruiterDashboard() {
       hour: '2-digit',
       minute: '2-digit',
     })
+  }
+
+  const getScoreClass = (score) => {
+    if (score >= 80) return 'excellent'
+    if (score >= 60) return 'good'
+    if (score >= 40) return 'fair'
+    return 'poor'
+  }
+
+  const filterAndSortJobs = () => {
+    let filtered = [...jobs]
+
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase()
+      filtered = filtered.filter(
+        (job) =>
+          job.title.toLowerCase().includes(query) ||
+          job.company?.toLowerCase().includes(query) ||
+          job.topSkill?.toLowerCase().includes(query)
+      )
+    }
+
+    // Apply sorting
+    filtered.sort((a, b) => {
+      let aVal = a[sortBy]
+      let bVal = b[sortBy]
+
+      if (sortBy === 'createdAt') {
+        aVal = new Date(aVal).getTime()
+        bVal = new Date(bVal).getTime()
+      } else if (sortBy === 'avgScore') {
+        aVal = aVal ?? 0
+        bVal = bVal ?? 0
+      } else if (sortBy === 'applicants') {
+        aVal = a.applicants ?? 0
+        bVal = b.applicants ?? 0
+      }
+
+      if (sortOrder === 'asc') {
+        return aVal > bVal ? 1 : -1
+      } else {
+        return aVal < bVal ? 1 : -1
+      }
+    })
+
+    setFilteredJobs(filtered)
+  }
+
+  const handleExportCSV = () => {
+    try {
+      const csvRows = [
+        'ID,Title,Company,Applicants,Avg Score,Top Skill,Created Date',
+      ]
+      filteredJobs.forEach((job) => {
+        csvRows.push(
+          `${job.id},"${job.title}","${job.company || 'N/A'}",${job.applicants || 0},${job.avgScore != null ? Math.round(job.avgScore) : 'N/A'},"${job.topSkill || 'N/A'}","${formatDate(job.createdAt)}"`
+        )
+      })
+
+      const csvContent = csvRows.join('\n')
+      const blob = new Blob([csvContent], { type: 'text/csv' })
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `recruiter-jobs-${new Date().toISOString().split('T')[0]}.csv`
+      a.click()
+      window.URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error('Failed to export CSV:', error)
+      alert('Failed to export CSV. Please try again.')
+    }
   }
 
   return (
@@ -140,14 +222,66 @@ function RecruiterDashboard() {
                   <h2>Job Descriptions</h2>
                   <p>Click a JD to view candidates and their scores</p>
                 </div>
-                <Link to="/jobs" className="btn btn-outline">
-                  Manage All
-                </Link>
+                <div className="header-actions-group">
+                  <Link to="/jobs" className="btn btn-outline">
+                    Manage All
+                  </Link>
+                  {filteredJobs.length > 0 && (
+                    <button className="btn btn-outline" onClick={handleExportCSV}>
+                      📥 Export CSV
+                    </button>
+                  )}
+                </div>
               </div>
+
+              {jobs.length > 0 && (
+                <div className="dashboard-filters">
+                  <div className="filter-group">
+                    <input
+                      type="text"
+                      className="filter-input"
+                      placeholder="Search by title, company, or skill..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                  </div>
+                  <div className="filter-group sort-group">
+                    <label className="sort-label">Sort by:</label>
+                    <div className="sort-controls">
+                      <select
+                        className="sort-select"
+                        value={sortBy}
+                        onChange={(e) => setSortBy(e.target.value)}
+                      >
+                        <option value="createdAt">Created Date</option>
+                        <option value="avgScore">Avg Score</option>
+                        <option value="applicants">Applicants</option>
+                        <option value="title">Title</option>
+                      </select>
+                      <button
+                        className="btn-sort-toggle"
+                        onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                        title={`Sort ${sortOrder === 'asc' ? 'Descending' : 'Ascending'}`}
+                      >
+                        {sortOrder === 'asc' ? '↑' : '↓'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {jobs.length === 0 ? (
                 <div className="empty-state">
                   No JDs yet. <Link to="/jobs/create">Create your first JD now</Link>
+                </div>
+              ) : filteredJobs.length === 0 ? (
+                <div className="empty-state">
+                  No JDs match your search. <button
+                    className="link-button"
+                    onClick={() => setSearchQuery('')}
+                  >
+                    Clear search
+                  </button>
                 </div>
               ) : (
                 <div className="job-table">
@@ -159,19 +293,31 @@ function RecruiterDashboard() {
                     <span>Top Candidates</span>
                   </div>
 
-                  {jobs.map((job) => (
-                    <div key={job.id} className="job-row">
+                  {filteredJobs.map((job) => (
+                    <Link
+                      key={job.id}
+                      to={`/jobs/${job.id}`}
+                      className="job-row"
+                    >
                       <div className="job-main">
-                        <Link to={`/jobs/${job.id}`} className="job-title">
+                        <span className="job-title">
                           {job.title}
-                        </Link>
+                        </span>
                         <span className="job-meta">
                           {job.company} • {formatDate(job.createdAt)}
                         </span>
                       </div>
-                      <div className="job-count">{job.applicants}</div>
+                      <div className="job-count">
+                        <span className="count-badge">{job.applicants || 0}</span>
+                      </div>
                       <div className="job-score">
-                        {job.avgScore != null ? `${Math.round(job.avgScore)}%` : 'N/A'}
+                        {job.avgScore != null ? (
+                          <span className={`score-display score-${getScoreClass(job.avgScore)}`}>
+                            {Math.round(job.avgScore)}%
+                          </span>
+                        ) : (
+                          <span className="text-muted">N/A</span>
+                        )}
                       </div>
                       <div className="job-skill">
                         {job.topSkill ? (
@@ -194,7 +340,7 @@ function RecruiterDashboard() {
                           <span className="text-muted">Waiting for CVs</span>
                         )}
                       </div>
-                    </div>
+                    </Link>
                   ))}
                 </div>
               )}
@@ -202,15 +348,26 @@ function RecruiterDashboard() {
 
             <div className="dashboard-card">
               <div className="card-header">
-                <h2>Recent Applicants</h2>
-                <p>The most recent CVs submitted to your JDs</p>
+                <div>
+                  <h2>Recent Applicants</h2>
+                  <p>The most recent CVs submitted to your JDs</p>
+                </div>
+                {recentApplicants.length > 0 && (
+                  <Link to="/applicants" className="btn btn-outline btn-small">
+                    View All
+                  </Link>
+                )}
               </div>
               {recentApplicants.length === 0 ? (
                 <div className="empty-state small">No recent CVs.</div>
               ) : (
                 <div className="recent-list">
                   {recentApplicants.map((app) => (
-                    <div key={app.id} className="recent-item">
+                    <Link
+                      key={app.id}
+                      to={`/jobs/${app.jobId}`}
+                      className="recent-item clickable"
+                    >
                       <div className="recent-info">
                         <strong>{app.candidateName || 'Unknown'}</strong>
                         <span>{app.jobTitle}</span>
@@ -225,6 +382,37 @@ function RecruiterDashboard() {
                         <span className={`status-pill status-${(app.status || 'pending').toLowerCase()}`}>
                           {app.status}
                         </span>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="dashboard-card">
+              <div className="card-header">
+                <div>
+                  <h2>Top Required Skills</h2>
+                  <p>Most frequently required skills across your JDs</p>
+                </div>
+              </div>
+              {topSkills.length === 0 ? (
+                <div className="empty-state small">No skills data yet.</div>
+              ) : (
+                <div className="skills-list">
+                  {topSkills.map((skill, idx) => (
+                    <div key={idx} className="skill-item">
+                      <div className="skill-info">
+                        <span className="skill-name">{skill.name || skill.skill || skill}</span>
+                        <span className="skill-count">{skill.count || skill.jobCount || 0} JD{skill.count !== 1 ? 's' : ''}</span>
+                      </div>
+                      <div className="skill-bar">
+                        <div
+                          className="skill-bar-fill"
+                          style={{
+                            width: `${Math.min(100, ((skill.count || skill.jobCount || 0) / (topSkills[0]?.count || topSkills[0]?.jobCount || 1)) * 100)}%`
+                          }}
+                        />
                       </div>
                     </div>
                   ))}

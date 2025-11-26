@@ -86,6 +86,8 @@
   box-shadow: var(--shadow);
   border: 1px solid var(--border-subtle);
   transition: box-shadow 0.2s ease;
+  position: relative;
+  overflow: visible;
 }
 
 .filter-card:hover {
@@ -116,14 +118,18 @@
 
 .filter-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 24px;
+  position: relative;
+  overflow: visible;
 }
 
 .filter-group {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  position: relative;
+  z-index: 1;
 }
 
 .filter-group label {
@@ -143,6 +149,42 @@
   background: var(--bg-card);
   color: var(--text-main);
   width: 100%;
+  position: relative;
+  z-index: 1;
+}
+
+.filter-select {
+  z-index: 1;
+  position: relative;
+}
+
+/* Thu nhỏ dropdown của Job (filter-group đầu tiên) để tránh đè lên Company */
+.filter-group:first-child .filter-select {
+  max-width: 90%;
+}
+
+/* Tăng z-index cho các select theo thứ tự để tránh đè lên nhau */
+.filter-group:nth-child(1) .filter-select {
+  z-index: 1;
+}
+
+.filter-group:nth-child(2) .filter-select {
+  z-index: 2;
+}
+
+.filter-group:nth-child(3) .filter-select {
+  z-index: 3;
+}
+
+.filter-group:nth-child(4) .filter-select {
+  z-index: 4;
+}
+
+.filter-group:nth-child(5) .filter-select,
+.filter-group:nth-child(6) .filter-select,
+.filter-group:nth-child(7) .filter-select,
+.filter-group:nth-child(8) .filter-select {
+  z-index: 5;
 }
 
 .filter-input:focus,

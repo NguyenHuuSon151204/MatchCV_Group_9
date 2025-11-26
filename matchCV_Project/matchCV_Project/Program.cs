@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using matchCV_Project.Data;
 using matchCV_Project.Interfaces;
 using matchCV_Project.Services;
+using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,9 +16,14 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddScoped<IAiService, AiService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 
-// Controllers + FluentValidation
+// Controllers + FluentValidation + JSON camelCase
 builder.Services
     .AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+        options.JsonSerializerOptions.WriteIndented = true;
+    })
     .AddFluentValidation(fv =>
         fv.RegisterValidatorsFromAssemblyContaining<Program>());
 

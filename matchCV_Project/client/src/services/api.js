@@ -28,7 +28,23 @@ api.interceptors.response.use(
   (error) => {
     if (error.response) {
       // Server responded with error
-      throw new Error(error.response.data || 'An error occurred')
+      const errorData = error.response.data
+      let errorMessage = 'An error occurred'
+      
+      if (typeof errorData === 'string') {
+        errorMessage = errorData
+      } else if (errorData?.message) {
+        errorMessage = errorData.message
+      } else if (errorData?.error) {
+        errorMessage = errorData.error
+      } else if (typeof errorData === 'object') {
+        errorMessage = JSON.stringify(errorData)
+      }
+      
+      const apiError = new Error(errorMessage)
+      apiError.response = error.response
+      apiError.status = error.response.status
+      throw apiError
     } else if (error.request) {
       // Request made but no response
       throw new Error('Network error. Please check your connection.')
