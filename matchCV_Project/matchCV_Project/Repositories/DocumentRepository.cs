@@ -42,5 +42,28 @@ public class DocumentRepository : BaseRepository<Document>, IDocumentRepository
             .OrderByDescending(d => d.CreatedAt)
             .ToListAsync();
     }
+
+    public async Task<IEnumerable<Document>> GetUserDocumentsSummaryAsync(int userId)
+    {
+        // Project only necessary fields to avoid fetching CvData (which is large)
+        // We return Document entities but with only specific fields populated
+        return await _dbSet
+            .Where(d => d.UserId == userId)
+            .Include(d => d.CvTemplate) // Include template to get the Key
+            .Select(d => new Document
+            {
+                Id = d.Id,
+                UserId = d.UserId,
+                OriginalName = d.OriginalName,
+                Status = d.Status,
+                CreatedAt = d.CreatedAt,
+                UpdatedAt = d.UpdatedAt,
+                TemplateId = d.TemplateId,
+                CvTemplate = d.CvTemplate, // EF might not project this automatically in Select new Document, but let's try or map manually
+                // CvData is EXCLUDED
+            })
+            .OrderByDescending(d => d.UpdatedAt)
+            .ToListAsync();
+    }
 }
 

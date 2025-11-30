@@ -1,0 +1,51 @@
+/* [project]/src/components/LiveCV/EditableField.css [app-client] (css) */
+.editable-field {
+  cursor: pointer;
+  border: 2px solid #0000;
+  border-radius: 4px;
+  min-height: 1.5em;
+  padding: 4px;
+  transition: all .2s;
+}
+
+.editable-field:hover {
+  background-color: #3b82f60d;
+  border-color: #3b82f633;
+}
+
+.editable-field.empty {
+  color: #9ca3af;
+  font-style: italic;
+}
+
+.editable-field-input {
+  width: 100%;
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  color: inherit;
+  background-color: #fff;
+  border: 2px solid #3b82f6;
+  border-radius: 4px;
+  outline: none;
+  padding: 4px;
+}
+
+.editable-field-input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px #3b82f61a;
+}
+
+[contenteditable="true"]:empty:before {
+  content: attr(data-placeholder);
+  color: #9ca3af;
+  font-style: italic;
+}
+
+[contenteditable="true"]:focus {
+  outline-offset: 2px;
+  background-color: #3b82f605;
+  outline: 2px solid #3b82f6;
+}
+
+/*# sourceMappingURL=src_components_LiveCV_EditableField_css_bad6b30c._.single.css.map*/

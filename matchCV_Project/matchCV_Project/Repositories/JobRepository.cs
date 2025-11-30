@@ -51,7 +51,7 @@ public class JobRepository : BaseRepository<Job>, IJobRepository
     {
         return await _context.Jobs
             .Include(j => j.User)
-            .Include(j => j.MatchResults)
+            .Include(j => j.MatchRuns)
             .FirstOrDefaultAsync(j => j.Id == id);
     }
 }

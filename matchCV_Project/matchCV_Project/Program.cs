@@ -1,4 +1,5 @@
 
+using ApiRestFul.Services;
 using MatchCV_Project.Data;
 using MatchCV_Project.Interfaces;
 using MatchCV_Project.Repositories;
@@ -13,7 +14,7 @@ builder.Services.AddControllers()
     {
         // Configure JSON serialization to use camelCase for property names
         // This ensures compatibility with frontend (camelCase) while backend uses PascalCase
-        options.JsonSerializerOptions.PropertyNamingPolicy = null; // Keep PascalCase (ASP.NET default)
+        options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
         options.JsonSerializerOptions.PropertyNameCaseInsensitive = true; // Allow case-insensitive matching
     });
 
@@ -30,6 +31,8 @@ builder.Services.AddScoped<IAnalyzerService, AnalyzerService>();
 builder.Services.AddScoped<IPdfExtractionService, PdfExtractionService>();
 builder.Services.AddScoped<IDocumentService, DocumentService>();
 builder.Services.AddScoped<IJobService, JobService>();
+builder.Services.AddScoped<ITemplateService, TemplateService>();
+builder.Services.AddScoped<ICVService, CVService>();
 
 // Add Swagger/OpenAPI
 builder.Services.AddSwaggerGen(c =>

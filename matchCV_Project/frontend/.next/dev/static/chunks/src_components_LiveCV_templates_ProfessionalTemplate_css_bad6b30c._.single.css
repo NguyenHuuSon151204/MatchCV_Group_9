@@ -1,0 +1,226 @@
+/* [project]/src/components/LiveCV/templates/ProfessionalTemplate.css [app-client] (css) */
+.professional-cv-container {
+  background-color: #fff;
+  border-radius: 8px;
+  max-width: 900px;
+  margin: 0 auto;
+  display: flex;
+  overflow: hidden;
+  box-shadow: 0 4px 6px #0000001a;
+}
+
+.professional-sidebar {
+  color: #4b5563;
+  background-color: #f9fafb;
+  border-right: 1px solid #e5e7eb;
+  width: 33%;
+  padding: 30px 20px;
+}
+
+.avatar-container {
+  justify-content: center;
+  margin-bottom: 30px;
+  display: flex;
+}
+
+.avatar {
+  object-fit: cover;
+  border: 4px solid #fff;
+  border-radius: 50%;
+  width: 150px;
+  height: 150px;
+  box-shadow: 0 4px 6px #0000001a;
+}
+
+.section-title-sm {
+  color: #1f2937;
+  text-transform: uppercase;
+  border-bottom: 2px solid #dc2626;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  padding-bottom: 4px;
+  font-size: 16px;
+  font-weight: 700;
+  display: flex;
+}
+
+.contact-list {
+  margin-top: 15px;
+  padding: 0;
+  list-style: none;
+}
+
+.contact-item {
+  align-items: center;
+  margin-bottom: 15px;
+  font-size: 13px;
+  display: flex;
+}
+
+.contact-icon {
+  color: #dc2626;
+  min-width: 24px;
+  margin-right: 10px;
+  font-size: 18px;
+}
+
+.skill-list {
+  margin-top: 15px;
+  padding: 0;
+  list-style: none;
+}
+
+.skill-item {
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 15px;
+  display: flex;
+}
+
+.skill-item-content {
+  flex: 1;
+}
+
+.skill-name {
+  color: #1f2937;
+  font-weight: 600;
+  display: block;
+}
+
+.skill-level {
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.professional-main-content {
+  background-color: #fff;
+  width: 67%;
+  padding: 30px;
+}
+
+.header-section {
+  border-bottom: 1px solid #e5e7eb;
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+}
+
+.name {
+  color: #dc2626;
+  margin-bottom: 5px;
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.job-title-main {
+  color: #4b5563;
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.section-title-lg {
+  color: #1f2937;
+  text-transform: uppercase;
+  border-bottom: 2px solid #dc2626;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 30px;
+  margin-bottom: 20px;
+  padding-bottom: 5px;
+  font-size: 18px;
+  font-weight: 700;
+  display: flex;
+}
+
+.summary-text {
+  color: #4b5563;
+  text-align: justify;
+  font-size: 14px;
+}
+
+.timeline-item {
+  margin-bottom: 25px;
+  display: flex;
+  position: relative;
+}
+
+.timeline-left {
+  color: #6b7280;
+  width: 25%;
+  padding-right: 10px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.timeline-right {
+  width: 75%;
+  position: relative;
+}
+
+.timeline-title {
+  color: #1f2937;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.timeline-subtitle {
+  color: #4b5563;
+  margin-bottom: 6px;
+  font-size: 14px;
+  font-style: italic;
+  font-weight: 500;
+}
+
+.timeline-desc {
+  color: #4b5563;
+  text-align: justify;
+  font-size: 14px;
+}
+
+.add-btn-inline, .remove-btn-inline {
+  cursor: pointer;
+  background: none;
+  border: none;
+  border-radius: 4px;
+  justify-content: center;
+  align-items: center;
+  padding: 4px;
+  transition: all .2s;
+  display: inline-flex;
+}
+
+.add-btn-inline {
+  color: #059669;
+}
+
+.add-btn-inline:hover {
+  background-color: #0596691a;
+}
+
+.remove-btn-inline {
+  color: #dc2626;
+  position: absolute;
+  top: 0;
+  right: 0;
+}
+
+.remove-btn-inline:hover {
+  background-color: #dc26261a;
+}
+
+.add-btn-inline .material-icons, .remove-btn-inline .material-icons {
+  font-size: 18px;
+}
+
+@media (max-width: 768px) {
+  .professional-cv-container {
+    flex-direction: column;
+  }
+
+  .professional-sidebar, .professional-main-content {
+    width: 100%;
+  }
+}
+
+/*# sourceMappingURL=src_components_LiveCV_templates_ProfessionalTemplate_css_bad6b30c._.single.css.map*/

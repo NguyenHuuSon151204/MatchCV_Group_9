@@ -1,6 +1,4 @@
-﻿namespace matchCV_Project.Models
-{
+﻿namespace MatchCV_Project.Models;
     public class Customer
     {
     }
-}

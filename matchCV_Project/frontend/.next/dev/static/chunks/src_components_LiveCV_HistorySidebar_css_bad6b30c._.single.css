@@ -1,0 +1,144 @@
+/* [project]/src/components/LiveCV/HistorySidebar.css [app-client] (css) */
+.history-sidebar {
+  z-index: 1000;
+  background-color: #fff;
+  flex-direction: column;
+  width: 320px;
+  height: 100vh;
+  transition: left .3s ease-in-out;
+  display: flex;
+  position: fixed;
+  top: 0;
+  left: -320px;
+  box-shadow: 2px 0 10px #0000001a;
+}
+
+.history-sidebar.open {
+  left: 0;
+}
+
+.sidebar-header {
+  background-color: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  display: flex;
+}
+
+.sidebar-header h3 {
+  color: #1f2937;
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.btn-close-sidebar {
+  cursor: pointer;
+  color: #6b7280;
+  background: none;
+  border: none;
+  border-radius: 50%;
+  justify-content: center;
+  align-items: center;
+  padding: 4px;
+  display: flex;
+}
+
+.btn-close-sidebar:hover {
+  color: #1f2937;
+  background-color: #e5e7eb;
+}
+
+.sidebar-content {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.sidebar-loading, .sidebar-empty {
+  text-align: center;
+  color: #6b7280;
+  padding: 20px;
+}
+
+.history-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.history-item {
+  cursor: pointer;
+  border: 1px solid #0000;
+  border-radius: 8px;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  padding: 12px;
+  transition: all .2s;
+  display: flex;
+}
+
+.history-item:hover {
+  background-color: #f3f4f6;
+}
+
+.history-item.active {
+  background-color: #eff6ff;
+  border-color: #bfdbfe;
+}
+
+.history-item-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.history-title {
+  color: #374151;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  margin: 0 0 4px;
+  font-size: 14px;
+  font-weight: 600;
+  overflow: hidden;
+}
+
+.history-date {
+  color: #9ca3af;
+  margin-bottom: 4px;
+  font-size: 12px;
+  display: block;
+}
+
+.history-template-badge {
+  color: #4b5563;
+  text-transform: capitalize;
+  background-color: #e5e7eb;
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 10px;
+  display: inline-block;
+}
+
+.btn-delete-history {
+  color: #9ca3af;
+  cursor: pointer;
+  opacity: 0;
+  background: none;
+  border: none;
+  border-radius: 4px;
+  padding: 8px;
+  transition: all .2s;
+}
+
+.history-item:hover .btn-delete-history {
+  opacity: 1;
+}
+
+.btn-delete-history:hover {
+  color: #ef4444;
+  background-color: #fee2e2;
+}
+
+/*# sourceMappingURL=src_components_LiveCV_HistorySidebar_css_bad6b30c._.single.css.map*/

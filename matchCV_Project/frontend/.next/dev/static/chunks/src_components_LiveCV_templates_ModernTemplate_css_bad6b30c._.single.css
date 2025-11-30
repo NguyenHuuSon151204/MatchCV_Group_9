@@ -1,0 +1,243 @@
+/* [project]/src/components/LiveCV/templates/ModernTemplate.css [app-client] (css) */
+.modern-cv-container {
+  color: #1f2937;
+  background: #fff;
+  max-width: 850px;
+  margin: 0 auto;
+  padding: 40px;
+  font-family: Inter, Arial, sans-serif;
+  line-height: 1.6;
+}
+
+.modern-header {
+  text-align: center;
+  background: linear-gradient(#f9fafb, #fff);
+  margin-bottom: 40px;
+  padding: 20px 40px;
+}
+
+.modern-header .profile-img {
+  object-fit: cover;
+  border: 4px solid #4c1d95;
+  border-radius: 50%;
+  width: 120px;
+  height: 120px;
+  margin-bottom: 20px;
+}
+
+.modern-header h1 {
+  color: #4c1d95;
+  margin: 0 0 8px;
+  font-size: 40px;
+  font-weight: 700;
+}
+
+.modern-header h2 {
+  color: #6d28d9;
+  margin: 0 0 24px;
+  font-size: 20px;
+  font-weight: 500;
+}
+
+.contact-info {
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 24px;
+  margin-top: 16px;
+  display: flex;
+}
+
+.contact-item {
+  color: #4b5563;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  display: flex;
+}
+
+.contact-item .material-icons {
+  color: #7c3aed;
+  font-size: 18px;
+}
+
+.modern-main {
+  padding: 0 40px;
+}
+
+.section-title {
+  color: #4c1d95;
+  border-bottom: 3px solid #7c3aed;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  padding-bottom: 8px;
+  font-size: 20px;
+  font-weight: 600;
+  display: flex;
+}
+
+.grid-layout {
+  grid-template-columns: 1fr 1fr;
+  gap: 40px;
+  margin-top: 40px;
+  display: grid;
+}
+
+.timeline-item {
+  border-left: 2px solid #e5e7eb;
+  margin-bottom: 24px;
+  padding-left: 16px;
+  position: relative;
+}
+
+.timeline-item:before {
+  content: "";
+  background: #7c3aed;
+  border-radius: 50%;
+  width: 10px;
+  height: 10px;
+  position: absolute;
+  top: 0;
+  left: -6px;
+}
+
+.timeline-header {
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 4px;
+  display: flex;
+}
+
+.timeline-title {
+  color: #1f2937;
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.timeline-date {
+  color: #6b7280;
+  white-space: nowrap;
+  font-size: 13px;
+  font-style: italic;
+}
+
+.timeline-subtitle {
+  color: #6d28d9;
+  margin: 4px 0 8px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.job-details {
+  margin: 8px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.job-details li {
+  color: #4b5563;
+  margin-bottom: 4px;
+  padding-left: 16px;
+  font-size: 14px;
+  position: relative;
+}
+
+.job-details li:before {
+  content: "▸";
+  color: #7c3aed;
+  position: absolute;
+  left: 0;
+}
+
+.skills-container {
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+  display: flex;
+}
+
+.skill-tag {
+  border-radius: 20px;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  display: inline-flex;
+  position: relative;
+}
+
+.skill-primary {
+  color: #fff;
+  background: #7c3aed;
+}
+
+.skill-secondary {
+  color: #6d28d9;
+  background: #e9d5ff;
+}
+
+.remove-skill-btn {
+  color: inherit;
+  cursor: pointer;
+  opacity: .7;
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 18px;
+  line-height: 1;
+  transition: opacity .2s;
+}
+
+.remove-skill-btn:hover {
+  opacity: 1;
+}
+
+.add-btn-inline, .remove-btn-inline {
+  color: #4b5563;
+  cursor: pointer;
+  background: none;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  padding: 4px 8px;
+  font-size: 12px;
+  transition: all .2s;
+  display: inline-flex;
+}
+
+.add-btn-inline:hover, .remove-btn-inline:hover {
+  color: #7c3aed;
+  background: #f3f4f6;
+  border-color: #7c3aed;
+}
+
+.remove-btn-inline {
+  position: absolute;
+  top: 0;
+  right: 0;
+}
+
+@media (max-width: 768px) {
+  .grid-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .contact-info {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .modern-cv-container {
+    padding: 20px;
+  }
+
+  .modern-main {
+    padding: 0 20px;
+  }
+}
+
+/*# sourceMappingURL=src_components_LiveCV_templates_ModernTemplate_css_bad6b30c._.single.css.map*/

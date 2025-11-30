@@ -12,4 +12,6 @@ public class User
     // Navigation properties
     public virtual ICollection<Document> Documents { get; set; } = new List<Document>();
     public virtual ICollection<Job> Jobs { get; set; } = new List<Job>();
+    public virtual ICollection<Application> Applications { get; set; } = new List<Application>();
+    public virtual ICollection<LicenseKey> LicenseKeys { get; set; } = new List<LicenseKey>();
 }

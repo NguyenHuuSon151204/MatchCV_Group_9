@@ -74,6 +74,14 @@ export function MyCVsPage() {
             <UploadIcon className="size-4" />
             Upload CV
           </Button>
+          <Button
+            variant="outline"
+            className="gap-2 rounded-full border-border/60"
+            onClick={() => navigate('/cv-builder')}
+          >
+            <Sparkles className="size-4" />
+            CV Builder
+          </Button>
           <Button className="gap-2 rounded-full" onClick={() => setCreateOpen(true)}>
             <Plus className="size-4" />
             Create New CV
@@ -145,6 +153,15 @@ export function MyCVsPage() {
                       <div className="flex flex-wrap gap-2">
                         <Button
                           size="sm"
+                          className="rounded-full bg-blue-500/20 text-blue-600"
+                          variant="ghost"
+                          onClick={() => navigate(`/cv-builder?id=${cv.id}`)}
+                        >
+                          <Sparkles className="mr-1 size-4" />
+                          Edit
+                        </Button>
+                        <Button
+                          size="sm"
                           className="rounded-full bg-primary/20 text-primary"
                           variant="secondary"
                           onClick={() => handleAnalyze(cv.id)}
@@ -213,6 +230,7 @@ export function MyCVsPage() {
               <CVCard
                 key={cv.id}
                 cv={cv}
+                onEdit={(id) => navigate(`/cv-builder?id=${id}`)}
                 onAnalyze={handleAnalyze}
                 onRewrite={(id) => navigate('/ai-rewrite', { state: { cvId: id } })}
                 onExport={(id, format) => handleExport(id, format)}
@@ -236,12 +254,12 @@ export function MyCVsPage() {
           }
         }}
       />
-      <UploadCvModal 
-        open={uploadOpen} 
+      <UploadCvModal
+        open={uploadOpen}
         onClose={() => {
           setUploadOpen(false)
           setSelectedCvId(null)
-        }} 
+        }}
         cvId={defaultUploadId}
         onUploadSuccess={refresh}
       />

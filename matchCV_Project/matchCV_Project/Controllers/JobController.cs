@@ -29,6 +29,13 @@ public class JobController : ControllerBase
     {
         try
         {
+            // Default to User 1 (Admin) for testing if not provided
+            if (userId <= 0)
+            {
+                userId = 1;
+                _logger.LogWarning("UserId not provided or invalid. Defaulting to User 1.");
+            }
+
             var result = await _jobService.CreateJobAsync(dto, userId);
             return CreatedAtAction(nameof(GetJob), new { id = result.Id },
                 BaseResponseDto<JobDto>.SuccessResponse(result, "Job created successfully"));
@@ -242,6 +249,13 @@ public class JobController : ControllerBase
                 var fileSizeMB = file.Length / 1024.0 / 1024.0;
                 return BadRequest(BaseResponseDto<JobDto>.FailureResponse(
                     $"File size exceeds the 10MB limit. Current size: {fileSizeMB:F2}MB"));
+            }
+
+            // Default to User 1 (Admin) for testing if not provided
+            if (userId <= 0)
+            {
+                userId = 1;
+                _logger.LogWarning("UserId not provided or invalid. Defaulting to User 1.");
             }
 
             var result = await _jobService.UploadJobFromFileAsync(file, userId);

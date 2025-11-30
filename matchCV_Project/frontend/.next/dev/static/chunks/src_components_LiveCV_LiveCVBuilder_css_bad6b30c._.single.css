@@ -1,0 +1,200 @@
+/* [project]/src/components/LiveCV/LiveCVBuilder.css [app-client] (css) */
+.live-cv-builder {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+  font-family: Roboto, Arial, sans-serif;
+}
+
+.toolbar {
+  z-index: 100;
+  background-color: #fff;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 32px;
+  display: flex;
+  position: sticky;
+  top: 0;
+  box-shadow: 0 2px 8px #0000001a;
+}
+
+.toolbar-left {
+  flex-direction: column;
+  display: flex;
+}
+
+.toolbar-title {
+  color: #1f2937;
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.toolbar-subtitle {
+  color: #6b7280;
+  margin-top: 4px;
+  font-size: 14px;
+}
+
+.toolbar-right {
+  align-items: center;
+  gap: 12px;
+  display: flex;
+}
+
+.btn {
+  cursor: pointer;
+  border: none;
+  border-radius: 8px;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all .2s;
+  display: inline-flex;
+}
+
+.btn:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  color: #fff;
+  background-color: #3b82f6;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: #2563eb;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px #3b82f666;
+}
+
+.btn-outline {
+  color: #4b5563;
+  background-color: #fff;
+  border: 1px solid #d1d5db;
+}
+
+.btn-outline:hover:not(:disabled) {
+  background-color: #f9fafb;
+  border-color: #9ca3af;
+}
+
+.btn .material-icons {
+  font-size: 20px;
+}
+
+.cv-editor {
+  justify-content: center;
+  align-items: flex-start;
+  padding: 40px 20px;
+  display: flex;
+}
+
+.cv-paper {
+  background-color: #fff;
+  border-radius: 8px;
+  width: 100%;
+  max-width: 900px;
+  animation: .3s ease-in fadeIn;
+  overflow: hidden;
+  box-shadow: 0 10px 40px #0003;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.template-selection-container {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+  padding: 40px 20px;
+}
+
+.template-selection-container h2 {
+  color: #fff;
+  margin-bottom: 40px;
+  font-size: 32px;
+  font-weight: 700;
+}
+
+.template-grid {
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+}
+
+.template-card {
+  cursor: pointer;
+  background-color: #fff;
+  border-radius: 12px;
+  padding: 24px;
+  transition: all .3s;
+  box-shadow: 0 4px 12px #0000001a;
+}
+
+.template-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px #0003;
+}
+
+.card-title {
+  color: #1f2937;
+  margin-bottom: 8px;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.card-description {
+  color: #6b7280;
+  margin-bottom: 16px;
+  font-size: 14px;
+}
+
+.loading-state {
+  color: #fff;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 60px;
+  display: flex;
+}
+
+.loading-state p {
+  margin-top: 16px;
+  font-size: 16px;
+}
+
+@media (max-width: 768px) {
+  .toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+
+  .toolbar-right {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .cv-editor {
+    padding: 20px 10px;
+  }
+
+  .template-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/*# sourceMappingURL=src_components_LiveCV_LiveCVBuilder_css_bad6b30c._.single.css.map*/
