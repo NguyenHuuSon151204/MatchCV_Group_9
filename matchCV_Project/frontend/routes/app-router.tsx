@@ -8,6 +8,7 @@ import { ExportPage } from '@/features/export/export-page'
 import { SettingsPage } from '@/features/settings/settings-page'
 import { JobSearchPage } from '@/features/jobs/job-search-page'
 import { PostJobPage } from '@/features/jobs/post-job-page'
+import LiveCVBuilder from '@/src/components/LiveCV/LiveCVBuilder'
 
 export const appRouter = createBrowserRouter([
   {
@@ -24,6 +25,10 @@ export const appRouter = createBrowserRouter([
       { path: 'jobs', element: <JobSearchPage /> },
       { path: 'post-job', element: <PostJobPage /> },
     ],
+  },
+  {
+    path: '/cv-builder',
+    element: <LiveCVBuilder />,
   },
 ])
 

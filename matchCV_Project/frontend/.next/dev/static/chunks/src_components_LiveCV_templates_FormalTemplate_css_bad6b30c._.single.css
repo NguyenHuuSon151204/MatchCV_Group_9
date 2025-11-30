@@ -1,0 +1,248 @@
+/* [project]/src/components/LiveCV/templates/FormalTemplate.css [app-client] (css) */
+.formal-cv-container {
+  color: #1f2937;
+  background: #fff;
+  max-width: 850px;
+  margin: 0 auto;
+  padding: 32px;
+  font-family: Roboto, Arial, sans-serif;
+  line-height: 1.6;
+}
+
+.formal-header {
+  border-bottom: 2px solid #333;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 20px;
+  display: flex;
+}
+
+.header-content h1 {
+  color: #1f2937;
+  margin: 0 0 8px;
+  font-size: 32px;
+  font-weight: 700;
+}
+
+.header-content h2 {
+  color: #4b5563;
+  margin: 0;
+  font-size: 18px;
+  font-weight: 400;
+}
+
+.formal-header .profile-img {
+  object-fit: cover;
+  border: 3px solid #d1d5db;
+  border-radius: 50%;
+  width: 100px;
+  height: 100px;
+}
+
+.contact-bar {
+  border-bottom: 1px solid #e5e7eb;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: 24px;
+  margin-bottom: 28px;
+  padding: 16px 0;
+  display: flex;
+}
+
+.contact-bar .contact-item {
+  color: #4b5563;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  display: flex;
+}
+
+.contact-bar .material-icons {
+  color: #6b7280;
+  font-size: 18px;
+}
+
+.formal-main {
+  padding: 0;
+}
+
+.section-title {
+  color: #1f2937;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border-bottom: 2px solid #333;
+  align-items: center;
+  gap: 10px;
+  margin-top: 32px;
+  margin-bottom: 20px;
+  padding-bottom: 6px;
+  font-size: 16px;
+  font-weight: 700;
+  display: flex;
+}
+
+.formal-main section:first-child .section-title {
+  margin-top: 0;
+}
+
+.formal-item {
+  border-bottom: 1px solid #f3f4f6;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  position: relative;
+}
+
+.formal-item:last-child {
+  border-bottom: none;
+}
+
+.item-header {
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 8px;
+  display: flex;
+}
+
+.item-title {
+  color: #1f2937;
+  margin: 0 0 4px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.item-subtitle {
+  color: #4b5563;
+  margin: 0 0 8px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.item-date {
+  color: #6b7280;
+  white-space: nowrap;
+  margin-left: 16px;
+  font-size: 13px;
+  font-style: italic;
+}
+
+.item-description {
+  color: #4b5563;
+  margin-top: 8px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.skills-list {
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+}
+
+.skill-item {
+  color: #1f2937;
+  align-items: center;
+  padding: 6px 0;
+  font-size: 14px;
+  display: flex;
+  position: relative;
+}
+
+.skill-item:before {
+  content: "•";
+  color: #333;
+  margin-right: 8px;
+  font-size: 18px;
+}
+
+.skill-level {
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.remove-skill-btn {
+  color: #9ca3af;
+  cursor: pointer;
+  opacity: 0;
+  background: none;
+  border: none;
+  align-items: center;
+  margin-left: auto;
+  padding: 0;
+  transition: opacity .2s;
+  display: inline-flex;
+}
+
+.skill-item:hover .remove-skill-btn {
+  opacity: 1;
+}
+
+.remove-skill-btn:hover {
+  color: #ef4444;
+}
+
+.remove-skill-btn .material-icons {
+  font-size: 16px;
+}
+
+.add-btn-inline, .remove-btn-inline {
+  color: #4b5563;
+  cursor: pointer;
+  background: none;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  padding: 4px 8px;
+  font-size: 12px;
+  transition: all .2s;
+  display: inline-flex;
+}
+
+.add-btn-inline:hover, .remove-btn-inline:hover {
+  color: #1f2937;
+  background: #f3f4f6;
+  border-color: #333;
+}
+
+.remove-btn-inline {
+  position: absolute;
+  top: 0;
+  right: 0;
+}
+
+@media (max-width: 768px) {
+  .formal-cv-container {
+    padding: 20px;
+  }
+
+  .formal-header {
+    text-align: center;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .contact-bar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .skills-list {
+    grid-template-columns: 1fr;
+  }
+
+  .item-header {
+    flex-direction: column;
+  }
+
+  .item-date {
+    margin-top: 4px;
+    margin-left: 0;
+  }
+}
+
+/*# sourceMappingURL=src_components_LiveCV_templates_FormalTemplate_css_bad6b30c._.single.css.map*/

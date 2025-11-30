@@ -1,68 +1,94 @@
-﻿CREATE DATABASE MatchCVs;
+﻿CREATE DATABASE MatchCV1;
 GO
-USE MatchCVs;
+USE MatchCV1;
 GO
 
 /* 1. USERS
-   - Từ ERD: Users (DisplayName, EmailHash, Role, CreatedAt)
-   - Từ DB cũ: Users (Email, Name, Role,...)
-   -> Gộp: lưu Email (hoặc EmailHash tuỳ chiến lược), DisplayName; Role dùng cho Candidate/Recruiter/Admin
+   - Matches matchCV_Project.Models.User
 */
 IF OBJECT_ID('dbo.Users','U') IS NULL
 CREATE TABLE dbo.Users (
     Id           INT IDENTITY(1,1)        PRIMARY KEY,
     DisplayName  NVARCHAR(180)            NOT NULL,
-    Email        NVARCHAR(250)            NOT NULL UNIQUE,
+    EmailAddress NVARCHAR(250)            NOT NULL,
     Role         NVARCHAR(100)            NOT NULL,      -- Candidate | Recruiter | Admin | System
-    CreatedAt    DATETIME2                NOT NULL DEFAULT SYSUTCDATETIME()
+    CreatedAt    DATETIME2                NOT NULL DEFAULT SYSUTCDATETIME(),
+    UpdatedAt    DATETIME2                NULL,
+    IsActive     BIT                      NOT NULL DEFAULT 1,
+    IsDeleted    BIT                      NOT NULL DEFAULT 0
 );
 GO
+CREATE UNIQUE INDEX UQ__Users__A9D10534A0824C3B ON dbo.Users(EmailAddress);
+GO
 
-/* 2. DOCUMENTS (CV, JD, bất kỳ file phân tích)
-   - Từ ERD: Documents
-   - Dùng làm bản ghi trung tâm cho CV (Candidate), Cover letter, JD text nếu muốn.
+/* 2. DOCUMENTS (CV)
+   - Matches matchCV_Project.Models.Document
 */
 IF OBJECT_ID('dbo.Documents','U') IS NULL
 CREATE TABLE dbo.Documents (
     Id            INT IDENTITY(1,1) PRIMARY KEY,
-    UserId        INT             NULL,                  -- owner (candidate / recruiter)
+    UserId        INT             NULL,
+    TemplateId    INT             NULL,                  -- Added to match C#
     DocType       NVARCHAR(30)    NOT NULL,              -- 'CV','JD','CL','Other'
     OriginalName  NVARCHAR(250)   NOT NULL,
+    FileName      NVARCHAR(255)   NULL,                  -- Added to match C#
+    Content       NVARCHAR(4000)  NULL,                  -- Summary/Extracted text
     ContentType   NVARCHAR(100)   NULL,
-    StoragePath   NVARCHAR(400)   NOT NULL,              -- physical/virtual path
+    StoragePath   NVARCHAR(400)   NULL,
     FileHash      NVARCHAR(128)   NULL,
-    SizeBytes     INT             NULL,
+    FileSize      BIGINT          NULL,                  -- Renamed from SizeBytes, changed to BIGINT
     PageCount     INT             NULL,
-    UploadedAt    DATETIME2       NOT NULL DEFAULT SYSUTCDATETIME(),
+    AiConfidence  FLOAT           NULL,                  -- Added to match C#
+    TotalScore    FLOAT           NULL,                  -- Added to match C#
+    Status        NVARCHAR(50)    NOT NULL DEFAULT 'Draft', -- Added to match C#
+    CreatedAt     DATETIME2       NOT NULL DEFAULT SYSUTCDATETIME(), -- Renamed from UploadedAt
+    UpdatedAt     DATETIME2       NOT NULL DEFAULT SYSUTCDATETIME(), -- Added to match C#
+    CvData        NVARCHAR(MAX)   NULL,                  -- Added to store JSON data from Builder
     IsDeleted     BIT             NOT NULL DEFAULT 0,
     CONSTRAINT FK_Documents_Users_UserId
-        FOREIGN KEY (UserId) REFERENCES dbo.Users(Id) ON DELETE SET NULL
+        FOREIGN KEY (UserId) REFERENCES dbo.Users(Id)
 );
 GO
-CREATE INDEX IX_Documents_UserId    ON dbo.Documents(UserId);
 CREATE INDEX IX_Documents_DocType   ON dbo.Documents(DocType);
-CREATE INDEX IX_Documents_Uploaded  ON dbo.Documents(UploadedAt);
+CREATE INDEX IX_Documents_Uploaded  ON dbo.Documents(CreatedAt);
+CREATE INDEX IX_Documents_UserId    ON dbo.Documents(UserId);
 GO
 
-/* 3. CVTemplates - mẫu CV để Make CV */
+/* 3. CVTemplates - mẫu CV 
+   - Matches matchCV_Project.Models.Cvtemplate
+*/
 IF OBJECT_ID('dbo.CVTemplates','U') IS NULL
 CREATE TABLE dbo.CVTemplates (
-    Id           INT IDENTITY(1,1) PRIMARY KEY,
-    [Key]        NVARCHAR(50)     NOT NULL UNIQUE,
-    [Name]       NVARCHAR(180)    NOT NULL,
-    [Description]NVARCHAR(300)    NULL,
-    Engine       NVARCHAR(50)     NULL,            -- render engine
-    TemplatePath NVARCHAR(400)    NULL,
-    IsActive     BIT              NOT NULL DEFAULT 1
+    Id              INT IDENTITY(1,1) PRIMARY KEY,
+    [Key]           NVARCHAR(50)     NOT NULL,
+    [Name]          NVARCHAR(180)    NOT NULL,
+    [Description]   NVARCHAR(300)    NULL,
+    Engine          NVARCHAR(50)     NULL DEFAULT ('razor'),
+    TemplatePath    NVARCHAR(400)    NULL DEFAULT (''),
+    IsActive        BIT              NOT NULL DEFAULT 1,
+    ThumbnailUrl    NVARCHAR(500)    NULL,
+    PreviewImageUrl NVARCHAR(500)    NULL,
+    ProfileImageUrl NVARCHAR(500)    NULL,
+    FullName        NVARCHAR(100)    NULL,
+    Email           NVARCHAR(100)    NULL,
+    Phone           NVARCHAR(20)     NULL,
+    Address         NVARCHAR(500)    NULL,
+    CVData          NVARCHAR(MAX)    NULL,
+    CreatedAt       DATETIME2        NOT NULL DEFAULT SYSUTCDATETIME(),
+    UpdatedAt       DATETIME2        NULL
 );
 GO
+CREATE UNIQUE INDEX UQ__CVTempla__C41E0289DE48762E ON dbo.CVTemplates([Key]);
+GO
 
-/* 4. Sections & Bullets (phân tích CV/JD thành khối nhỏ) */
+/* 4. Sections & Bullets (Cấu trúc CV) 
+   - Matches matchCV_Project.Models.Section & Bullet
+*/
 IF OBJECT_ID('dbo.Sections','U') IS NULL
 CREATE TABLE dbo.Sections (
     Id           INT IDENTITY(1,1) PRIMARY KEY,
     DocumentId   INT              NOT NULL,
-    SectionType  NVARCHAR(50)     NOT NULL,       -- Summary, Experience, Education,...
+    SectionType  NVARCHAR(50)     NOT NULL,
     Ord          INT              NOT NULL,
     RawText      NVARCHAR(MAX)    NULL,
     CONSTRAINT FK_Sections_Documents
@@ -97,32 +123,39 @@ CREATE TABLE dbo.OCRResults (
 );
 GO
 
-/* 6. Exports - lưu file xuất PDF/Doc */
+/* 6. Exports - Lịch sử xuất file 
+   - Matches matchCV_Project.Models.Export
+*/
 IF OBJECT_ID('dbo.Exports','U') IS NULL
 CREATE TABLE dbo.Exports (
     Id           INT IDENTITY(1,1) PRIMARY KEY,
     DocumentId   INT            NOT NULL,
     TemplateId   INT            NULL,
-    OutFormat    NVARCHAR(30)   NOT NULL,          -- pdf/docx/...
+    OutFormat    NVARCHAR(30)   NOT NULL,
     OutputPath   NVARCHAR(400)  NOT NULL,
     Engine       NVARCHAR(50)   NULL,
     CreatedAt    DATETIME2      NOT NULL DEFAULT SYSUTCDATETIME(),
-    [Status]     NVARCHAR(30)   NOT NULL DEFAULT N'Success', -- Success/Failed
+    [Status]     NVARCHAR(30)   NOT NULL,
     ErrorMsg     NVARCHAR(200)  NULL,
     CONSTRAINT FK_Exports_Documents
         FOREIGN KEY (DocumentId) REFERENCES dbo.Documents(Id) ON DELETE CASCADE,
     CONSTRAINT FK_Exports_CVTemplates
-        FOREIGN KEY (TemplateId) REFERENCES dbo.CVTemplates(Id) ON DELETE SET NULL
+        FOREIGN KEY (TemplateId) REFERENCES dbo.CVTemplates(Id)
 );
 GO
 
-/* 7. Skills & DocumentSkills */
+/* 7. Skills & DocumentSkills 
+   - Matches matchCV_Project.Models.Skill & DocumentSkill
+*/
 IF OBJECT_ID('dbo.Skills','U') IS NULL
 CREATE TABLE dbo.Skills (
-    Id         INT IDENTITY(1,1) PRIMARY KEY,
-    [Name]     NVARCHAR(180) NOT NULL,
-    NormName   NVARCHAR(180) NOT NULL,
-    Category   NVARCHAR(80)  NULL
+    Id            INT IDENTITY(1,1) PRIMARY KEY,
+    [Name]        NVARCHAR(180) NOT NULL,
+    NormName      NVARCHAR(180) NOT NULL,
+    Category      NVARCHAR(80)  NULL,
+    CreatedAt     DATETIME2     NOT NULL DEFAULT SYSUTCDATETIME(),
+    UpdatedAt     DATETIME2     NOT NULL DEFAULT SYSUTCDATETIME(),
+    IsDeleted     BIT           NOT NULL DEFAULT 0
 );
 GO
 CREATE UNIQUE INDEX IX_Skills_NormName ON dbo.Skills(NormName);
@@ -130,12 +163,15 @@ GO
 
 IF OBJECT_ID('dbo.DocumentSkills','U') IS NULL
 CREATE TABLE dbo.DocumentSkills (
-    Id          INT IDENTITY(1,1) PRIMARY KEY,
-    DocumentId  INT           NOT NULL,
-    SkillId     INT           NOT NULL,
-    Source      NVARCHAR(30)  NOT NULL,           -- 'Section','Bullet','LLM'
-    Years       FLOAT         NULL,
-    Confidence  FLOAT         NULL,
+    Id              INT IDENTITY(1,1) PRIMARY KEY,
+    DocumentId      INT           NOT NULL,
+    SkillId         INT           NOT NULL,
+    Source          NVARCHAR(30)  NOT NULL DEFAULT 'User', -- Added default
+    Years           FLOAT         NULL, -- Kept for compatibility
+    YearsExperience FLOAT         NULL, -- Added to match C#
+    Proficiency     NVARCHAR(50)  NULL, -- Added to match C#
+    Confidence      FLOAT         NULL,
+    CreatedAt       DATETIME2     NOT NULL DEFAULT SYSUTCDATETIME(), -- Added to match C#
     CONSTRAINT FK_DocumentSkills_Documents
         FOREIGN KEY (DocumentId) REFERENCES dbo.Documents(Id) ON DELETE CASCADE,
     CONSTRAINT FK_DocumentSkills_Skills
@@ -146,16 +182,58 @@ CREATE INDEX IX_DocumentSkills_DocumentId ON dbo.DocumentSkills(DocumentId);
 CREATE INDEX IX_DocumentSkills_SkillId    ON dbo.DocumentSkills(SkillId);
 GO
 
-/* 8. Jobs (JD) - từ ERD và script JDs gốc -> gộp tại đây */
+/* 8. Experiences & Education 
+   - Matches matchCV_Project.Models.Experience & Education
+*/
+IF OBJECT_ID('dbo.Experiences','U') IS NULL
+CREATE TABLE dbo.Experiences (
+    Id               INT IDENTITY(1,1) PRIMARY KEY,
+    DocumentId       INT           NOT NULL,
+    JobTitle         NVARCHAR(200) NOT NULL,
+    CompanyName      NVARCHAR(200) NOT NULL,
+    IndustryName     NVARCHAR(150) NULL,
+    StartDate        DATE          NULL,
+    EndDate          DATE          NULL,
+    CurrentlyWorking BIT           NOT NULL DEFAULT 0,
+    [Description]    NVARCHAR(MAX) NULL,
+    CreatedAt        DATETIME2     NOT NULL DEFAULT SYSUTCDATETIME(), -- Added match C#
+    CONSTRAINT FK_Experiences_Documents
+        FOREIGN KEY (DocumentId) REFERENCES dbo.Documents(Id) ON DELETE CASCADE
+);
+GO
+
+IF OBJECT_ID('dbo.Educations','U') IS NULL
+CREATE TABLE dbo.Educations (
+    Id            INT IDENTITY(1,1) PRIMARY KEY,
+    DocumentId    INT           NOT NULL,
+    Degree        NVARCHAR(150) NOT NULL,
+    FieldOfStudy  NVARCHAR(150) NULL,
+    SchoolName    NVARCHAR(200) NOT NULL,
+    StartDate     DATE          NULL,
+    EndDate       DATE          NULL,
+    Score         FLOAT         NULL,
+    Activities    NVARCHAR(MAX) NULL,
+    [Description] NVARCHAR(MAX) NULL,
+    CreatedAt     DATETIME2     NOT NULL DEFAULT SYSUTCDATETIME(), -- Added match C#
+    CONSTRAINT FK_Education_Documents
+        FOREIGN KEY (DocumentId) REFERENCES dbo.Documents(Id) ON DELETE CASCADE
+);
+GO
+
+/* 9. Jobs 
+   - Matches matchCV_Project.Models.Job
+*/
 IF OBJECT_ID('dbo.Jobs','U') IS NULL
 CREATE TABLE dbo.Jobs (
-    Id            INT IDENTITY(1,1) PRIMARY KEY,
-    UserId        INT            NOT NULL,               -- recruiter owner
-    Title         NVARCHAR(200)  NOT NULL,
-    Company       NVARCHAR(150)  NOT NULL,
-    RawText       NVARCHAR(MAX)  NULL,                  -- JD content / mô tả
-    CreatedAt     DATETIME2      NOT NULL DEFAULT SYSUTCDATETIME(),
-    MustHaveCheck NVARCHAR(MAX)  NULL,
+    Id              INT IDENTITY(1,1) PRIMARY KEY,
+    UserId          INT           NOT NULL,
+    Title           NVARCHAR(200) NOT NULL,
+    Company         NVARCHAR(200) NOT NULL,
+    RawText         NVARCHAR(MAX) NULL,
+    JobDescription  NVARCHAR(MAX) NULL,
+    [Status]        NVARCHAR(50)  NOT NULL DEFAULT 'Active',
+    CreatedAt       DATETIME2     NOT NULL DEFAULT SYSUTCDATETIME(),
+    UpdatedAt       DATETIME2     NOT NULL DEFAULT SYSUTCDATETIME(),
     CONSTRAINT FK_Jobs_Users
         FOREIGN KEY (UserId) REFERENCES dbo.Users(Id) ON DELETE CASCADE
 );
@@ -163,7 +241,7 @@ GO
 CREATE INDEX IX_Jobs_UserId ON dbo.Jobs(UserId);
 GO
 
-/* 9. RequiredSkills - yêu cầu kỹ năng cho JD/Job */
+/* 10. RequiredSkills - yêu cầu kỹ năng cho JD/Job */
 IF OBJECT_ID('dbo.RequiredSkills','U') IS NULL
 CREATE TABLE dbo.RequiredSkills (
     Id           INT IDENTITY(1,1) PRIMARY KEY,
@@ -181,8 +259,7 @@ GO
 CREATE INDEX IX_RequiredSkills_JobId ON dbo.RequiredSkills(JobId);
 GO
 
-/* 10. Applications - Candidate apply CV (Document) vào Job
-       (kế thừa bảng Applications cũ) */
+/* 11. Applications - Candidate apply CV (Document) vào Job */
 IF OBJECT_ID('dbo.Applications','U') IS NULL
 CREATE TABLE dbo.Applications (
     Id            INT IDENTITY(1,1) PRIMARY KEY,
@@ -197,7 +274,7 @@ CREATE TABLE dbo.Applications (
     CONSTRAINT FK_Applications_Jobs
         FOREIGN KEY (JobId) REFERENCES dbo.Jobs(Id) ON DELETE CASCADE,
     CONSTRAINT FK_Applications_Documents
-        FOREIGN KEY (DocumentId) REFERENCES dbo.Documents(Id) ON DELETE NO ACTION,
+        FOREIGN KEY (DocumentId) REFERENCES dbo.Documents(Id) ON DELETE CASCADE,
     CONSTRAINT FK_Applications_Users
         FOREIGN KEY (CandidateId) REFERENCES dbo.Users(Id) ON DELETE NO ACTION
 );
@@ -206,7 +283,7 @@ CREATE INDEX IX_Applications_JobId       ON dbo.Applications(JobId);
 CREATE INDEX IX_Applications_CandidateId ON dbo.Applications(CandidateId);
 GO
 
-/* 11. MatchRuns - kết quả chạy AI match CV ↔ JD */
+/* 12. MatchRuns - kết quả chạy AI match CV ↔ JD */
 IF OBJECT_ID('dbo.MatchRuns','U') IS NULL
 CREATE TABLE dbo.MatchRuns (
     Id            INT IDENTITY(1,1) PRIMARY KEY,
@@ -226,7 +303,7 @@ GO
 CREATE INDEX IX_MatchRuns_Document_Job ON dbo.MatchRuns(DocumentId, JobId);
 GO
 
-/* 12. MatchEvidences - giải thích vì sao match (theo ERD) */
+/* 13. MatchEvidences - giải thích vì sao match */
 IF OBJECT_ID('dbo.MatchEvidences','U') IS NULL
 CREATE TABLE dbo.MatchEvidences (
     Id           INT IDENTITY(1,1) PRIMARY KEY,
@@ -242,7 +319,7 @@ CREATE TABLE dbo.MatchEvidences (
 );
 GO
 
-/* 13. MissingItems - skill bắt buộc nhưng thiếu */
+/* 14. MissingItems - skill bắt buộc nhưng thiếu */
 IF OBJECT_ID('dbo.MissingItems','U') IS NULL
 CREATE TABLE dbo.MissingItems (
     Id           INT IDENTITY(1,1) PRIMARY KEY,
@@ -259,7 +336,7 @@ CREATE TABLE dbo.MissingItems (
 );
 GO
 
-/* 14. RewriteSuggestions - gợi ý chỉnh sửa bullet/câu */
+/* 15. RewriteSuggestions - gợi ý chỉnh sửa bullet/câu */
 IF OBJECT_ID('dbo.RewriteSuggestions','U') IS NULL
 CREATE TABLE dbo.RewriteSuggestions (
     Id              INT IDENTITY(1,1) PRIMARY KEY,
@@ -273,41 +350,7 @@ CREATE TABLE dbo.RewriteSuggestions (
     CONSTRAINT FK_RewriteSuggestions_MatchRuns
         FOREIGN KEY (MatchId) REFERENCES dbo.MatchRuns(Id) ON DELETE CASCADE,
     CONSTRAINT FK_RewriteSuggestions_Bullets
-        FOREIGN KEY (BulletId) REFERENCES dbo.Bullets(Id) ON DELETE SET NULL
-);
-GO
-
-/* 15. Experiences & Education (từ script team 2) */
-IF OBJECT_ID('dbo.Experiences','U') IS NULL
-CREATE TABLE dbo.Experiences (
-    Id               INT IDENTITY(1,1) PRIMARY KEY,
-    DocumentId       INT           NOT NULL,
-    JobTitle         NVARCHAR(200) NOT NULL,
-    CompanyName      NVARCHAR(200) NOT NULL,
-    IndustryName     NVARCHAR(150) NULL,
-    StartDate        DATE          NULL,
-    EndDate          DATE          NULL,
-    CurrentlyWorking BIT           NOT NULL DEFAULT 0,
-    [Description]    NVARCHAR(MAX) NULL,
-    CONSTRAINT FK_Experiences_Documents
-        FOREIGN KEY (DocumentId) REFERENCES dbo.Documents(Id) ON DELETE CASCADE
-);
-GO
-
-IF OBJECT_ID('dbo.Education','U') IS NULL
-CREATE TABLE dbo.Education (
-    Id            INT IDENTITY(1,1) PRIMARY KEY,
-    DocumentId    INT           NOT NULL,
-    Degree        NVARCHAR(150) NOT NULL,
-    FieldOfStudy  NVARCHAR(150) NULL,
-    SchoolName    NVARCHAR(200) NOT NULL,
-    StartDate     DATE          NULL,
-    EndDate       DATE          NULL,
-    Score         FLOAT         NULL,
-    Activities    NVARCHAR(MAX) NULL,
-    [Description] NVARCHAR(MAX) NULL,
-    CONSTRAINT FK_Education_Documents
-        FOREIGN KEY (DocumentId) REFERENCES dbo.Documents(Id) ON DELETE CASCADE
+        FOREIGN KEY (BulletId) REFERENCES dbo.Bullets(Id) ON DELETE NO ACTION
 );
 GO
 
@@ -404,36 +447,56 @@ GO
 CREATE INDEX IX_AdminLogs_CreatedAt ON dbo.AdminLogs(CreatedAt);
 GO
 
+/* 21. SavedCVs - CV đã lưu */
+IF OBJECT_ID('dbo.SavedCVs','U') IS NULL
+CREATE TABLE dbo.SavedCVs (
+    Id INT PRIMARY KEY IDENTITY(1,1),
+    Title NVARCHAR(200) NOT NULL,
+    TemplateType NVARCHAR(50) NOT NULL,
+    CVDataJson NVARCHAR(MAX) NOT NULL,
+    CreatedAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+    UpdatedAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+    UserId INT NULL,  -- For future user authentication
+    CONSTRAINT FK_SavedCVs_Users FOREIGN KEY (UserId) REFERENCES dbo.Users(Id)
+);
+GO
+
 ------------------------------------------------------------
--- SEED DEMO (có thể chỉnh lại tuỳ môi trường)
+-- SEED DATA
 ------------------------------------------------------------
 IF NOT EXISTS (SELECT 1 FROM dbo.Users)
 BEGIN
-    INSERT dbo.Users (DisplayName, Email, Role) VALUES
+    INSERT dbo.Users (DisplayName, EmailAddress, Role) VALUES
       (N'System Admin', N'admin@matchcv.local', N'Admin'),
       (N'Acme HR',      N'hr@acme.local',       N'Recruiter'),
       (N'Jane Candidate',N'candidate@demo.local',N'Candidate');
 
-    DECLARE @candId INT = (SELECT Id FROM dbo.Users WHERE Email=N'candidate@demo.local');
-    DECLARE @recId  INT = (SELECT Id FROM dbo.Users WHERE Email=N'hr@acme.local');
+    DECLARE @candId INT = (SELECT Id FROM dbo.Users WHERE EmailAddress=N'candidate@demo.local');
+    DECLARE @recId  INT = (SELECT Id FROM dbo.Users WHERE EmailAddress=N'hr@acme.local');
+    DECLARE @adminId INT = (SELECT Id FROM dbo.Users WHERE EmailAddress=N'admin@matchcv.local');
 
-    -- CV Document
-    INSERT dbo.Documents (UserId, DocType, OriginalName, ContentType, StoragePath, SizeBytes, PageCount)
-    VALUES (@candId, 'CV', N'JaneCV.pdf', N'application/pdf', N'uploads/cv/jane.pdf', 123456, 2);
-
+    -- CV Document (Assign to Admin for testing)
+    INSERT dbo.Documents (UserId, DocType, OriginalName, FileName, ContentType, StoragePath, FileSize, PageCount, Status, CreatedAt, UpdatedAt)
+    VALUES (@adminId, 'CV', N'JaneCV.pdf', N'JaneCV.pdf', N'application/pdf', N'uploads/cv/jane.pdf', 123456, 2, 'Active', SYSUTCDATETIME(), SYSUTCDATETIME());
     DECLARE @cvDocId INT = SCOPE_IDENTITY();
 
     -- Simple Skills
-    INSERT dbo.Skills ([Name], NormName, Category) VALUES
-      (N'.NET', N'.net', N'Backend'),
-      (N'SQL',  N'sql',  N'Database'),
-      (N'Azure',N'azure',N'Cloud');
+    INSERT dbo.Skills ([Name], NormName, Category, CreatedAt, UpdatedAt, IsDeleted) VALUES
+      (N'.NET', N'.net', N'Backend', SYSUTCDATETIME(), SYSUTCDATETIME(), 0),
+      (N'SQL',  N'sql',  N'Database', SYSUTCDATETIME(), SYSUTCDATETIME(), 0),
+      (N'Azure',N'azure',N'Cloud', SYSUTCDATETIME(), SYSUTCDATETIME(), 0);
+      
+    -- Templates
+    INSERT INTO dbo.CVTemplates ([Key], [Name], [Description], [ThumbnailUrl], [IsActive], [CreatedAt])
+    VALUES 
+    ('professional', N'Mẫu Chuyên Nghiệp', N'Thiết kế chuyên nghiệp với tông màu đỏ nổi bật, bố cục sidebar hiện đại.', '/images/templates/professional-thumbnail.jpg', 1, SYSUTCDATETIME()),
+    ('modern', N'Mẫu Hiện Đại', N'Thiết kế hiện đại với tông màu tím sang trọng, header tập trung và bố cục lưới.', '/images/templates/modern-thumbnail.jpg', 1, SYSUTCDATETIME()),
+    ('formal', N'Mẫu Truyền Thống', N'Thiết kế truyền thống, đơn giản, tối giản màu sắc, phù hợp môi trường trang trọng.', '/images/templates/formal-thumbnail.jpg', 1, SYSUTCDATETIME());
 
     -- Job
     INSERT dbo.Jobs (UserId, Title, Company, RawText)
     VALUES (@recId, N'Backend .NET Developer', N'Acme',
             N'Tìm dev .NET, SQL, Azure, làm việc tại Đà Nẵng.');
-
     DECLARE @jobId INT = SCOPE_IDENTITY();
 
     -- Required skills

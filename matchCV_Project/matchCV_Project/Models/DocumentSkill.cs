@@ -1,4 +1,6 @@
-﻿namespace MatchCV_Project.Models;
+﻿using MatchCV_Project.Models;
+
+namespace MatchCV_Project.Models;
 
 public class DocumentSkill
 {
@@ -6,7 +8,7 @@ public class DocumentSkill
     public int DocumentId { get; set; }
     public int SkillId { get; set; }
     public float? YearsExperience { get; set; }
-    public string Proficiency { get; set; }
+    public string? Proficiency { get; set; }
     public float? Confidence { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

@@ -5,6 +5,8 @@ public class DocumentDto
     public int Id { get; set; }
     public int UserId { get; set; }
     public string OriginalName { get; set; }
+    public string Title { get; set; }
+    public string TemplateType { get; set; } // Added TemplateType
     public string DocType { get; set; }
     public string FileName { get; set; }
     public string ContentType { get; set; }
@@ -17,4 +19,5 @@ public class DocumentDto
     public int SkillsCount { get; set; }
     public int ExperiencesCount { get; set; }
     public int EducationsCount { get; set; }
+    public object? CvData { get; set; }
 }

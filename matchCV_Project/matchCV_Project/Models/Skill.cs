@@ -1,15 +1,36 @@
-﻿namespace MatchCV_Project.Models;
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.EntityFrameworkCore;
+using MatchCV_Project.Models;
 
-public class Skill
+namespace MatchCV_Project.Models;
+
+[Index("NormName", Name = "IX_Skills_NormName", IsUnique = true)]
+public partial class Skill
 {
+    [Key]
     public int Id { get; set; }
-    public string Name { get; set; }
-    public string NormalizeName { get; set; }
-    public string Category { get; set; }
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    public DateTime UpdatedAt { get; set; }
-    public bool IsDeleted { get; set; }
 
-    // Navigation properties
+    [StringLength(180)]
+    public string Name { get; set; } = null!;
+
+    [StringLength(180)]
+    public string NormName { get; set; } = null!;
+
+    [StringLength(80)]
+    public string? Category { get; set; }
+
+    [InverseProperty("Skill")]
     public virtual ICollection<DocumentSkill> DocumentSkills { get; set; } = new List<DocumentSkill>();
+
+    [InverseProperty("Skill")]
+    public virtual ICollection<MatchEvidence> MatchEvidences { get; set; } = new List<MatchEvidence>();
+
+    [InverseProperty("Skill")]
+    public virtual ICollection<MissingItem> MissingItems { get; set; } = new List<MissingItem>();
+
+    [InverseProperty("Skill")]
+    public virtual ICollection<RequiredSkill> RequiredSkills { get; set; } = new List<RequiredSkill>();
 }

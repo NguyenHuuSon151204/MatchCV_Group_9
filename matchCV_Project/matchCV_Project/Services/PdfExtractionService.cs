@@ -1,6 +1,6 @@
 using MatchCV_Project.Interfaces;
-using UglyToad.PdfPig;
-using UglyToad.PdfPig.Content;
+// using UglyToad.PdfPig;
+// using UglyToad.PdfPig.Content;
 using System.Text.RegularExpressions;
 
 namespace MatchCV_Project.Services;
@@ -16,18 +16,26 @@ public class PdfExtractionService : IPdfExtractionService
 
     public async Task<string> ExtractTextFromPdfAsync(string filePath)
     {
+        if (!File.Exists(filePath))
+        {
+            _logger.LogWarning($"File not found: {filePath}");
+            return string.Empty;
+        }
+
         try
         {
-            if (!File.Exists(filePath))
-                throw new FileNotFoundException($"PDF file not found: {filePath}");
-
-            var pdfBytes = await File.ReadAllBytesAsync(filePath);
-            return await ExtractTextFromPdfAsync(pdfBytes);
+            return await Task.Run(() =>
+            {
+                using (var reader = new iTextSharp.text.pdf.PdfReader(filePath))
+                {
+                    return ExtractTextFromReader(reader);
+                }
+            });
         }
         catch (Exception ex)
         {
-            _logger.LogError($"Error extracting text from PDF {filePath}: {ex.Message}");
-            throw;
+            _logger.LogError(ex, "Error extracting text from PDF file: {FilePath}", filePath);
+            return string.Empty;
         }
     }
 
@@ -35,80 +43,42 @@ public class PdfExtractionService : IPdfExtractionService
     {
         try
         {
-            using var document = PdfDocument.Open(pdfBytes);
-            var textBuilder = new System.Text.StringBuilder();
-
-            foreach (var page in document.GetPages())
+            return await Task.Run(() =>
             {
-                var pageText = page.Text;
-                textBuilder.AppendLine(pageText);
-            }
-
-            return textBuilder.ToString();
+                using (var reader = new iTextSharp.text.pdf.PdfReader(pdfBytes))
+                {
+                    return ExtractTextFromReader(reader);
+                }
+            });
         }
         catch (Exception ex)
         {
-            _logger.LogError($"Error extracting text from PDF bytes: {ex.Message}");
-            throw;
+            _logger.LogError(ex, "Error extracting text from PDF bytes");
+            return string.Empty;
         }
+    }
+
+    private string ExtractTextFromReader(iTextSharp.text.pdf.PdfReader reader)
+    {
+        var text = new StringWriter();
+        for (int i = 1; i <= reader.NumberOfPages; i++)
+        {
+            text.WriteLine(iTextSharp.text.pdf.parser.PdfTextExtractor.GetTextFromPage(reader, i));
+        }
+        return text.ToString();
     }
 
     public async Task<Dictionary<string, object>> ExtractStructuredDataAsync(string filePath)
     {
-        if (!File.Exists(filePath))
-            throw new FileNotFoundException($"PDF file not found: {filePath}");
-
-        var pdfBytes = await File.ReadAllBytesAsync(filePath);
-        return await ExtractStructuredDataAsync(pdfBytes);
+        // Placeholder for structured extraction (e.g. using AI or regex on extracted text)
+        var text = await ExtractTextFromPdfAsync(filePath);
+        return new Dictionary<string, object> { { "raw_text", text } };
     }
 
     public async Task<Dictionary<string, object>> ExtractStructuredDataAsync(byte[] pdfBytes)
     {
+         // Placeholder for structured extraction
         var text = await ExtractTextFromPdfAsync(pdfBytes);
-        return ParseStructuredData(text);
-    }
-
-    private Dictionary<string, object> ParseStructuredData(string text)
-    {
-        var data = new Dictionary<string, object>
-        {
-            ["FullText"] = text
-        };
-
-        // Extract email
-        var emailPattern = @"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b";
-        var emailMatch = Regex.Match(text, emailPattern);
-        if (emailMatch.Success)
-            data["Email"] = emailMatch.Value;
-
-        // Extract phone number
-        var phonePattern = @"(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}";
-        var phoneMatches = Regex.Matches(text, phonePattern);
-        if (phoneMatches.Count > 0)
-            data["Phone"] = phoneMatches[0].Value;
-
-        // Extract skills (common keywords)
-        var skillKeywords = new[] { "C#", "Java", "Python", "JavaScript", "SQL", "React", "Angular", "Node.js", 
-            "ASP.NET", ".NET", "Azure", "AWS", "Docker", "Kubernetes", "Git", "Agile", "Scrum" };
-        var foundSkills = skillKeywords.Where(skill => 
-            text.Contains(skill, StringComparison.OrdinalIgnoreCase)).ToList();
-        if (foundSkills.Any())
-            data["Skills"] = foundSkills;
-
-        // Extract years of experience
-        var experiencePattern = @"(\d+)\+?\s*(years?|yrs?)\s*(of\s*)?(experience|exp)";
-        var expMatch = Regex.Match(text, experiencePattern, RegexOptions.IgnoreCase);
-        if (expMatch.Success && int.TryParse(expMatch.Groups[1].Value, out var years))
-            data["YearsOfExperience"] = years;
-
-        // Extract education (common keywords)
-        var educationKeywords = new[] { "Bachelor", "Master", "PhD", "Degree", "University", "College", "BS", "MS", "MBA" };
-        var foundEducation = educationKeywords.Where(edu => 
-            text.Contains(edu, StringComparison.OrdinalIgnoreCase)).ToList();
-        if (foundEducation.Any())
-            data["Education"] = foundEducation;
-
-        return data;
+        return new Dictionary<string, object> { { "raw_text", text } };
     }
 }
-

@@ -5,6 +5,9 @@ using MatchCV_Project.Models.Dtos;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Hosting;
 
+using MatchCV_Project.Services;
+using System.Text.Json;
+
 namespace MatchCV_Project.Services;
 
 public class DocumentService : IDocumentService
@@ -39,11 +42,24 @@ public class DocumentService : IDocumentService
     {
         try
         {
+            // Resolve TemplateId from TemplateType if provided
+            int? templateId = dto.TemplateId;
+            if (!templateId.HasValue && !string.IsNullOrEmpty(dto.TemplateType))
+            {
+                var template = await _context.CvTemplates
+                    .FirstOrDefaultAsync(t => t.Key == dto.TemplateType);
+                if (template != null)
+                {
+                    templateId = template.Id;
+                }
+            }
+
             var document = new Document
             {
                 UserId = userId,
-                OriginalName = dto.OriginalName,
-                TemplateId = dto.TemplateId,
+                OriginalName = dto.Title ?? dto.OriginalName ?? "Untitled CV",
+                TemplateId = templateId,
+                CvData = dto.CvData != null ? JsonSerializer.Serialize(dto.CvData) : null,
                 DocType = "CV",
                 Status = "Draft",
                 CreatedAt = DateTime.UtcNow,
@@ -78,8 +94,38 @@ public class DocumentService : IDocumentService
 
     public async Task<IEnumerable<DocumentDto>> GetUserDocumentsAsync(int userId)
     {
-        var documents = await _documentRepository.GetUserDocumentsWithSkillsAsync(userId);
+        // Use the summary query to avoid fetching heavy CvData
+        var documents = await _documentRepository.GetUserDocumentsSummaryAsync(userId);
         return documents.Select(MapToDto).ToList();
+    }
+
+    // ... (rest of methods)
+
+    private DocumentDto MapToDto(Document document)
+    {
+        return new DocumentDto
+        {
+            Id = document.Id,
+            UserId = document.UserId,
+            OriginalName = document.OriginalName,
+            Title = document.OriginalName, // Map Title from OriginalName
+            TemplateType = document.CvTemplate?.Key ?? "professional", // Map TemplateType
+            DocType = document.DocType,
+            FileName = document.FileName,
+            ContentType = document.ContentType,
+            FileSize = document.FileSize,
+            AiConfidence = document.AiConfidence,
+            TotalScore = document.TotalScore,
+            Status = document.Status,
+            CreatedAt = document.CreatedAt,
+            UpdatedAt = document.UpdatedAt,
+            SkillsCount = document.DocumentSkills?.Count ?? 0,
+            ExperiencesCount = document.Experiences?.Count ?? 0,
+            EducationsCount = document.Educations?.Count ?? 0,
+            CvData = !string.IsNullOrEmpty(document.CvData) 
+                ? JsonSerializer.Deserialize<object>(document.CvData) 
+                : null
+        };
     }
 
     public async Task<DocumentDto> UpdateDocumentAsync(int id, UpdateDocumentDto dto, int userId)
@@ -91,8 +137,28 @@ public class DocumentService : IDocumentService
         if (document.UserId != userId)
             throw new UnauthorizedAccessException("You are not allowed to update this CV");
 
-        document.OriginalName = dto.OriginalName ?? document.OriginalName;
-        document.TemplateId = dto.TemplateId ?? document.TemplateId;
+        document.OriginalName = dto.Title ?? dto.OriginalName ?? document.OriginalName;
+        
+        // Update TemplateId if TemplateType is provided
+        if (!string.IsNullOrEmpty(dto.TemplateType))
+        {
+            var template = await _context.CvTemplates
+                .FirstOrDefaultAsync(t => t.Key == dto.TemplateType);
+            if (template != null)
+            {
+                document.TemplateId = template.Id;
+            }
+        }
+        else if (dto.TemplateId.HasValue)
+        {
+            document.TemplateId = dto.TemplateId;
+        }
+
+        if (dto.CvData != null)
+        {
+            document.CvData = JsonSerializer.Serialize(dto.CvData);
+        }
+
         document.UpdatedAt = DateTime.UtcNow;
 
         await _documentRepository.UpdateAsync(document);
@@ -200,25 +266,5 @@ public class DocumentService : IDocumentService
         return await _analyzerService.AnalyzeDocumentAsync(documentId);
     }
 
-    private DocumentDto MapToDto(Document document)
-    {
-        return new DocumentDto
-        {
-            Id = document.Id,
-            UserId = document.UserId,
-            OriginalName = document.OriginalName,
-            DocType = document.DocType,
-            FileName = document.FileName,
-            ContentType = document.ContentType,
-            FileSize = document.FileSize,
-            AiConfidence = document.AiConfidence,
-            TotalScore = document.TotalScore,
-            Status = document.Status,
-            CreatedAt = document.CreatedAt,
-            UpdatedAt = document.UpdatedAt,
-            SkillsCount = document.DocumentSkills?.Count ?? 0,
-            ExperiencesCount = document.Experiences?.Count ?? 0,
-            EducationsCount = document.Educations?.Count ?? 0
-        };
-    }
+
 }

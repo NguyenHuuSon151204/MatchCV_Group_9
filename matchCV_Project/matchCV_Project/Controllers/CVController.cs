@@ -49,6 +49,46 @@ public class CvController : ControllerBase
     }
 
     /// <summary>
+    /// Save CV (Create or Update)
+    /// </summary>
+    [HttpPost("save")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> SaveCv([FromQuery] int userId, [FromBody] SaveCvDto dto)
+    {
+        try
+        {
+            if (dto.Id > 0)
+            {
+                var updateDto = new UpdateDocumentDto
+                {
+                    Title = dto.Title,
+                    TemplateType = dto.TemplateType,
+                    CvData = dto.CvData
+                };
+                return await UpdateCv(dto.Id, userId, updateDto);
+            }
+            else
+            {
+                var createDto = new CreateDocumentDto
+                {
+                    Title = dto.Title,
+                    TemplateType = dto.TemplateType,
+                    CvData = dto.CvData
+                };
+                return await CreateCv(userId, createDto);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error saving CV for user {UserId}", userId);
+            return StatusCode(500, BaseResponseDto<DocumentDto>.FailureResponse("Error saving CV"));
+        }
+    }
+
+    /// <summary>
     /// Get all CVs for a user
     /// </summary>
     [HttpGet("user/{userId}")]
