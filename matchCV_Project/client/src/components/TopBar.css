@@ -2,15 +2,28 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 24px;
+  padding: 10px 20px;
   background: var(--bg-card);
   border-bottom: 1px solid var(--border-subtle);
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-xs);
+  min-height: 56px;
+  position: relative;
 }
 
 .topbar-left {
   flex: 1;
-  max-width: 600px;
+  min-width: 200px;
+}
+
+.topbar-center {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  max-width: 500px;
 }
 
 .search-container {
@@ -21,6 +34,43 @@
   border-radius: 24px;
   padding: 8px 16px;
   gap: 8px;
+  width: 100%;
+  max-width: 500px;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.search-container:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.search-icon {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.search-clear {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 20px;
+  line-height: 1;
+  padding: 0;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.search-clear:hover {
+  background: var(--color-secondary);
+  color: var(--text-main);
 }
 
 .search-input {
@@ -28,7 +78,7 @@
   border: none;
   outline: none;
   background: transparent;
-  font-size: 14px;
+  font-size: 13px;
   color: var(--text-main);
 }
 
@@ -36,13 +86,6 @@
   color: var(--text-soft);
 }
 
-.search-button {
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  font-size: 16px;
-  padding: 4px;
-}
 
 .topbar-right {
   display: flex;
@@ -51,8 +94,8 @@
 }
 
 .icon-button {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   border: 1px solid var(--border-subtle);
   background: var(--bg-body);
@@ -60,14 +103,22 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
+  font-size: 16px;
   transition: all 0.2s ease;
   position: relative;
+  color: var(--text-primary);
 }
 
 .icon-button:hover {
   background: var(--accent-soft);
   border-color: var(--accent);
+  color: var(--accent);
+  transform: scale(1.05);
+}
+
+.icon-button svg {
+  color: inherit;
+  opacity: 1;
 }
 
 .notification-btn {
@@ -93,9 +144,9 @@
 .user-avatar {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 6px 12px;
-  border-radius: 24px;
+  gap: 8px;
+  padding: 4px 10px;
+  border-radius: 20px;
   background: var(--bg-body);
   border: 1px solid var(--border-subtle);
   cursor: pointer;
@@ -121,7 +172,7 @@
 }
 
 .user-name {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--text-main);
 }

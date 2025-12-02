@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import './LicenseManagement.css'
 import '../components/Button.css'
 import api from '../services/api'
+import { SettingsIcon, ArrowUpIcon, ArrowDownIcon, ArrowUpDownIcon, KeyIcon, PauseIcon } from '../components/Icons'
 
 function LicenseManagement() {
   const [licenses, setLicenses] = useState([])
@@ -15,6 +16,7 @@ function LicenseManagement() {
   const [selectedUser, setSelectedUser] = useState(null)
   const [showKeyModal, setShowKeyModal] = useState(false)
   const [selectedLicense, setSelectedLicense] = useState(null)
+  const [showFilters, setShowFilters] = useState(false)
   const [filters, setFilters] = useState({
     search: '',
     plan: '',
@@ -43,8 +45,27 @@ function LicenseManagement() {
       const params = new URLSearchParams()
       if (filters.search) params.append('search', filters.search)
 
-      const data = await api.get(`/license/all?${params.toString()}`)
-      let filteredData = data || []
+      const response = await api.get(`/license/all?${params.toString()}`)
+      // Handle both array and object responses
+      let licensesList = Array.isArray(response) ? response : (response?.data || response || [])
+      
+      // Normalize property names (handle both PascalCase and camelCase)
+      let filteredData = licensesList.map(license => ({
+        id: license.id || license.Id,
+        plan: license.plan || license.Plan,
+        expiry: license.expiry || license.Expiry,
+        createdAt: license.createdAt || license.CreatedAt,
+        isActive: license.isActive !== undefined ? license.isActive : license.IsActive,
+        status: license.status || license.Status,
+        originalKey: license.originalKey || license.OriginalKey,
+        daysRemaining: license.daysRemaining !== undefined ? license.daysRemaining : license.DaysRemaining,
+        assignedUser: license.assignedUser || license.AssignedUser ? {
+          id: (license.assignedUser || license.AssignedUser)?.id || (license.assignedUser || license.AssignedUser)?.Id,
+          displayName: (license.assignedUser || license.AssignedUser)?.displayName || (license.assignedUser || license.AssignedUser)?.DisplayName,
+          email: (license.assignedUser || license.AssignedUser)?.email || (license.assignedUser || license.AssignedUser)?.Email,
+          role: (license.assignedUser || license.AssignedUser)?.role || (license.assignedUser || license.AssignedUser)?.Role
+        } : null
+      }))
 
       // Apply plan filter client-side
       if (filters.plan) {
@@ -62,9 +83,13 @@ function LicenseManagement() {
         let bVal = b[sortBy]
 
         if (sortBy === 'createdAt' || sortBy === 'expiry') {
-          aVal = new Date(aVal || 0).getTime()
-          bVal = new Date(bVal || 0).getTime()
+          aVal = aVal ? new Date(aVal).getTime() : 0
+          bVal = bVal ? new Date(bVal).getTime() : 0
         }
+
+        // Handle null/undefined values
+        if (aVal == null) aVal = ''
+        if (bVal == null) bVal = ''
 
         if (sortOrder === 'asc') {
           return aVal > bVal ? 1 : -1
@@ -77,7 +102,7 @@ function LicenseManagement() {
 
       // Build free plan users list
       try {
-        const assignedIds = new Set((data || [])
+        const assignedIds = new Set((filteredData || [])
           .map(license => license.assignedUser?.id)
           .filter(Boolean))
 
@@ -235,8 +260,14 @@ function LicenseManagement() {
   }
 
   const getSortIcon = (field) => {
-    if (sortBy !== field) return '↕️'
-    return sortOrder === 'asc' ? '↑' : '↓'
+    if (sortBy !== field) {
+      return <ArrowUpDownIcon size={14} className="sort-icon" />
+    }
+    return sortOrder === 'asc' ? (
+      <ArrowUpIcon size={14} className="sort-icon sort-active" />
+    ) : (
+      <ArrowDownIcon size={14} className="sort-icon sort-active" />
+    )
   }
 
   const formatDateTime = (dateString) => {
@@ -288,7 +319,7 @@ function LicenseManagement() {
   return (
     <div className="license-management">
       <div className="page-header">
-        <div>
+        <div className="page-header-content">
           <div className="breadcrumbs">Home / License Management</div>
           <h1 className="page-title">License Management</h1>
           <p className="page-subtitle">
@@ -297,10 +328,16 @@ function LicenseManagement() {
         </div>
         <div className="header-actions">
           <button 
-            className="btn btn-primary" 
+            className="btn btn-outline btn-sm" 
+            onClick={() => setShowFilters(!showFilters)}
+          >
+            {showFilters ? '↑ Hide Filters' : '↓ Show Filters'}
+          </button>
+          <button 
+            className="btn btn-primary btn-sm" 
             onClick={() => setShowGenerateModal(true)}
           >
-            ✨ Generate License
+            + Generate License
           </button>
         </div>
       </div>
@@ -311,11 +348,11 @@ function LicenseManagement() {
             <strong>{selectedItems.length}</strong> license(s) selected
           </div>
           <div className="bulk-buttons">
-            <button className="btn btn-warning" onClick={handleBulkDeactivate}>
+            <button className="btn btn-warning btn-sm" onClick={handleBulkDeactivate}>
               Deactivate Selected
             </button>
             <button
-              className="btn btn-outline"
+              className="btn btn-outline btn-sm"
               onClick={() => setSelectedItems([])}
             >
               Clear Selection
@@ -324,7 +361,9 @@ function LicenseManagement() {
         </div>
       )}
 
-      <div className="filter-card">
+      {showFilters && (
+        <div className="filter-section">
+          <div className="filter-card">
         <h3 className="filter-title">Filters & Search</h3>
         <p className="filter-description">
           Find licenses by user, plan, or status
@@ -378,9 +417,11 @@ function LicenseManagement() {
             </button>
           </div>
         </div>
-      </div>
+          </div>
+        </div>
+      )}
 
-      <div className="table-card">
+      <div className="table-section">
         <div className="table-header-bar">
           <div className="table-info">
             <h3 className="table-title">All Licenses</h3>
@@ -426,22 +467,26 @@ function LicenseManagement() {
                       onChange={handleSelectAll}
                     />
                   </th>
-                  <th>User</th>
+                  <th>USER</th>
                   <th onClick={() => setSortBy('plan')} className="sortable">
-                    Plan {getSortIcon('plan')}
+                    <span>PLAN</span>
+                    {getSortIcon('plan')}
                   </th>
                   <th onClick={() => setSortBy('status')} className="sortable">
-                    Status {getSortIcon('status')}
+                    <span>STATUS</span>
+                    {getSortIcon('status')}
                   </th>
                   <th onClick={() => setSortBy('expiry')} className="sortable">
-                    Expiry {getSortIcon('expiry')}
+                    <span>EXPIRY</span>
+                    {getSortIcon('expiry')}
                   </th>
-                  <th>Days Remaining</th>
-                  <th>License Key</th>
+                  <th>DAYS REMAINING</th>
+                  <th>LICENSE KEY</th>
                   <th onClick={() => setSortBy('createdAt')} className="sortable">
-                    Created {getSortIcon('createdAt')}
+                    <span>CREATED</span>
+                    {getSortIcon('createdAt')}
                   </th>
-                  <th>Actions</th>
+                  <th>ACTIONS</th>
                 </tr>
               </thead>
               <tbody>
@@ -480,7 +525,7 @@ function LicenseManagement() {
                                   onClick={() => openPlanModal(license.assignedUser, license.plan, license.daysRemaining)}
                                   title="Manage User Plan"
                                 >
-                                  ⚙️ Manage
+                                  <SettingsIcon size={16} /> Manage
                                 </button>
                               )}
                             </div>
@@ -500,7 +545,7 @@ function LicenseManagement() {
                         </td>
                         <td>{formatDateTime(license.expiry)}</td>
                         <td>
-                          <span className={`days-remaining ${license.daysRemaining <= 7 && license.daysRemaining > 0 ? 'warning' : ''}`}>
+                          <span className={`days-remaining ${license.daysRemaining != null && license.daysRemaining <= 7 && license.daysRemaining > 0 ? 'warning' : ''}`}>
                             {formatDaysRemaining(license.daysRemaining)}
                           </span>
                         </td>
@@ -511,7 +556,7 @@ function LicenseManagement() {
                               onClick={() => handleViewKey(license)}
                               title="View License Key"
                             >
-                              🔑 View Key
+                              <KeyIcon size={16} /> View Key
                             </button>
                           ) : (
                             <span className="text-muted">N/A</span>
@@ -520,13 +565,13 @@ function LicenseManagement() {
                         <td>{formatDateTime(license.createdAt)}</td>
                         <td>
                           <div className="action-buttons">
-                            {license.isActive && (
+                            {(license.isActive || license.IsActive || license.status === 'Active') && (
                               <button
                                 className="btn-action btn-warning"
                                 title="Deactivate License"
                                 onClick={() => handleDeactivateLicense(license.id)}
                               >
-                                ⏸️
+                                <PauseIcon size={18} />
                               </button>
                             )}
                             <button

@@ -1,17 +1,20 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import './JobManagement.css'
 import '../components/Button.css'
 import api from '../services/api'
+import { ViewIcon, TrashIcon, ArrowUpIcon, ArrowDownIcon, ArrowUpDownIcon } from '../components/Icons'
 
 function JobManagement() {
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [jobs, setJobs] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [selectedJobs, setSelectedJobs] = useState([])
+  const [showFilters, setShowFilters] = useState(false)
   const [filters, setFilters] = useState({
-    search: '',
+    search: searchParams.get('search') || '',
     company: '',
     status: '',
     dateFrom: '',
@@ -33,10 +36,21 @@ function JobManagement() {
       if (filters.search) params.append('q', filters.search)
       if (filters.company) params.append('company', filters.company)
 
-      const data = await api.get(`/recruiter/jobs?${params.toString()}`)
+      const response = await api.get(`/recruiter/jobs?${params.toString()}`)
       
-      // Apply client-side filters
-      let filtered = data || []
+      // Handle both array and object responses
+      let filtered = Array.isArray(response) ? response : (response?.data || response || [])
+      
+      // Search filter
+      if (filters.search) {
+        const searchLower = filters.search.toLowerCase()
+        filtered = filtered.filter(job => 
+          job.title?.toLowerCase().includes(searchLower) ||
+          job.company?.toLowerCase().includes(searchLower) ||
+          job.description?.toLowerCase().includes(searchLower) ||
+          job.topSkill?.toLowerCase().includes(searchLower)
+        )
+      }
       
       if (filters.status) {
         filtered = filtered.filter(job => {
@@ -72,9 +86,13 @@ function JobManagement() {
         let bVal = b[sortBy]
         
         if (sortBy === 'createdAt') {
-          aVal = new Date(aVal).getTime()
-          bVal = new Date(bVal).getTime()
+          aVal = aVal ? new Date(aVal).getTime() : 0
+          bVal = bVal ? new Date(bVal).getTime() : 0
         }
+        
+        // Handle null/undefined values
+        if (aVal == null) aVal = 0
+        if (bVal == null) bVal = 0
         
         if (sortOrder === 'asc') {
           return aVal > bVal ? 1 : -1
@@ -113,11 +131,21 @@ function JobManagement() {
     )
   }
 
-  const handleSelectAll = () => {
-    if (selectedJobs.length === jobs.length) {
-      setSelectedJobs([])
+  const handleSelectAll = (e) => {
+    if (jobs.length === 0) return
+    if (e?.target?.checked !== undefined) {
+      if (e.target.checked) {
+        setSelectedJobs(jobs.map((j) => j.id).filter(id => id != null))
+      } else {
+        setSelectedJobs([])
+      }
     } else {
-      setSelectedJobs(jobs.map((j) => j.id))
+      // Fallback for direct function call
+      if (selectedJobs.length === jobs.length) {
+        setSelectedJobs([])
+      } else {
+        setSelectedJobs(jobs.map((j) => j.id).filter(id => id != null))
+      }
     }
   }
 
@@ -190,8 +218,14 @@ function JobManagement() {
   }
 
   const getSortIcon = (field) => {
-    if (sortBy !== field) return '↕️'
-    return sortOrder === 'asc' ? '↑' : '↓'
+    if (sortBy !== field) {
+      return <ArrowUpDownIcon size={14} className="sort-icon" />
+    }
+    return sortOrder === 'asc' ? (
+      <ArrowUpIcon size={14} className="sort-icon sort-active" />
+    ) : (
+      <ArrowDownIcon size={14} className="sort-icon sort-active" />
+    )
   }
 
   const formatDate = (dateString) => {
@@ -207,13 +241,36 @@ function JobManagement() {
     setShowBulkActions(selectedJobs.length > 0)
   }, [selectedJobs])
 
+  // Sync with URL search params
+  useEffect(() => {
+    const searchParam = searchParams.get('search')
+    if (searchParam !== null && searchParam !== filters.search) {
+      setFilters(prev => ({ ...prev, search: searchParam }))
+      setShowFilters(true)
+    }
+  }, [searchParams])
+
+  // Update URL when search filter changes
+  useEffect(() => {
+    if (filters.search) {
+      setSearchParams({ search: filters.search }, { replace: true })
+    } else {
+      const current = searchParams.get('search')
+      if (current) {
+        const newParams = new URLSearchParams(searchParams)
+        newParams.delete('search')
+        setSearchParams(newParams, { replace: true })
+      }
+    }
+  }, [filters.search])
+
   // Get unique companies for filter
   const companies = [...new Set(jobs.map((j) => j.company))].sort()
 
   return (
     <div className="job-management">
       <div className="page-header">
-        <div>
+        <div className="page-header-content">
           <div className="breadcrumbs">Home / Jobs</div>
           <h1 className="page-title">Job Management</h1>
           <p className="page-subtitle">
@@ -221,12 +278,18 @@ function JobManagement() {
           </p>
         </div>
         <div className="header-actions">
-          <Link to="/jobs/create" className="btn btn-primary">
-            + Create New Job
-          </Link>
-          <button className="btn btn-outline" onClick={handleExportCSV}>
+          <button 
+            className="btn btn-outline btn-sm" 
+            onClick={() => setShowFilters(!showFilters)}
+          >
+            {showFilters ? '↑ Hide Filters' : '↓ Show Filters'}
+          </button>
+          <button className="btn btn-outline btn-sm" onClick={handleExportCSV}>
             Export CSV
           </button>
+          <Link to="/jobs/create" className="btn btn-primary btn-sm">
+            + Create New Job
+          </Link>
         </div>
       </div>
 
@@ -236,11 +299,11 @@ function JobManagement() {
             <strong>{selectedJobs.length}</strong> job(s) selected
           </div>
           <div className="bulk-buttons">
-            <button className="btn btn-danger" onClick={handleBulkDelete}>
+            <button className="btn btn-danger btn-sm" onClick={handleBulkDelete}>
               Delete Selected
             </button>
             <button
-              className="btn btn-outline"
+              className="btn btn-outline btn-sm"
               onClick={() => setSelectedJobs([])}
             >
               Clear Selection
@@ -249,90 +312,92 @@ function JobManagement() {
         </div>
       )}
 
-      <div className="filter-section">
-        <div className="filter-card">
-          <h3 className="filter-title">Filters & Search</h3>
-          <p className="filter-description">
-            Use filters to quickly find the jobs you're looking for
-          </p>
-          <div className="filter-grid">
-            <div className="filter-group">
-              <label>Search</label>
-              <input
-                type="text"
-                placeholder="Job title, description..."
-                className="filter-input"
-                value={filters.search}
-                onChange={(e) => handleFilterChange('search', e.target.value)}
-              />
-            </div>
-            <div className="filter-group">
-              <label>Company</label>
-              <select
-                className="filter-select"
-                value={filters.company}
-                onChange={(e) => handleFilterChange('company', e.target.value)}
-              >
-                <option value="">All Companies</option>
-                {companies.map((company) => (
-                  <option key={company} value={company}>
-                    {company}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="filter-group">
-              <label>Status</label>
-              <select
-                className="filter-select"
-                value={filters.status}
-                onChange={(e) => handleFilterChange('status', e.target.value)}
-              >
-                <option value="">All Status</option>
-                <option value="draft">Draft</option>
-                <option value="open">Open</option>
-                <option value="reviewing">Reviewing</option>
-                <option value="closed">Closed</option>
-              </select>
-            </div>
-            <div className="filter-group">
-              <label>Date From</label>
-              <input
-                type="date"
-                className="filter-input"
-                value={filters.dateFrom}
-                onChange={(e) => handleFilterChange('dateFrom', e.target.value)}
-              />
-            </div>
-            <div className="filter-group">
-              <label>Date To</label>
-              <input
-                type="date"
-                className="filter-input"
-                value={filters.dateTo}
-                onChange={(e) => handleFilterChange('dateTo', e.target.value)}
-              />
-            </div>
-            <div className="filter-group">
-              <label>&nbsp;</label>
-              <button
-                className="btn btn-outline"
-                onClick={() => {
-                  setFilters({
-                    search: '',
-                    company: '',
-                    status: '',
-                    dateFrom: '',
-                    dateTo: '',
-                  })
-                }}
-              >
-                Clear All Filters
-              </button>
+      {showFilters && (
+        <div className="filter-section">
+          <div className="filter-card">
+            <h3 className="filter-title">Filters & Search</h3>
+            <p className="filter-description">
+              Use filters to quickly find the jobs you're looking for
+            </p>
+            <div className="filter-grid">
+              <div className="filter-group filter-group-search">
+                <label>Search</label>
+                <input
+                  type="text"
+                  placeholder="Job title, description..."
+                  className="filter-input"
+                  value={filters.search}
+                  onChange={(e) => handleFilterChange('search', e.target.value)}
+                />
+              </div>
+              <div className="filter-group">
+                <label>Company</label>
+                <select
+                  className="filter-select"
+                  value={filters.company}
+                  onChange={(e) => handleFilterChange('company', e.target.value)}
+                >
+                  <option value="">All Companies</option>
+                  {companies.map((company) => (
+                    <option key={company} value={company}>
+                      {company}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="filter-group">
+                <label>Status</label>
+                <select
+                  className="filter-select"
+                  value={filters.status}
+                  onChange={(e) => handleFilterChange('status', e.target.value)}
+                >
+                  <option value="">All Status</option>
+                  <option value="draft">Draft</option>
+                  <option value="open">Open</option>
+                  <option value="reviewing">Reviewing</option>
+                  <option value="closed">Closed</option>
+                </select>
+              </div>
+              <div className="filter-group">
+                <label>Date From</label>
+                <input
+                  type="date"
+                  className="filter-input"
+                  value={filters.dateFrom}
+                  onChange={(e) => handleFilterChange('dateFrom', e.target.value)}
+                />
+              </div>
+              <div className="filter-group">
+                <label>Date To</label>
+                <input
+                  type="date"
+                  className="filter-input"
+                  value={filters.dateTo}
+                  onChange={(e) => handleFilterChange('dateTo', e.target.value)}
+                />
+              </div>
+              <div className="filter-group">
+                <label>&nbsp;</label>
+                <button
+                  className="btn btn-outline"
+                  onClick={() => {
+                    setFilters({
+                      search: '',
+                      company: '',
+                      status: '',
+                      dateFrom: '',
+                      dateTo: '',
+                    })
+                  }}
+                >
+                  Clear All Filters
+                </button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
 
       <div className="table-section">
         <div className="table-header-bar">
@@ -360,7 +425,7 @@ function JobManagement() {
               onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
               title={`Sort ${sortOrder === 'asc' ? 'Descending' : 'Ascending'}`}
             >
-              {sortOrder === 'asc' ? '↑' : '↓'}
+              {sortOrder === 'asc' ? <ArrowUpIcon size={16} /> : <ArrowDownIcon size={16} />}
             </button>
           </div>
         </div>
@@ -377,49 +442,56 @@ function JobManagement() {
                   <th className="checkbox-col">
                     <input
                       type="checkbox"
-                      checked={selectedJobs.length === jobs.length && jobs.length > 0}
+                      checked={jobs.length > 0 && selectedJobs.length === jobs.length}
                       onChange={handleSelectAll}
+                      aria-label="Select all jobs"
                     />
                   </th>
                   <th
                     className="sortable"
                     onClick={() => handleSort('id')}
                   >
-                    ID {getSortIcon('id')}
+                    <span>ID</span>
+                    {getSortIcon('id')}
                   </th>
                   <th
                     className="sortable"
                     onClick={() => handleSort('title')}
                   >
-                    Job Title {getSortIcon('title')}
+                    <span>JOB TITLE</span>
+                    {getSortIcon('title')}
                   </th>
                   <th
                     className="sortable"
                     onClick={() => handleSort('company')}
                   >
-                    Company {getSortIcon('company')}
+                    <span>COMPANY</span>
+                    {getSortIcon('company')}
                   </th>
                   <th
                     className="sortable"
                     onClick={() => handleSort('applications')}
                   >
-                    Applicants {getSortIcon('applications')}
+                    <span>APPLICANTS</span>
+                    {getSortIcon('applications')}
                   </th>
                   <th
                     className="sortable"
                     onClick={() => handleSort('avgScore')}
                   >
-                    Avg Score {getSortIcon('avgScore')}
+                    <span>AVG SCORE</span>
+                    {getSortIcon('avgScore')}
                   </th>
-                  <th>Top Skill</th>
-                  <th>Status</th>
+                  <th>TOP SKILL</th>
+                  <th>STATUS</th>
                   <th
                     className="sortable"
                     onClick={() => handleSort('createdAt')}
                   >
-                    Created {getSortIcon('createdAt')}
+                    <span>CREATED</span>
+                    {getSortIcon('createdAt')}
                   </th>
-                  <th>Actions</th>
+                  <th>ACTIONS</th>
                 </tr>
               </thead>
               <tbody>
@@ -440,6 +512,7 @@ function JobManagement() {
                             type="checkbox"
                             checked={isSelected}
                             onChange={() => handleSelectJob(job.id)}
+                            aria-label={`Select job ${job.title}`}
                           />
                         </td>
                         <td>#{job.id}</td>
@@ -478,14 +551,14 @@ function JobManagement() {
                               className="btn-action btn-view"
                               title="View Details"
                             >
-                              👁️
+                              <ViewIcon size={18} />
                             </Link>
                             <button
                               className="btn-action btn-delete"
                               onClick={() => handleDelete(job.id)}
                               title="Delete"
                             >
-                              🗑️
+                              <TrashIcon size={18} />
                             </button>
                           </div>
                         </td>

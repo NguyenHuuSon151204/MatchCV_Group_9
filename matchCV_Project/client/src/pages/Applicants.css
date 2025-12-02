@@ -5,20 +5,22 @@
 }
 
 .breadcrumbs {
-  font-size: 13px;
-  color: var(--text-muted);
-  margin-bottom: 8px;
+  font-size: 11px;
+  color: var(--text-soft);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .page-title {
-  font-size: 28px;
+  font-size: 20px;
   font-weight: 700;
-  color: var(--text-main);
-  margin-bottom: 8px;
+  color: var(--color-primary);
+  margin: 0 0 4px 0;
 }
 
 .page-subtitle {
-  font-size: 14px;
+  font-size: 13px;
   color: var(--text-muted);
   margin: 0;
 }
@@ -27,9 +29,9 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 32px;
-  padding-bottom: 20px;
-  border-bottom: 2px solid var(--border-subtle);
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .header-actions {
@@ -318,10 +320,12 @@
 }
 
 .data-table thead {
-  background: linear-gradient(to bottom, var(--bg-body), var(--bg-card));
+  background: var(--color-secondary);
   position: sticky;
   top: 0;
   z-index: 10;
+  border-bottom: 2px solid var(--border-medium);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .data-table th {
@@ -329,22 +333,31 @@
   text-align: left;
   font-size: 12px;
   font-weight: 700;
-  color: var(--text-muted);
+  color: var(--text-primary);
   text-transform: uppercase;
   letter-spacing: 0.8px;
-  border-bottom: 2px solid var(--border-strong);
   white-space: nowrap;
-  background: var(--bg-body);
+  background: var(--color-secondary);
+  border-bottom: 2px solid var(--border-medium);
+  position: relative;
 }
 
 .data-table th.sortable {
   cursor: pointer;
   user-select: none;
   transition: background-color 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .data-table th.sortable:hover {
-  background: var(--bg-table-row);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.data-table th.sortable span {
+  flex: 1;
 }
 
 .checkbox-col {

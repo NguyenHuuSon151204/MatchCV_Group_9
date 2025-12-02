@@ -1,12 +1,45 @@
 .recruiter-dashboard {
-  max-width: 1400px;
+  max-width: 1600px;
   margin: 0 auto;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.page-header {
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.breadcrumbs {
+  font-size: 11px;
+  color: var(--text-soft);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.page-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 4px;
 }
 
 .page-subtitle {
+  font-size: 13px;
   color: var(--text-muted);
-  margin-top: 8px;
-  font-size: 15px;
+  margin: 0;
 }
 
 .header-actions {

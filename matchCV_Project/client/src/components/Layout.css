@@ -11,10 +11,15 @@
   transition: margin-left 0.3s ease;
 }
 
+.main-content.sidebar-collapsed {
+  margin-left: 72px;
+}
+
 .content-area {
   flex: 1;
-  padding: 24px;
+  padding: 28px;
   background: var(--bg-body);
+  min-height: calc(100vh - 56px);
 }
 
 @media (max-width: 1024px) {

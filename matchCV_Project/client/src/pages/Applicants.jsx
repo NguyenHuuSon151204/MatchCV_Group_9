@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import './Applicants.css'
 import '../components/Button.css'
 import api from '../services/api'
+import { ViewIcon, TrashIcon, ArrowUpIcon, ArrowDownIcon, ArrowUpDownIcon } from '../components/Icons'
 
 function Applicants() {
   const [applicants, setApplicants] = useState([])
@@ -10,6 +11,7 @@ function Applicants() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [selectedItems, setSelectedItems] = useState([])
+  const [showFilters, setShowFilters] = useState(false)
   const [filters, setFilters] = useState({
     jobId: '',
     company: '',
@@ -287,8 +289,14 @@ function Applicants() {
   }
 
   const getSortIcon = (field) => {
-    if (sortBy !== field) return '↕️'
-    return sortOrder === 'asc' ? '↑' : '↓'
+    if (sortBy !== field) {
+      return <ArrowUpDownIcon size={14} className="sort-icon" />
+    }
+    return sortOrder === 'asc' ? (
+      <ArrowUpIcon size={14} className="sort-icon sort-active" />
+    ) : (
+      <ArrowDownIcon size={14} className="sort-icon sort-active" />
+    )
   }
 
   const formatDateTime = (dateString) => {
@@ -310,7 +318,7 @@ function Applicants() {
   return (
     <div className="applicants">
       <div className="page-header">
-        <div>
+        <div className="page-header-content">
           <div className="breadcrumbs">Home / Applicants</div>
           <h1 className="page-title">Applicants Management</h1>
           <p className="page-subtitle">
@@ -318,8 +326,14 @@ function Applicants() {
           </p>
         </div>
         <div className="header-actions">
-          <button className="btn btn-outline" onClick={handleExportCSV}>
-            📥 Export CSV
+          <button 
+            className="btn btn-outline btn-sm" 
+            onClick={() => setShowFilters(!showFilters)}
+          >
+            {showFilters ? '↑ Hide Filters' : '↓ Show Filters'}
+          </button>
+          <button className="btn btn-outline btn-sm" onClick={handleExportCSV}>
+            Export CSV
           </button>
         </div>
       </div>
@@ -343,12 +357,14 @@ function Applicants() {
         </div>
       )}
 
-      <div className="filter-card">
-        <h3 className="filter-title">Filters & Search</h3>
-        <p className="filter-description">
-          Use filters to quickly find the applicants you're looking for
-        </p>
-        <div className="filter-grid">
+      {showFilters && (
+        <div className="filter-section">
+          <div className="filter-card">
+            <h3 className="filter-title">Filters & Search</h3>
+            <p className="filter-description">
+              Use filters to quickly find the applicants you're looking for
+            </p>
+            <div className="filter-grid">
           <div className="filter-group">
             <label>Job</label>
             <select
@@ -456,9 +472,11 @@ function Applicants() {
             </button>
           </div>
         </div>
-      </div>
+          </div>
+        </div>
+      )}
 
-      <div className="table-card">
+      <div className="table-section">
         <div className="table-header-bar">
           <div className="table-info">
             <h3 className="table-title">All Applicants</h3>
@@ -508,24 +526,26 @@ function Applicants() {
                       onChange={handleSelectAll}
                     />
                   </th>
-                  <th>Applicant</th>
-                  <th>Job</th>
+                  <th>APPLICANT</th>
+                  <th>JOB</th>
                   <th
                     className="sortable"
                     onClick={() => setSortBy('scoreSnapshot')}
                   >
-                    AI Score {getSortIcon('scoreSnapshot')}
+                    <span>AI SCORE</span>
+                    {getSortIcon('scoreSnapshot')}
                   </th>
-                  <th>Plan</th>
-                  <th>Matching Skills</th>
-                  <th>Status</th>
+                  <th>PLAN</th>
+                  <th>MATCHING SKILLS</th>
+                  <th>STATUS</th>
                   <th
                     className="sortable"
                     onClick={() => setSortBy('createdAt')}
                   >
-                    Applied {getSortIcon('createdAt')}
+                    <span>APPLIED</span>
+                    {getSortIcon('createdAt')}
                   </th>
-                  <th>Actions</th>
+                  <th>ACTIONS</th>
                 </tr>
               </thead>
               <tbody>
@@ -628,14 +648,14 @@ function Applicants() {
                               title="View & Edit Details"
                               onClick={() => handleViewApplicant(app.id)}
                             >
-                              👁️
+                              <ViewIcon size={18} />
                             </button>
                             <button
                               className="btn-action btn-delete"
                               title="Delete Application"
                               onClick={() => handleDeleteApplicant(app.id)}
                             >
-                              🗑️
+                              <TrashIcon size={18} />
                             </button>
                           </div>
                         </td>

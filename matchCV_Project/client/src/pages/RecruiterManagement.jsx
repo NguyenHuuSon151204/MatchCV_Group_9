@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import './RecruiterManagement.css'
 import '../components/Button.css'
 import api from '../services/api'
+import { SettingsIcon, ArrowUpIcon, ArrowDownIcon, ArrowUpDownIcon } from '../components/Icons'
 
 function RecruiterManagement() {
   const [recruiters, setRecruiters] = useState([])
@@ -10,6 +11,7 @@ function RecruiterManagement() {
   const [error, setError] = useState(null)
   const [selectedItems, setSelectedItems] = useState([])
   const [showEditModal, setShowEditModal] = useState(false)
+  const [showFilters, setShowFilters] = useState(false)
   const [selectedRecruiter, setSelectedRecruiter] = useState(null)
   const [recruiterJobs, setRecruiterJobs] = useState({})
   const [filters, setFilters] = useState({
@@ -89,9 +91,13 @@ function RecruiterManagement() {
         let bVal = b[sortBy]
 
         if (sortBy === 'createdAt' || sortBy === 'licenseExpiry') {
-          aVal = new Date(aVal || 0).getTime()
-          bVal = new Date(bVal || 0).getTime()
+          aVal = aVal ? new Date(aVal).getTime() : 0
+          bVal = bVal ? new Date(bVal).getTime() : 0
         }
+
+        // Handle null/undefined values
+        if (aVal == null) aVal = ''
+        if (bVal == null) bVal = ''
 
         if (sortOrder === 'asc') {
           return aVal > bVal ? 1 : -1
@@ -213,8 +219,14 @@ function RecruiterManagement() {
   }
 
   const getSortIcon = (field) => {
-    if (sortBy !== field) return '↕️'
-    return sortOrder === 'asc' ? '↑' : '↓'
+    if (sortBy !== field) {
+      return <ArrowUpDownIcon size={14} className="sort-icon" />
+    }
+    return sortOrder === 'asc' ? (
+      <ArrowUpIcon size={14} className="sort-icon sort-active" />
+    ) : (
+      <ArrowDownIcon size={14} className="sort-icon sort-active" />
+    )
   }
 
   const showBulkActions = selectedItems.length > 0
@@ -222,7 +234,7 @@ function RecruiterManagement() {
   return (
     <div className="recruiter-management">
       <div className="page-header">
-        <div>
+        <div className="page-header-content">
           <div className="breadcrumbs">Home / Recruiter Management</div>
           <h1 className="page-title">Recruiter Management</h1>
           <p className="page-subtitle">
@@ -230,8 +242,14 @@ function RecruiterManagement() {
           </p>
         </div>
         <div className="header-actions">
-          <button className="btn btn-outline" onClick={handleExportCSV}>
-            📥 Export CSV
+          <button 
+            className="btn btn-outline btn-sm" 
+            onClick={() => setShowFilters(!showFilters)}
+          >
+            {showFilters ? '↑ Hide Filters' : '↓ Show Filters'}
+          </button>
+          <button className="btn btn-outline btn-sm" onClick={handleExportCSV}>
+            Export CSV
           </button>
         </div>
       </div>
@@ -252,62 +270,66 @@ function RecruiterManagement() {
         </div>
       )}
 
-      <div className="filter-card">
-        <h3 className="filter-title">Filters & Search</h3>
-        <p className="filter-description">
-          Use filters to quickly find the recruiters you're looking for
-        </p>
-        <div className="filter-grid">
-          <div className="filter-group">
-            <label>Search</label>
-            <input
-              type="text"
-              placeholder="Name or email..."
-              className="filter-input"
-              value={filters.search}
-              onChange={(e) => handleFilterChange('search', e.target.value)}
-            />
-          </div>
-          <div className="filter-group">
-            <label>Plan</label>
-            <select
-              className="filter-select"
-              value={filters.plan}
-              onChange={(e) => handleFilterChange('plan', e.target.value)}
-            >
-              <option value="">All Plans</option>
-              <option value="Free">Free</option>
-              <option value="Pro">Pro</option>
-              <option value="Enterprise">Enterprise</option>
-            </select>
-          </div>
-          <div className="filter-group">
-            <label>Account Type</label>
-            <select
-              className="filter-select"
-              value={filters.accountType}
-              onChange={(e) => handleFilterChange('accountType', e.target.value)}
-            >
-              <option value="">All Types</option>
-              <option value="Individual">Individual</option>
-              <option value="Company">Company</option>
-            </select>
-          </div>
-          <div className="filter-group">
-            <label>&nbsp;</label>
-            <button
-              className="btn btn-outline"
-              onClick={() => {
-                setFilters({ search: '', plan: '', accountType: '' })
-              }}
-            >
-              Clear All Filters
-            </button>
+      {showFilters && (
+        <div className="filter-section">
+          <div className="filter-card">
+            <h3 className="filter-title">Filters & Search</h3>
+            <p className="filter-description">
+              Use filters to quickly find the recruiters you're looking for
+            </p>
+            <div className="filter-grid">
+              <div className="filter-group">
+                <label>Search</label>
+                <input
+                  type="text"
+                  placeholder="Name or email..."
+                  className="filter-input"
+                  value={filters.search}
+                  onChange={(e) => handleFilterChange('search', e.target.value)}
+                />
+              </div>
+              <div className="filter-group">
+                <label>Plan</label>
+                <select
+                  className="filter-select"
+                  value={filters.plan}
+                  onChange={(e) => handleFilterChange('plan', e.target.value)}
+                >
+                  <option value="">All Plans</option>
+                  <option value="Free">Free</option>
+                  <option value="Pro">Pro</option>
+                  <option value="Enterprise">Enterprise</option>
+                </select>
+              </div>
+              <div className="filter-group">
+                <label>Account Type</label>
+                <select
+                  className="filter-select"
+                  value={filters.accountType}
+                  onChange={(e) => handleFilterChange('accountType', e.target.value)}
+                >
+                  <option value="">All Types</option>
+                  <option value="Individual">Individual</option>
+                  <option value="Company">Company</option>
+                </select>
+              </div>
+              <div className="filter-group">
+                <label>&nbsp;</label>
+                <button
+                  className="btn btn-outline"
+                  onClick={() => {
+                    setFilters({ search: '', plan: '', accountType: '' })
+                  }}
+                >
+                  Clear All Filters
+                </button>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
-      <div className="table-card">
+      <div className="table-section">
         <div className="table-header-bar">
           <div className="table-info">
             <h3 className="table-title">All Recruiters</h3>
@@ -331,8 +353,9 @@ function RecruiterManagement() {
               className="btn-icon"
               onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
               title={`Sort ${sortOrder === 'asc' ? 'Descending' : 'Ascending'}`}
+              aria-label={`Sort ${sortOrder === 'asc' ? 'Descending' : 'Ascending'}`}
             >
-              {sortOrder === 'asc' ? '↑' : '↓'}
+              {sortOrder === 'asc' ? <ArrowUpIcon size={16} /> : <ArrowDownIcon size={16} />}
             </button>
           </div>
         </div>
@@ -354,34 +377,38 @@ function RecruiterManagement() {
                     />
                   </th>
                   <th>ID</th>
-                  <th>Name</th>
-                  <th>Email</th>
+                  <th>NAME</th>
+                  <th>EMAIL</th>
                   <th
                     className="sortable"
                     onClick={() => setSortBy('openJobsCount')}
                   >
-                    Open Jobs {getSortIcon('openJobsCount')}
+                    <span>OPEN JOBS</span>
+                    {getSortIcon('openJobsCount')}
                   </th>
-                  <th>Jobs</th>
+                  <th>JOBS</th>
                   <th
                     className="sortable"
                     onClick={() => setSortBy('plan')}
                   >
-                    Plan {getSortIcon('plan')}
+                    <span>PLAN</span>
+                    {getSortIcon('plan')}
                   </th>
                   <th
                     className="sortable"
                     onClick={() => setSortBy('licenseExpiry')}
                   >
-                    License Expiry {getSortIcon('licenseExpiry')}
+                    <span>LICENSE EXPIRY</span>
+                    {getSortIcon('licenseExpiry')}
                   </th>
                   <th
                     className="sortable"
                     onClick={() => setSortBy('createdAt')}
                   >
-                    Joined {getSortIcon('createdAt')}
+                    <span>JOINED</span>
+                    {getSortIcon('createdAt')}
                   </th>
-                  <th>Actions</th>
+                  <th>ACTIONS</th>
                 </tr>
               </thead>
               <tbody>
@@ -452,7 +479,7 @@ function RecruiterManagement() {
                               title="Edit Recruiter Information"
                               onClick={() => handleEditRecruiter(recruiter)}
                             >
-                              ⚙️
+                              <SettingsIcon size={18} />
                             </button>
                           </div>
                         </td>
