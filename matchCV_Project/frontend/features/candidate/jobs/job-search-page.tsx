@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { formatDistanceToNow } from 'date-fns'
 import { Search, Building2, Calendar } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -11,6 +12,7 @@ import { useJob } from '@/hooks/useJob'
 import type { Job } from '@/lib/types'
 
 export function JobSearchPage() {
+  const navigate = useNavigate()
   const { jobs, loading, refresh } = useJob()
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('')
@@ -74,14 +76,17 @@ export function JobSearchPage() {
             {searchQuery ? 'No jobs found matching your search.' : 'No jobs available. Be the first to post one!'}
           </div>
         ) : (
-          filteredJobs.map((job) => <JobCard key={job.id} job={job} />)
+          filteredJobs.map((job) => <JobCard key={job.id} job={job} onViewDetails={() => {
+            localStorage.setItem('selectedJob', JSON.stringify(job))
+            navigate(`/jobs/${job.id}`)
+          }} />)
         )}
       </div>
     </section>
   )
 }
 
-function JobCard({ job }: { job: Job }) {
+function JobCard({ job, onViewDetails }: { job: Job; onViewDetails: () => void }) {
   return (
     <Card className="flex flex-col gap-4 rounded-3xl border border-border/40 bg-card/80 p-6 shadow-2xl shadow-black/5 transition hover:shadow-black/10">
       <div className="flex items-start justify-between">
@@ -111,7 +116,7 @@ function JobCard({ job }: { job: Job }) {
           <Calendar className="size-3" />
           <span>{formatDistanceToNow(new Date(job.createdAt), { addSuffix: true })}</span>
         </div>
-        <Button size="sm" variant="outline" className="rounded-full">
+        <Button size="sm" variant="outline" className="rounded-full" onClick={onViewDetails}>
           View Details
         </Button>
       </div>

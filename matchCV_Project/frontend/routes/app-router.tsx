@@ -7,6 +7,7 @@ import { AIRewritePage } from '@/features/candidate/ai-rewrite/ai-rewrite-page'
 import { ExportPage } from '@/features/candidate/export/export-page'
 import { SettingsPage } from '@/features/candidate/settings/settings-page'
 import { JobSearchPage } from '@/features/candidate/jobs/job-search-page'
+import { JobDetailsPage } from '@/features/candidate/jobs/job-details-page'
 import { PostJobPage } from '@/features/admin/jobs/post-job-page'
 import LiveCVBuilder from '@/src/components/LiveCV/LiveCVBuilder'
 
@@ -24,6 +25,7 @@ export const appRouter = createBrowserRouter(
         { path: 'export', element: <ExportPage /> },
         { path: 'settings', element: <SettingsPage /> },
         { path: 'jobs', element: <JobSearchPage /> },
+        { path: 'jobs/:jobId', element: <JobDetailsPage /> },
         { path: 'post-job', element: <PostJobPage /> },
       ],
     },
