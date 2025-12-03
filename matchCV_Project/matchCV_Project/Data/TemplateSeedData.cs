@@ -1,10 +1,10 @@
-using MatchCV_Project.Models;
-using MatchCV_Project.Data;
+using matchCV_Project.Models;
+using matchCV_Project.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
-namespace MatchCV_Project.Data
+namespace matchCV_Project.Data
 {
     public static class TemplateSeedData
     {
@@ -12,14 +12,14 @@ namespace MatchCV_Project.Data
         {
             var context = services.GetRequiredService<MatchCvContext>();
 
-            if (await context.CvTemplates.AnyAsync())
+            if (await context.Cvtemplates.AnyAsync())
             {
                 return;
             }
 
-            var templates = new List<CvTemplate>
+            var templates = new List<Cvtemplate>
             {
-                new CvTemplate
+                new Cvtemplate
                 {
                     Key = "professional",
                     Name = "Chuyên nghiệp",
@@ -29,7 +29,7 @@ namespace MatchCV_Project.Data
                     UpdatedAt = DateTime.UtcNow,
                     IsActive = true
                 },
-                new CvTemplate
+                new Cvtemplate
                 {
                     Key = "modern",
                     Name = "Hiện đại",
@@ -39,7 +39,7 @@ namespace MatchCV_Project.Data
                     UpdatedAt = DateTime.UtcNow,
                     IsActive = true
                 },
-                new CvTemplate
+                new Cvtemplate
                 {
                     Key = "formal",
                     Name = "Trang trọng",
@@ -51,7 +51,7 @@ namespace MatchCV_Project.Data
                 }
             };
 
-            await context.CvTemplates.AddRangeAsync(templates);
+            await context.Cvtemplates.AddRangeAsync(templates);
             await context.SaveChangesAsync();
         }
     }

@@ -1,6 +1,6 @@
-﻿using MatchCV_Project.Interfaces;
+﻿using matchCV_Project.Interfaces;
 
-namespace MatchCV_Project.Services;
+namespace matchCV_Project.Services;
 
 public class FileService : IFileService
 {

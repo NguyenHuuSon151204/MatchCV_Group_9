@@ -1,14 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
-using Microsoft.EntityFrameworkCore;
 
-namespace MatchCV_Project.Models;
+namespace matchCV_Project.Models;
 
 public partial class RewriteSuggestion
 {
-    [Key]
     public int Id { get; set; }
 
     public int MatchId { get; set; }
@@ -25,7 +21,7 @@ public partial class RewriteSuggestion
 
     public DateTime? AcceptedAt { get; set; }
 
-    [ForeignKey("MatchId")]
-    [InverseProperty("RewriteSuggestions")]
+    public virtual Bullet? Bullet { get; set; }
+
     public virtual MatchRun Match { get; set; } = null!;
 }

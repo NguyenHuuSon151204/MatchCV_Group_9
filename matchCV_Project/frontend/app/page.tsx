@@ -1,8 +1,19 @@
-'use client'
+import { Header } from "@/components/header"
+import { Hero } from "@/components/hero"
+import { Features } from "@/components/features"
+import { HowItWorks } from "@/components/how-it-works"
+import { Team } from "@/components/team"
+import { Footer } from "@/components/footer"
 
-import { RouterProvider } from 'react-router-dom'
-import { appRouter } from '@/routes/app-router'
-
-export default function HomePage() {
-  return <RouterProvider router={appRouter} />
+export default function Home() {
+  return (
+    <main className="w-full">
+      <Header />
+      <Hero />
+      <Features />
+      <HowItWorks />
+      <Team />
+      <Footer />
+    </main>
+  )
 }

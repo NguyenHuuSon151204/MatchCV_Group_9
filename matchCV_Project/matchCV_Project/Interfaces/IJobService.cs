@@ -1,6 +1,6 @@
-using MatchCV_Project.Models.Dtos;
+using matchCV_Project.Models.Dtos;
 
-namespace MatchCV_Project.Interfaces;
+namespace matchCV_Project.Interfaces;
 
 public interface IJobService
 {

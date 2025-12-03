@@ -1,9 +1,9 @@
-using MatchCV_Project.Interfaces;
-using MatchCV_Project.Models;
-using MatchCV_Project.Models.Dtos;
+using matchCV_Project.Interfaces;
+using matchCV_Project.Models;
+using matchCV_Project.Models.Dtos;
 using Microsoft.AspNetCore.Hosting;
 
-namespace MatchCV_Project.Services;
+namespace matchCV_Project.Services;
 
 public class JobService : IJobService
 {
