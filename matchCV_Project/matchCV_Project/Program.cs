@@ -4,6 +4,8 @@ using MatchCV_Project.Data;
 using MatchCV_Project.Interfaces;
 using MatchCV_Project.Repositories;
 using MatchCV_Project.Services;
+using MatchCV_Project.Services.Scoring;
+using MatchCV.Project.Services.Scoring;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -33,6 +35,15 @@ builder.Services.AddScoped<IDocumentService, DocumentService>();
 builder.Services.AddScoped<IJobService, JobService>();
 builder.Services.AddScoped<ITemplateService, TemplateService>();
 builder.Services.AddScoped<ICVService, CVService>();
+
+// Add Scoring Services
+builder.Services.AddScoped<IGeminiService, GeminiService>();
+builder.Services.AddScoped<DynamicWeightService>();
+builder.Services.AddScoped<AchievementDetector>();
+builder.Services.AddScoped<PortfolioScorer>();
+builder.Services.AddScoped<RedFlagDetector>();
+builder.Services.AddScoped<CertificationDatabase>();
+builder.Services.AddScoped<ScoringEngine>();
 
 // Add Swagger/OpenAPI
 builder.Services.AddSwaggerGen(c =>

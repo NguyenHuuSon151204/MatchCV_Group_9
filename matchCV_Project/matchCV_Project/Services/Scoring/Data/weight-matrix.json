@@ -1,0 +1,82 @@
+﻿{
+  "IT": {
+    "Junior": {
+      "keyword": 40,
+      "exp": 25,
+      "achievement": 10,
+      "portfolio": 20,
+      "leadership": 5
+    },
+    "Mid": {
+      "keyword": 35,
+      "exp": 20,
+      "achievement": 20,
+      "portfolio": 25,
+      "leadership": 10
+    },
+    "Senior": {
+      "keyword": 25,
+      "exp": 15,
+      "achievement": 30,
+      "portfolio": 25,
+      "leadership": 25
+    },
+    "Manager": {
+      "keyword": 20,
+      "exp": 10,
+      "achievement": 35,
+      "portfolio": 15,
+      "leadership": 40
+    }
+  },
+  "Marketing": {
+    "Junior": {
+      "keyword": 40,
+      "exp": 25,
+      "achievement": 20,
+      "portfolio": 25,
+      "leadership": 0
+    },
+    "Senior": {
+      "keyword": 25,
+      "exp": 15,
+      "achievement": 40,
+      "portfolio": 30,
+      "leadership": 20
+    }
+  },
+  "Sales": {
+    "Junior": {
+      "keyword": 35,
+      "exp": 30,
+      "achievement": 30,
+      "portfolio": 15,
+      "leadership": 5
+    },
+    "Manager": {
+      "keyword": 20,
+      "exp": 10,
+      "achievement": 45,
+      "portfolio": 10,
+      "leadership": 45
+    }
+  },
+  "Finance": {
+    "Senior": {
+      "keyword": 25,
+      "exp": 20,
+      "achievement": 35,
+      "certification": 25,
+      "leadership": 25
+    }
+  },
+  "HR": {
+    "Senior": {
+      "keyword": 25,
+      "exp": 20,
+      "achievement": 35,
+      "leadership": 40,
+      "portfolio": 10
+    }
+  }
+}

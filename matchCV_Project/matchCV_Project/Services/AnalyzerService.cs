@@ -2,6 +2,8 @@
 using MatchCV_Project.Interfaces;
 using MatchCV_Project.Models;
 using MatchCV_Project.Models.Dtos;
+using MatchCV.Project.Models;
+using MatchCV_Project.Services.Scoring;
 using Microsoft.EntityFrameworkCore;
 
 namespace MatchCV_Project.Services;
@@ -10,11 +12,13 @@ public class AnalyzerService : IAnalyzerService
 {
     private readonly MatchCvContext _context;
     private readonly ILogger<AnalyzerService> _logger;
+    private readonly ScoringEngine _scoringEngine;
 
-    public AnalyzerService(MatchCvContext context, ILogger<AnalyzerService> logger)
+    public AnalyzerService(MatchCvContext context, ILogger<AnalyzerService> logger, ScoringEngine scoringEngine)
     {
         _context = context;
         _logger = logger;
+        _scoringEngine = scoringEngine;
     }
 
     public async Task<AnalysisResultDto> AnalyzeDocumentAsync(int documentId)
@@ -138,4 +142,42 @@ public class AnalyzerService : IAnalyzerService
         // Mock: 75% base match
         return 75;
     }
+
+    /// <summary>
+    /// Score a CV against a Job Description using AI
+    /// </summary>
+    public async Task<ScoringResult> ScoreCvVsJobAsync(string cvText, string jobDescription, string industry = "IT", string level = "Mid")
+    {
+        try
+        {
+            var candidateInput = new CandidateScoringInput
+            {
+                CvText = cvText,
+                PortfolioUrl = "",
+                ExpectedSalary = null,
+                GithubUsername = null
+            };
+
+            var jobInput = new JobScoringInput
+            {
+                JdText = jobDescription,
+                Industry = industry,
+                Level = level,
+                BudgetMin = null,
+                BudgetMax = null
+            };
+
+            var result = await _scoringEngine.CalculateAsync(candidateInput, jobInput);
+            
+            _logger.LogInformation($"CV scored successfully against JD. Score: {result.TotalScore}");
+            
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error scoring CV against JD");
+            throw;
+        }
+    }
 }
+
