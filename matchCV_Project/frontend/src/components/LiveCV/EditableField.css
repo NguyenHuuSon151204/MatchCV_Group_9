@@ -1,0 +1,49 @@
+.editable-field {
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 2px solid transparent;
+    padding: 4px;
+    border-radius: 4px;
+    min-height: 1.5em;
+}
+
+.editable-field:hover {
+    background-color: rgba(59, 130, 246, 0.05);
+    border-color: rgba(59, 130, 246, 0.2);
+}
+
+.editable-field.empty {
+    color: #9ca3af;
+    font-style: italic;
+}
+
+.editable-field-input {
+    width: 100%;
+    padding: 4px;
+    border: 2px solid #3b82f6;
+    border-radius: 4px;
+    font-family: inherit;
+    font-size: inherit;
+    font-weight: inherit;
+    color: inherit;
+    background-color: white;
+    outline: none;
+}
+
+.editable-field-input:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* ContentEditable specific styles */
+[contenteditable="true"]:empty:before {
+    content: attr(data-placeholder);
+    color: #9ca3af;
+    font-style: italic;
+}
+
+[contenteditable="true"]:focus {
+    outline: 2px solid #3b82f6;
+    outline-offset: 2px;
+    background-color: rgba(59, 130, 246, 0.02);
+}

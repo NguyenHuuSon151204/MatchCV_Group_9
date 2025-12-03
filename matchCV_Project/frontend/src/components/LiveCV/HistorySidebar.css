@@ -1,0 +1,144 @@
+.history-sidebar {
+    position: fixed;
+    top: 0;
+    left: -320px;
+    /* Hide by default */
+    width: 320px;
+    height: 100vh;
+    background-color: white;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    transition: left 0.3s ease-in-out;
+    display: flex;
+    flex-direction: column;
+}
+
+.history-sidebar.open {
+    left: 0;
+}
+
+.sidebar-header {
+    padding: 16px;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #f9fafb;
+}
+
+.sidebar-header h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.btn-close-sidebar {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #6b7280;
+    padding: 4px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-close-sidebar:hover {
+    background-color: #e5e7eb;
+    color: #1f2937;
+}
+
+.sidebar-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+}
+
+.sidebar-loading,
+.sidebar-empty {
+    text-align: center;
+    padding: 20px;
+    color: #6b7280;
+}
+
+.history-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.history-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid transparent;
+}
+
+.history-item:hover {
+    background-color: #f3f4f6;
+}
+
+.history-item.active {
+    background-color: #eff6ff;
+    border-color: #bfdbfe;
+}
+
+.history-item-content {
+    flex: 1;
+    min-width: 0;
+    /* Prevent text overflow */
+}
+
+.history-title {
+    margin: 0 0 4px 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #374151;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.history-date {
+    display: block;
+    font-size: 12px;
+    color: #9ca3af;
+    margin-bottom: 4px;
+}
+
+.history-template-badge {
+    display: inline-block;
+    font-size: 10px;
+    padding: 2px 6px;
+    background-color: #e5e7eb;
+    color: #4b5563;
+    border-radius: 4px;
+    text-transform: capitalize;
+}
+
+.btn-delete-history {
+    background: none;
+    border: none;
+    color: #9ca3af;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 4px;
+    opacity: 0;
+    transition: all 0.2s;
+}
+
+.history-item:hover .btn-delete-history {
+    opacity: 1;
+}
+
+.btn-delete-history:hover {
+    color: #ef4444;
+    background-color: #fee2e2;
+}
