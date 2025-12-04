@@ -37,7 +37,16 @@ builder.Services.AddAuthentication(options =>
     options.DefaultSignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = GoogleDefaults.AuthenticationScheme;
 })
-.AddCookie()
+.AddCookie(options =>
+{
+    options.Cookie.HttpOnly = true;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+    options.Cookie.SameSite = SameSiteMode.None;
+
+    // expiry
+    options.ExpireTimeSpan = TimeSpan.FromHours(1);
+    options.SlidingExpiration = false;  // no auto refresh
+})
 .AddGoogle(options =>
 {
     options.ClientId = builder.Configuration["GoogleKeys:ClientId"];

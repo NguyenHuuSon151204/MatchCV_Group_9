@@ -5,6 +5,7 @@ import { useState } from 'react'
 import { ThemeProvider } from '@/components/providers/theme-provider'
 import { ToastProvider, useToastContext } from '@/contexts/toast-context'
 import { ToastContainer } from '@/components/ui/toast'
+import { AuthProvider } from '@/contexts/AuthContext'
 
 function ToastContainerWrapper({ children }: { children: React.ReactNode }) {
   const toast = useToastContext()
@@ -33,9 +34,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-        <ToastProvider>
-          <ToastContainerWrapper>{children}</ToastContainerWrapper>
-        </ToastProvider>
+        <AuthProvider>
+          <ToastProvider>
+            <ToastContainerWrapper>{children}</ToastContainerWrapper>
+          </ToastProvider>
+        </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>
   )

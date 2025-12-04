@@ -1,6 +1,7 @@
 "use client"
 
-import { Button } from "@/components/ui/button"
+import { buttonVariants } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 import Link from "next/link"
 import { useState } from "react"
 import { Menu, X } from "lucide-react"
@@ -38,12 +39,18 @@ export function Header() {
 
           {/* CTA Buttons */}
           <div className="hidden md:flex items-center gap-3">
-            <Button variant="ghost" size="sm">
-              <Link href="/auth/login">Đăng nhập</Link>
-            </Button>
-            <Button size="sm" className="bg-primary hover:bg-primary/90">
-              <Link href="/auth/register">Đăng ký miễn phí</Link>
-            </Button>
+            <Link
+              href="/auth/login"
+              className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}
+            >
+              Đăng nhập
+            </Link>
+            <Link
+              href="/auth/register"
+              className={cn(buttonVariants({ variant: "default", size: "sm" }), "bg-primary hover:bg-primary/90")}
+            >
+              Đăng ký miễn phí
+            </Link>
           </div>
 
           {/* Mobile Menu Button */}
@@ -77,12 +84,18 @@ export function Header() {
               Nhóm phát triển
             </Link>
             <div className="flex flex-col gap-2 pt-2">
-              <Button variant="outline" size="sm" className="w-full bg-transparent">
-                <Link href="/auth/login">Đăng nhập</Link>
-              </Button>
-              <Button size="sm" className="w-full bg-primary hover:bg-primary/90">
-                <Link href="/auth/register">Đăng ký miễn phí</Link>
-              </Button>
+              <Link
+                href="/auth/login"
+                className={cn(buttonVariants({ variant: "outline", size: "sm" }), "w-full bg-transparent")}
+              >
+                Đăng nhập
+              </Link>
+              <Link
+                href="/auth/register"
+                className={cn(buttonVariants({ variant: "default", size: "sm" }), "w-full bg-primary hover:bg-primary/90")}
+              >
+                Đăng ký miễn phí
+              </Link>
             </div>
           </nav>
         )}

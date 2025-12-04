@@ -145,7 +145,7 @@ namespace matchCV_Project.Controllers
                 new AuthenticationProperties
                 {
                     IsPersistent = true,
-                    ExpiresUtc = DateTime.UtcNow.AddHours(12)
+                    ExpiresUtc = DateTime.UtcNow.AddHours(1)
                 }
             );
         }
@@ -181,14 +181,14 @@ namespace matchCV_Project.Controllers
             if (user != null)
             {
                 await SignInUser(user);
-                return Redirect("http://localhost:3000/google-success");
+                return Redirect("http://localhost:3000/auth/google-success");
             }
 
             var encodedEmail = WebUtility.UrlEncode(email);
             var encodedName = WebUtility.UrlEncode(name);
 
             // requires frontend to choose role
-            return Redirect($"http://localhost:3000/choose-role?email={encodedEmail}&name={encodedName}");
+            return Redirect($"http://localhost:3000/auth/choose-role?email={encodedEmail}&name={encodedName}");
         }
 
         [HttpPost("google-complete")]
