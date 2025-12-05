@@ -1,14 +1,27 @@
+<<<<<<< HEAD
 ﻿using MatchCV.Project.Models;
 using MatchCV.Project.Services.Scoring;
 using matchCV_Project.Services;
 
 
 namespace MatchCV_Project.Services.Scoring;
+=======
+﻿using matchCV_Project.Models;
+using matchCV_Project.Services.Scoring;
+using matchCV_Project.Services;
+
+
+namespace matchCV_Project.Services.Scoring;
+>>>>>>> cc5f27092afd6cf6f701b8fbb0be3a8b618f8c93
 
 public class ScoringEngine
 {
     private readonly DynamicWeightService _weightService;
+<<<<<<< HEAD
     private readonly GeminiService _gemini;
+=======
+    private readonly IGeminiService _gemini;
+>>>>>>> cc5f27092afd6cf6f701b8fbb0be3a8b618f8c93
     private readonly AchievementDetector _achievementDetector;
     private readonly PortfolioScorer _portfolioScorer;
     private readonly RedFlagDetector _redFlagDetector;
@@ -16,7 +29,11 @@ public class ScoringEngine
 
     public ScoringEngine(
         DynamicWeightService weightService,
+<<<<<<< HEAD
         GeminiService gemini,
+=======
+        IGeminiService gemini,
+>>>>>>> cc5f27092afd6cf6f701b8fbb0be3a8b618f8c93
         AchievementDetector achievementDetector,
         PortfolioScorer portfolioScorer,
         RedFlagDetector redFlagDetector,

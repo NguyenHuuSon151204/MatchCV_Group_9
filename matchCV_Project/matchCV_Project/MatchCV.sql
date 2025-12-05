@@ -30,7 +30,7 @@ IF OBJECT_ID('dbo.Documents','U') IS NULL
 CREATE TABLE dbo.Documents (
     Id            INT IDENTITY(1,1) PRIMARY KEY,
     UserId        INT NULL,
-    TemplateId    INT NULL,
+    CvTemplateId    INT NULL,
     DocType       NVARCHAR(30) NOT NULL,
     OriginalName  NVARCHAR(250) NOT NULL,
     FileName      NVARCHAR(255) NULL,
@@ -80,6 +80,11 @@ CREATE TABLE dbo.CVTemplates (
 );
 GO
 CREATE UNIQUE INDEX UQ_CVTemplates_Key ON dbo.CVTemplates([Key]);
+GO
+
+ALTER TABLE dbo.Documents
+ADD CONSTRAINT FK_Documents_CVTemplates
+    FOREIGN KEY (CvTemplateId) REFERENCES dbo.CVTemplates(Id);
 GO
 
 /* 4. SECTIONS */

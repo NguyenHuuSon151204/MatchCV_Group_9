@@ -1,3 +1,4 @@
+<<<<<<<< HEAD:matchCV_Project/frontend/features/candidate/ai-rewrite/ai-rewrite-page.tsx
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
@@ -144,3 +145,6 @@ export function AIRewritePage() {
 }
 
 
+========
+export * from '@/features/candidate/ai-rewrite/ai-rewrite-page'
+>>>>>>>> cc5f27092afd6cf6f701b8fbb0be3a8b618f8c93:matchCV_Project/frontend/features/ai-rewrite/ai-rewrite-page.tsx

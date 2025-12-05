@@ -1,7 +1,7 @@
-﻿using MatchCV_Project.Models.Dtos;
-using MatchCV.Project.Models;
+﻿using matchCV_Project.Models.Dtos;
+using matchCV_Project.Models;
 
-namespace MatchCV_Project.Interfaces;
+namespace matchCV_Project.Interfaces;
 
 public interface IAnalyzerService
 {

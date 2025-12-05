@@ -1,3 +1,4 @@
+<<<<<<<< HEAD:matchCV_Project/frontend/features/candidate/export/export-page.tsx
 'use client'
 
 import { Download } from 'lucide-react'
@@ -57,3 +58,6 @@ export function ExportPage() {
 }
 
 
+========
+export * from '@/features/candidate/export/export-page'
+>>>>>>>> cc5f27092afd6cf6f701b8fbb0be3a8b618f8c93:matchCV_Project/frontend/features/export/export-page.tsx

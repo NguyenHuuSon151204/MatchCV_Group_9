@@ -1,3 +1,4 @@
+<<<<<<<< HEAD:matchCV_Project/frontend/features/candidate/dashboard/dashboard-page.tsx
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -95,3 +96,6 @@ export function DashboardPage() {
 }
 
 
+========
+export * from '@/features/candidate/dashboard/dashboard-page'
+>>>>>>>> cc5f27092afd6cf6f701b8fbb0be3a8b618f8c93:matchCV_Project/frontend/features/dashboard/dashboard-page.tsx

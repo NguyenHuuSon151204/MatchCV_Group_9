@@ -1,6 +1,6 @@
-﻿using MatchCV_Project.Models;
-using MatchCV_Project.Models.Dtos;
-namespace MatchCV_Project.Interfaces;
+﻿using matchCV_Project.Models;
+using matchCV_Project.Models.Dtos;
+namespace matchCV_Project.Interfaces;
 
 public interface IDocumentService
 {

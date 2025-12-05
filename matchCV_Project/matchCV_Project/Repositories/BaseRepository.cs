@@ -1,8 +1,8 @@
-using MatchCV_Project.Data;
-using MatchCV_Project.Interfaces;
+using matchCV_Project.Data;
+using matchCV_Project.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
-namespace MatchCV_Project.Repositories;
+namespace matchCV_Project.Repositories;
 
 public class BaseRepository<T> : IBaseRepository<T> where T : class
 {

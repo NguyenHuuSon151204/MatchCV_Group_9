@@ -1,12 +1,11 @@
-﻿using MatchCV_Project.Data;
-using MatchCV_Project.Interfaces;
-using MatchCV_Project.Models;
-using MatchCV_Project.Models.Dtos;
-using MatchCV.Project.Models;
-using MatchCV_Project.Services.Scoring;
+﻿using matchCV_Project.Data;
+using matchCV_Project.Interfaces;
+using matchCV_Project.Models;
+using matchCV_Project.Models.Dtos;
+using matchCV_Project.Services.Scoring;
 using Microsoft.EntityFrameworkCore;
 
-namespace MatchCV_Project.Services;
+namespace matchCV_Project.Services;
 
 public class AnalyzerService : IAnalyzerService
 {
@@ -47,7 +46,7 @@ public class AnalyzerService : IAnalyzerService
                 {
                     Name = ds.Skill.Name,
                     Proficiency = ds.Proficiency,
-                    Confidence = ds.Confidence ?? 0.8f
+                    Confidence = (float)(ds.Confidence ?? 0.8f)
                 }).ToList(),
                 Experiences = document.Experiences.Count,
                 Educations = document.Educations.Count

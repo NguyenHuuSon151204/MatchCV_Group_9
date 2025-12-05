@@ -2,9 +2,15 @@
 
 import { RouterProvider } from 'react-router-dom'
 import { appRouter } from '@/routes/app-router'
+import { AuthProvider } from '@/contexts/AuthContext'
 
 export default function AppPage() {
-  return <RouterProvider router={appRouter} />
+  const Router = appRouter()
+  return (
+    <AuthProvider>
+      <RouterProvider router={Router} />
+    </AuthProvider>
+  )
 }
 
 

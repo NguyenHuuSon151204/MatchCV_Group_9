@@ -1,3 +1,4 @@
+<<<<<<<< HEAD:matchCV_Project/frontend/features/candidate/settings/settings-page.tsx
 'use client'
 
 import { useState } from 'react'
@@ -115,3 +116,6 @@ export function SettingsPage() {
 }
 
 
+========
+export * from '@/features/candidate/settings/settings-page'
+>>>>>>>> cc5f27092afd6cf6f701b8fbb0be3a8b618f8c93:matchCV_Project/frontend/features/settings/settings-page.tsx

@@ -1,9 +1,9 @@
-using MatchCV_Project.Data;
-using MatchCV_Project.Interfaces;
-using MatchCV_Project.Models;
+using matchCV_Project.Data;
+using matchCV_Project.Interfaces;
+using matchCV_Project.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace MatchCV_Project.Repositories;
+namespace matchCV_Project.Repositories;
 
 public class DocumentRepository : BaseRepository<Document>, IDocumentRepository
 {
@@ -58,7 +58,7 @@ public class DocumentRepository : BaseRepository<Document>, IDocumentRepository
                 Status = d.Status,
                 CreatedAt = d.CreatedAt,
                 UpdatedAt = d.UpdatedAt,
-                TemplateId = d.TemplateId,
+                CvTemplateId = d.CvTemplateId,
                 CvTemplate = d.CvTemplate, // EF might not project this automatically in Select new Document, but let's try or map manually
                 // CvData is EXCLUDED
             })

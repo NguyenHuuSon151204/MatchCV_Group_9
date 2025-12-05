@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 ﻿namespace MatchCV.Project.Services.Scoring;
+=======
+﻿namespace matchCV_Project.Services.Scoring;
+>>>>>>> cc5f27092afd6cf6f701b8fbb0be3a8b618f8c93
 
 public class RedFlagDetector
 {

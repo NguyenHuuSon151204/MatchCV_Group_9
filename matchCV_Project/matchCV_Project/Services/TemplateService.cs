@@ -1,12 +1,12 @@
 ﻿using ApiRestFul.DTOs;
 using ApiRestFul.Services;
-using MatchCV_Project.Models;
+using matchCV_Project.Models;
 using iText.Html2pdf;
 using System.Text;
-using MatchCV_Project.Data;
+using matchCV_Project.Data;
 using Microsoft.EntityFrameworkCore;
 
-namespace MatchCV_Project.Services
+namespace matchCV_Project.Services
 {
     public class TemplateService : ITemplateService
     {
@@ -19,7 +19,7 @@ namespace MatchCV_Project.Services
 
         public async Task<List<CVTemplateDto>> GetAvailableTemplatesAsync()
         {
-            var templates = await _context.CvTemplates
+            var templates = await _context.Cvtemplates
                 .Where(t => t.IsActive)
                 .OrderBy(t => t.CreatedAt)
                 .ToListAsync();

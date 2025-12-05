@@ -1,4 +1,4 @@
-﻿namespace MatchCV.Project.Models;
+﻿namespace matchCV_Project.Models;
 
 public class CandidateScoringInput
 {

@@ -1,14 +1,12 @@
-﻿using MatchCV_Project.Data;
-using MatchCV_Project.Interfaces;
-using MatchCV_Project.Models;
-using MatchCV_Project.Models.Dtos;
+﻿using matchCV_Project.Data;
+using matchCV_Project.Interfaces;
+using matchCV_Project.Models;
+using matchCV_Project.Models.Dtos;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Hosting;
-
-using MatchCV_Project.Services;
 using System.Text.Json;
 
-namespace MatchCV_Project.Services;
+namespace matchCV_Project.Services;
 
 public class DocumentService : IDocumentService
 {
@@ -46,7 +44,7 @@ public class DocumentService : IDocumentService
             int? templateId = dto.TemplateId;
             if (!templateId.HasValue && !string.IsNullOrEmpty(dto.TemplateType))
             {
-                var template = await _context.CvTemplates
+                var template = await _context.Cvtemplates
                     .FirstOrDefaultAsync(t => t.Key == dto.TemplateType);
                 if (template != null)
                 {
@@ -58,7 +56,7 @@ public class DocumentService : IDocumentService
             {
                 UserId = userId,
                 OriginalName = dto.Title ?? dto.OriginalName ?? "Untitled CV",
-                TemplateId = templateId,
+                CvTemplateId = templateId,
                 CvData = dto.CvData != null ? JsonSerializer.Serialize(dto.CvData) : null,
                 DocType = "CV",
                 Status = "Draft",
@@ -106,7 +104,7 @@ public class DocumentService : IDocumentService
         return new DocumentDto
         {
             Id = document.Id,
-            UserId = document.UserId,
+            UserId = (int)document.UserId,
             OriginalName = document.OriginalName,
             Title = document.OriginalName, // Map Title from OriginalName
             TemplateType = document.CvTemplate?.Key ?? "professional", // Map TemplateType
@@ -114,8 +112,8 @@ public class DocumentService : IDocumentService
             FileName = document.FileName,
             ContentType = document.ContentType,
             FileSize = document.FileSize,
-            AiConfidence = document.AiConfidence,
-            TotalScore = document.TotalScore,
+            AiConfidence = (float)document.AiConfidence,
+            TotalScore = (float?)document.TotalScore,
             Status = document.Status,
             CreatedAt = document.CreatedAt,
             UpdatedAt = document.UpdatedAt,
@@ -142,16 +140,16 @@ public class DocumentService : IDocumentService
         // Update TemplateId if TemplateType is provided
         if (!string.IsNullOrEmpty(dto.TemplateType))
         {
-            var template = await _context.CvTemplates
+            var template = await _context.Cvtemplates
                 .FirstOrDefaultAsync(t => t.Key == dto.TemplateType);
             if (template != null)
             {
-                document.TemplateId = template.Id;
+                document.CvTemplateId = template.Id;
             }
         }
         else if (dto.TemplateId.HasValue)
         {
-            document.TemplateId = dto.TemplateId;
+            document.CvTemplateId = dto.TemplateId;
         }
 
         if (dto.CvData != null)

@@ -1,19 +1,31 @@
-﻿namespace MatchCV_Project.Models;
+﻿using System;
+using System.Collections.Generic;
 
-public class Education
+namespace matchCV_Project.Models;
+
+public partial class Education
 {
     public int Id { get; set; }
-    public int DocumentId { get; set; }
-    public string Degree { get; set; }
-    public string? FieldOfStudy { get; set; }
-    public string SchoolName { get; set; }
-    public DateTime? StartDate { get; set; }
-    public DateTime? EndDate { get; set; }
-    public float? Score { get; set; }
-    public string? Activities { get; set; }
-    public string? Description { get; set; }
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-    // Navigation property
-    public virtual Document Document { get; set; }
+    public int DocumentId { get; set; }
+
+    public string Degree { get; set; } = null!;
+
+    public string? FieldOfStudy { get; set; }
+
+    public string SchoolName { get; set; } = null!;
+
+    public DateOnly? StartDate { get; set; }
+
+    public DateOnly? EndDate { get; set; }
+
+    public double? Score { get; set; }
+
+    public string? Activities { get; set; }
+
+    public string? Description { get; set; }
+
+    public DateTime CreatedAt { get; set; }
+
+    public virtual Document Document { get; set; } = null!;
 }

@@ -1,9 +1,9 @@
-using MatchCV_Project.Interfaces;
-using MatchCV_Project.Models.Dtos;
-using MatchCV.Project.Models;
+using matchCV_Project.Interfaces;
+using matchCV_Project.Models.Dtos;
+using matchCV_Project.Models;
 using Microsoft.AspNetCore.Mvc;
 
-namespace MatchCV_Project.Controllers;
+namespace matchCV_Project.Controllers;
 
 [ApiController]
 [Route("api/analyzer")]

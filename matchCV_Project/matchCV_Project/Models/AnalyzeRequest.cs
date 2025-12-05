@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace MatchCV.Analyzer.Models;
+namespace matchCV_Project.Models;
 
 public class AnalyzeRequest
 {

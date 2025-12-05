@@ -1,6 +1,7 @@
 ﻿using matchCV_Project.Services;
 using System.Text.RegularExpressions;
 
+<<<<<<< HEAD
 namespace MatchCV.Project.Services.Scoring;
 
 public class AchievementDetector
@@ -8,6 +9,15 @@ public class AchievementDetector
     private readonly GeminiService _gemini;
 
     public AchievementDetector(GeminiService gemini) => _gemini = gemini;
+=======
+namespace matchCV_Project.Services.Scoring;
+
+public class AchievementDetector
+{
+    private readonly IGeminiService _gemini;
+
+    public AchievementDetector(IGeminiService gemini) => _gemini = gemini;
+>>>>>>> cc5f27092afd6cf6f701b8fbb0be3a8b618f8c93
 
     public async Task<int> CalculateScoreAsync(string cvText)
     {
