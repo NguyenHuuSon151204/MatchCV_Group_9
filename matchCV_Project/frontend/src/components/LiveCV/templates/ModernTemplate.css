@@ -1,0 +1,241 @@
+/* Modern Template Styles - Clean Purple Theme */
+.modern-cv-container {
+    max-width: 850px;
+    margin: 0 auto;
+    padding: 40px;
+    font-family: 'Inter', Arial, sans-serif;
+    background: #ffffff;
+    color: #1f2937;
+    line-height: 1.5;
+}
+
+/* Header */
+.modern-header {
+    text-align: center;
+    margin-bottom: 50px;
+}
+
+.modern-header .profile-img {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    margin-bottom: 20px;
+    object-fit: cover;
+    border: 3px solid #7c3aed;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.modern-header h1 {
+    font-size: 32px;
+    color: #4c1d95;
+    margin: 0 0 8px 0;
+    font-weight: 700;
+}
+
+.modern-header h2 {
+    font-size: 18px;
+    color: #7c3aed;
+    margin: 0 0 20px 0;
+    font-weight: 500;
+}
+
+/* Contact Info */
+.contact-info {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    flex-wrap: wrap;
+    color: #6b7280;
+    font-size: 14px;
+}
+
+.contact-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.contact-item .material-icons {
+    font-size: 16px;
+    color: #7c3aed;
+}
+
+/* Section Titles */
+.section-title {
+    font-size: 20px;
+    color: #4c1d95;
+    margin-bottom: 24px;
+    font-weight: 700;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.section-label {
+    border-bottom: 4px solid #7c3aed;
+    padding-bottom: 8px;
+    display: inline-block;
+}
+
+.section-title .add-btn-inline {
+    margin-left: 10px;
+    font-weight: normal;
+}
+
+/* Grid Layout */
+.grid-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 60px;
+    margin-top: 20px;
+    align-items: start;
+}
+
+/* Timeline Items */
+.timeline-item {
+    position: relative;
+    border-left: 5px solid #e5e7eb;
+    padding-left: 24px;
+    margin-left: 4px;
+    margin-bottom: 30px;
+    /* FORCE VERTICAL STACKING */
+    display: flex;
+    flex-direction: column;
+}
+
+.timeline-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 2px;
+    width: 100%;
+    padding-right: 20px;
+    /* Space for the remove button if needed */
+}
+
+.timeline-title {
+    font-size: 16px;
+    color: #111827;
+    font-weight: 700;
+    margin: 0;
+    flex: 1;
+    padding-right: 16px;
+    line-height: 1.2;
+}
+
+.timeline-date {
+    font-size: 14px;
+    color: #6b7280;
+    white-space: nowrap;
+    flex-shrink: 0;
+    text-align: right;
+    padding-top: 2px;
+}
+
+.timeline-subtitle {
+    color: #7c3aed;
+    font-size: 15px;
+    font-weight: 600;
+    margin: 2px 0 4px 0;
+    display: block;
+    width: 100%;
+    /* Ensure full width to prevent squishing */
+}
+
+.job-description-text {
+    font-size: 14px;
+    color: #4b5563;
+    line-height: 1.5;
+    margin-top: 0;
+    display: block;
+    width: 100%;
+    /* Ensure full width */
+}
+
+/* Buttons */
+.remove-btn-inline {
+    position: absolute;
+    top: 0;
+    right: -25px;
+    /* Move outside the content area */
+    opacity: 1;
+    /* Always visible */
+    background: transparent;
+    border: none;
+    color: #ef4444;
+    /* Red color for delete action */
+    cursor: pointer;
+    padding: 4px;
+    z-index: 10;
+}
+
+.add-btn-inline {
+    background: transparent;
+    border: 1px dashed #d1d5db;
+    color: #6b7280;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+.add-btn-inline:hover {
+    border-color: #7c3aed;
+    color: #7c3aed;
+}
+
+/* Skills */
+.skills-container {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+}
+
+.skill-tag {
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #f3f4f6;
+    color: #374151;
+}
+
+.skill-primary {
+    background: #f5f3ff;
+    color: #7c3aed;
+    border: 1px solid #ddd6fe;
+}
+
+.remove-skill-btn {
+    background: none;
+    border: none;
+    color: #9ca3af;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 0;
+    line-height: 1;
+}
+
+.remove-skill-btn:hover {
+    color: #ef4444;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .grid-layout {
+        grid-template-columns: 1fr;
+        gap: 30px;
+    }
+
+    .remove-btn-inline {
+        right: 0;
+        top: 0;
+        opacity: 1;
+    }
+}

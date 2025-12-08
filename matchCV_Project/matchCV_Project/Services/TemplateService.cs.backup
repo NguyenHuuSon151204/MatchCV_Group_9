@@ -1,0 +1,834 @@
+﻿using ApiRestFul.DTOs;
+using ApiRestFul.Services;
+using matchCV_Project.Models;
+using iText.Html2pdf;
+using iText.Kernel.Pdf;
+using System.Text;
+using System.Web;
+using matchCV_Project.Data;
+using Microsoft.EntityFrameworkCore;
+
+namespace matchCV_Project.Services
+{
+    public class TemplateService : ITemplateService
+    {
+        private readonly AppDbContext _context;
+
+        public TemplateService(AppDbContext context)
+        {
+            _context = context;
+        }
+
+        public async Task<List<CVTemplateDto>> GetAvailableTemplatesAsync()
+        {
+            var templates = await _context.Cvtemplates
+                .Where(t => t.IsActive)
+                .OrderBy(t => t.CreatedAt)
+                .ToListAsync();
+
+            return templates.Select(t => new CVTemplateDto
+            {
+                Id = t.Id,
+                Key = t.Key,
+                Name = t.Name,
+                Description = t.Description,
+                ThumbnailUrl = t.ThumbnailUrl,
+                TemplateType = t.Key // Use Key for type identification
+            }).ToList();
+        }
+
+        public async Task<byte[]> ExportToPdfAsync(CVDataDto cvData)
+        {
+            var htmlContent = GenerateHtmlContent(cvData, forPdf: true);
+
+            using (var memoryStream = new MemoryStream())
+            {
+                HtmlConverter.ConvertToPdf(htmlContent, memoryStream);
+                return memoryStream.ToArray();
+            }
+        }
+
+        public async Task<byte[]> GenerateCVPreviewAsync(CVDataDto cvData)
+        {
+            var htmlContent = GenerateHtmlContent(cvData, forPdf: false);
+            return Encoding.UTF8.GetBytes(htmlContent);
+        }
+
+        private string GenerateHtmlContent(CVDataDto cvData, bool forPdf)
+        {
+            var sb = new StringBuilder();
+
+            sb.AppendLine("<!DOCTYPE html>");
+            sb.AppendLine("<html lang='vi'>");
+            sb.AppendLine("<head>");
+            sb.AppendLine("    <meta charset='UTF-8'>");
+            sb.AppendLine("    <meta name='viewport' content='width=device-width, initial-scale=1.0'>");
+            sb.AppendLine("    <title>CV - " + HttpUtility.HtmlEncode(cvData.PersonalInfo?.FullName ?? "Ứng viên") + "</title>");
+            sb.AppendLine("    <link href='https://fonts.googleapis.com/icon?family=Material+Icons' rel='stylesheet'>");
+            sb.AppendLine("    <link href='https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700\u0026family=Inter:wght@400;500;600;700\u0026display=swap' rel='stylesheet'>");
+            sb.AppendLine("    <style>");
+
+            string templateType = cvData.TemplateType?.ToLower() ?? "professional";
+
+            if (templateType == "modern")
+                sb.AppendLine(GetModernStyles());
+            else if (templateType == "formal")
+                sb.AppendLine(GetFormalStyles());
+            else
+                sb.AppendLine(GetProfessionalStyles());
+
+            sb.AppendLine("    </style>");
+            sb.AppendLine("</head>");
+            sb.AppendLine("<body>");
+
+            if (templateType == "modern")
+                sb.AppendLine(GenerateModernTemplate(cvData));
+            else if (templateType == "formal")
+                sb.AppendLine(GenerateFormalTemplate(cvData));
+            else
+                sb.AppendLine(GenerateProfessionalTemplate(cvData));
+
+            sb.AppendLine("</body>");
+            sb.AppendLine("</html>");
+
+            return sb.ToString();
+        }
+
+        // ==================== PROFESSIONAL TEMPLATE ====================
+        private string GetProfessionalStyles()
+        {
+            return @"
+                :root {
+                    --primary-color: #dc2626;
+                    --text-dark: #1f2937;
+                    --text-gray: #4b5563;
+                    --text-light: #6b7280;
+                    --bg-body: #f3f4f6;
+                    --bg-sidebar: #f9fafb;
+                }
+                * { box-sizing: border-box; margin: 0; padding: 0; }
+                body {
+                    font-family: 'Roboto', Arial, sans-serif;
+                    background-color: #f3f4f6;
+                    color: #1f2937;
+                    line-height: 1.6;
+                    padding: 20px;
+                }
+                ul { list-style: none; }
+                .container {
+                    max-width: 900px;
+                    margin: 0 auto;
+                    background-color: #fff;
+                    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+                }
+                .sidebar {
+                    background: linear-gradient(to bottom, var(--primary-color), #991b1b);
+                    color: white;
+                    padding: 40px 30px;
+                    text-align: center;
+                }
+                .profile-img-container { margin-bottom: 25px; }
+                .profile-img {
+                    width: 150px;
+                    height: 150px;
+                    border-radius: 50%;
+                    object-fit: cover;
+                    border: 5px solid rgba(255, 255, 255, 0.2);
+                }
+                .sidebar h1 {
+                    font-size: 2rem;
+                    margin-bottom: 10px;
+                    font-weight: 700;
+                }
+                .sidebar h2 {
+                    font-size: 1.25rem;
+                    opacity: 0.9;
+                    margin-bottom: 30px;
+                    font-weight: 400;
+                }
+                .contact-info { text-align: left; }
+                .contact-item {
+                    display: flex;
+                    align-items: center;
+                    margin-bottom: 15px;
+                    color: rgba(255, 255, 255, 0.95);
+                }
+                .contact-item .material-icons {
+                    margin-right: 12px;
+                    font-size: 20px;
+                }
+                .section-title {
+                    color: white;
+                    font-size: 1.1rem;
+                    font-weight: 700;
+                    text-transform: uppercase;
+                    margin: 30px 0 20px 0;
+                    padding-bottom: 10px;
+                    border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+                    letter-spacing: 1px;
+                }
+                .main-content {
+                    padding: 40px;
+                }
+                .main-section {
+                    margin-bottom: 40px;
+                }
+                .main-section h3 {
+                    color: var(--primary-color);
+                    font-size: 1.5rem;
+                    font-weight: 700;
+                    margin-bottom: 20px;
+                    padding-bottom: 10px;
+                    border-bottom: 3px solid var(--primary-color);
+                }
+                .experience-item, .education-item {
+                    margin-bottom: 25px;
+                    position: relative;
+                    padding-left: 25px;
+                }
+                .experience-item::before, .education-item::before {
+                    content: '';
+                    position: absolute;
+                    left: 0;
+                    top: 6px;
+                    width: 12px;
+                    height: 12px;
+                    background-color: var(--primary-color);
+                    border-radius: 50%;
+                }
+                .item-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: baseline;
+                    margin-bottom: 8px;
+                }
+                .item-title {
+                    font-size: 1.1rem;
+                    font-weight: 600;
+                    color: var(--text-dark);
+                }
+                .item-date {
+                    font-size: 0.9rem;
+                    color: var(--text-light);
+                    font-style: italic;
+                }
+                .item-subtitle {
+                    color: var(--text-gray);
+                    font-weight: 500;
+                    margin-bottom: 8px;
+                }
+                .item-description {
+                    color: var(--text-gray);
+                    margin-top: 8px;
+                    line-height: 1.7;
+                }
+                .skills-list {
+                    padding-left: 0;
+                }
+                .skill-item {
+                    display: flex;
+                    align-items: center;
+                    margin-bottom: 12px;
+                    color: rgba(255, 255, 255, 0.95);
+                }
+                .skill-item::before {
+                    content: '▸';
+                    margin-right: 10px;
+                    font-size: 16px;
+                }
+                @media (min-width: 768px) {
+                    .container {
+                        display: grid;
+                        grid-template-columns: 300px 1fr;
+                    }
+                }
+            ";
+        }
+
+        private string GenerateProfessionalTemplate(CVDataDto cvData)
+        {
+            var sb = new StringBuilder();
+
+            sb.AppendLine("<div class='container'>");
+            
+            // Sidebar
+            sb.AppendLine("  <div class='sidebar'>");
+            if (!string.IsNullOrEmpty(cvData.PersonalInfo?.AvatarBase64))
+            if (!string.IsNullOrEmpty(cvData.PersonalInfo?.Phone))
+                sb.AppendLine($"      <div class='contact-item'><span class='material-icons'>phone</span><span>{HttpUtility.HtmlEncode(cvData.PersonalInfo.Phone)}</span></div>");
+            if (!string.IsNullOrEmpty(cvData.PersonalInfo?.Address))
+                sb.AppendLine($"      <div class='contact-item'><span class='material-icons'>home</span><span>{HttpUtility.HtmlEncode(cvData.PersonalInfo.Address)}</span></div>");
+            sb.AppendLine("    </div>");
+
+            // Skills in sidebar
+            if (cvData.Skills?.Count > 0)
+            {
+                sb.AppendLine("    <h3 class='section-title'>Kỹ năng</h3>");
+                sb.AppendLine("    <ul class='skills-list'>");
+                foreach (var skill in cvData.Skills)
+                {
+                    sb.AppendLine($"      <li class='skill-item'>{HttpUtility.HtmlEncode(skill.Name)}</li>");
+                }
+                sb.AppendLine("    </ul>");
+            }
+
+            sb.AppendLine("  </div>");
+
+            // Main content
+            sb.AppendLine("  <div class='main-content'>");
+
+            if (!string.IsNullOrEmpty(cvData.PersonalInfo?.Summary))
+            {
+                sb.AppendLine("    <div class='main-section'>");
+                sb.AppendLine("      <h3>Tóm tắt chuyên môn</h3>");
+                sb.AppendLine($"      <p>{HttpUtility.HtmlEncode(cvData.PersonalInfo.Summary)}</p>");
+                sb.AppendLine("    </div>");
+            }
+
+            if (cvData.Experiences?.Count > 0)
+            {
+                sb.AppendLine("    <div class='main-section'>");
+                sb.AppendLine("      <h3>Kinh nghiệm làm việc</h3>");
+                foreach (var exp in cvData.Experiences)
+                {
+                    sb.AppendLine("      <div class='experience-item'>");
+                    sb.AppendLine("        <div class='item-header'>");
+                    sb.AppendLine($"          <div class='item-title'>{HttpUtility.HtmlEncode(exp.Position)}</div>");
+                    sb.AppendLine($"          <div class='item-date'>{exp.StartDate:MM/yyyy} - {(exp.EndDate.HasValue ? exp.EndDate.Value.ToString("MM/yyyy") : "Hiện tại")}</div>");
+                    sb.AppendLine("        </div>");
+                    sb.AppendLine($"        <div class='item-subtitle'>{HttpUtility.HtmlEncode(exp.Company)}</div>");
+                    if (!string.IsNullOrEmpty(exp.Description))
+                        sb.AppendLine($"        <div class='item-description'>{HttpUtility.HtmlEncode(exp.Description)}</div>");
+                    sb.AppendLine("      </div>");
+                }
+                sb.AppendLine("    </div>");
+            }
+
+            if (cvData.Educations?.Count > 0)
+            {
+                sb.AppendLine("    <div class='main-section'>");
+                sb.AppendLine("      <h3>Học vấn</h3>");
+                foreach (var edu in cvData.Educations)
+                {
+                    sb.AppendLine("      <div class='education-item'>");
+                    sb.AppendLine("        <div class='item-header'>");
+                    sb.AppendLine($"          <div class='item-title'>{HttpUtility.HtmlEncode(edu.Degree)}</div>");
+                    sb.AppendLine($"          <div class='item-date'>{edu.StartYear} - {edu.EndYear?.ToString() ?? "Nay"}</div>");
+                    sb.AppendLine("        </div>");
+                    sb.AppendLine($"        <div class='item-subtitle'>{HttpUtility.HtmlEncode(edu.Institution)}</div>");
+                    if (!string.IsNullOrEmpty(edu.FieldOfStudy))
+                        sb.AppendLine($"        <div class='item-description'>Chuyên ngành: {HttpUtility.HtmlEncode(edu.FieldOfStudy)}</div>");
+                    sb.AppendLine("      </div>");
+                }
+                sb.AppendLine("    </div>");
+            }
+
+            sb.AppendLine("  </div>");
+            sb.AppendLine("</div>");
+
+            return sb.ToString();
+        }
+
+        // ==================== MODERN TEMPLATE ====================
+        private string GetModernStyles()
+        {
+            return @"
+                * { box-sizing: border-box; margin: 0; padding: 0; }
+                body {
+                    font-family: 'Inter', Arial, sans-serif;
+                    background-color: #f3f4f6;
+                    color: #1f2937;
+                    line-height: 1.6;
+                    padding: 20px;
+                }
+               .cv-container {
+                    max-width: 850px;
+                    margin: 0 auto;
+                    background: #ffffff;
+                    padding: 40px;
+                }
+                header {
+                    text-align: center;
+                    padding: 20px 40px;
+                    background: linear-gradient(to bottom, #f9fafb, #ffffff);
+                    margin-bottom: 40px;
+                }
+                .profile-img {
+                    width: 120px;
+                    height: 120px;
+                    border-radius: 50%;
+                    margin-bottom: 20px;
+                    object-fit: cover;
+                    border: 4px solid #4c1d95;
+                }
+                header h1 {
+                    font-size: 40px;
+                    color: #4c1d95;
+                    margin: 0 0 8px 0;
+                    font-weight: 700;
+                }
+                header h2 {
+                    font-size: 20px;
+                    color: #6d28d9;
+                    margin: 0 0 24px 0;
+                    font-weight: 500;
+                }
+                .contact-info {
+                    display: flex;
+                    justify-content: center;
+                    gap: 24px;
+                    flex-wrap: wrap;
+                    margin-top: 16px;
+                }
+                .contact-item {
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                    color: #4b5563;
+                    font-size: 14px;
+                }
+                .contact-item .material-icons {
+                    font-size: 18px;
+                    color: #7c3aed;
+                }
+                main { padding: 0 40px; }
+                .section-title {
+                    font-size: 20px;
+                    color: #4c1d95;
+                    border-bottom: 3px solid #7c3aed;
+                    padding-bottom: 8px;
+                    margin-bottom: 20px;
+                    font-weight: 600;
+                }
+                .grid-layout {
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: 40px;
+                    margin-top: 40px;
+                }
+                .timeline-item {
+                    margin-bottom: 24px;
+                    padding-left: 16px;
+                    border-left: 2px solid #e5e7eb;
+                    position: relative;
+                }
+                .timeline-item::before {
+                    content: '';
+                    position: absolute;
+                    left: -6px;
+                    top: 0;
+                    width: 10px;
+                    height: 10px;
+                    border-radius: 50%;
+                    background: #7c3aed;
+                }
+                .timeline-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: flex-start;
+                    margin-bottom: 4px;
+                }
+                .timeline-title {
+                    font-size: 16px;
+                    color: #1f2937;
+                    margin: 0;
+                    font-weight: 600;
+                }
+                .timeline-date {
+                    font-size: 13px;
+                    color: #6b7280;
+                    font-style: italic;
+                    white-space: nowrap;
+                }
+                .timeline-subtitle {
+                    color: #6d28d9;
+                    font-weight: 500;
+                    margin: 4px 0 8px 0;
+                    font-size: 14px;
+                }
+                ul.job-details {
+                    list-style-type: disc;
+                    padding-left: 20px;
+                    font-size: 14px;
+                    color: #6b7280;
+                }
+                .skills-container {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 12px;
+                    margin-top: 16px;
+                }
+                .skill-tag {
+                    font-size: 14px;
+                    font-weight: 500;
+                    padding: 8px 16px;
+                    border-radius: 20px;
+                }
+                .skill-primary {
+                    background-color: #7c3aed;
+                    color: white;
+                }
+                .skill-secondary {
+                    background-color: #e9d5ff;
+                    color: #6d28d9;
+                }
+            ";
+        }
+
+        private string GenerateModernTemplate(CVDataDto cvData)
+        {
+            var sb = new StringBuilder();
+            
+            sb.AppendLine("<div class='cv-container'>");
+            
+            sb.AppendLine("  <header>");
+            if (!string.IsNullOrEmpty(cvData.PersonalInfo?.AvatarBase64))
+            {
+                sb.AppendLine($"    <img src='data:image/png;base64,{cvData.PersonalInfo.AvatarBase64}' alt='Profile Picture' class='profile-img' />");
+            }
+            sb.AppendLine($"    <h1>{HttpUtility.HtmlEncode(cvData.PersonalInfo?.FullName ?? "Họ và Tên")}</h1>");
+            
+            string jobTitle = cvData.Experiences?.FirstOrDefault()?.Position ?? "Ứng viên";
+            sb.AppendLine($"    <h2>{HttpUtility.HtmlEncode(jobTitle)}</h2>");
+            
+            sb.AppendLine("    <div class='contact-info'>");
+            if (!string.IsNullOrEmpty(cvData.PersonalInfo?.Email))
+                sb.AppendLine($"      <div class='contact-item'><span class='material-icons'>email</span><span>{HttpUtility.HtmlEncode(cvData.PersonalInfo.Email)}</span></div>");
+            if (!string.IsNullOrEmpty(cvData.PersonalInfo?.Phone))
+                sb.AppendLine($"      <div class='contact-item'><span class='material-icons'>phone</span><span>{HttpUtility.HtmlEncode(cvData.PersonalInfo.Phone)}</span></div>");
+            if (!string.IsNullOrEmpty(cvData.PersonalInfo?.Address))
+                sb.AppendLine($"      <div class='contact-item'><span class='material-icons'>home</span><span>{HttpUtility.HtmlEncode(cvData.PersonalInfo.Address)}</span></div>");
+            sb.AppendLine("    </div>");
+            sb.AppendLine("  </header>");
+            
+            sb.AppendLine("  <main>");
+            
+            if (!string.IsNullOrEmpty(cvData.PersonalInfo?.Summary))
+            {
+                sb.AppendLine("    <section>");
+                sb.AppendLine("      <h3 class='section-title'>Tóm tắt chuyên môn</h3>");
+                sb.AppendLine($"      <p style='color: #4b5563;'>{HttpUtility.HtmlEncode(cvData.PersonalInfo.Summary)}</p>");
+                sb.AppendLine("    </section>");
+            }
+            
+            sb.AppendLine("    <div class='grid-layout'>");
+            
+            if (cvData.Experiences?.Count > 0)
+            {
+                sb.AppendLine("      <section>");
+                sb.AppendLine("        <h3 class='section-title'>Kinh nghiệm làm việc</h3>");
+                foreach (var exp in cvData.Experiences)
+                {
+                    sb.AppendLine("        <div class='timeline-item'>");
+                    sb.AppendLine("          <div class='timeline-header'>");
+                    sb.AppendLine($"            <h4 class='timeline-title'>{HttpUtility.HtmlEncode(exp.Position)}</h4>");
+                    sb.AppendLine($"            <span class='timeline-date'>{exp.StartDate:MM/yyyy} - {(exp.EndDate.HasValue ? exp.EndDate.Value.ToString("MM/yyyy") : "Hiện tại")}</span>");
+                    sb.AppendLine("          </div>");
+                    sb.AppendLine($"          <p class='timeline-subtitle'>{HttpUtility.HtmlEncode(exp.Company)}</p>");
+                    if (!string.IsNullOrEmpty(exp.Description))
+                    {
+                        sb.AppendLine("          <ul class='job-details'>");
+                        sb.AppendLine($"            <li>{HttpUtility.HtmlEncode(exp.Description)}</li>");
+                        sb.AppendLine("          </ul>");
+                    }
+                    sb.AppendLine("        </div>");
+                }
+                sb.AppendLine("      </section>");
+            }
+            
+            if (cvData.Educations?.Count > 0)
+            {
+                sb.AppendLine("      <section>");
+                sb.AppendLine("        <h3 class='section-title'>Học vấn</h3>");
+                foreach (var edu in cvData.Educations)
+                {
+                    sb.AppendLine("        <div class='timeline-item'>");
+                    sb.AppendLine("          <div class='timeline-header'>");
+                    sb.AppendLine($"            <h4 class='timeline-title'>{HttpUtility.HtmlEncode(edu.Degree)}</h4>");
+                    sb.AppendLine($"            <span class='timeline-date'>{edu.StartYear} - {edu.EndYear?.ToString() ?? "Nay"}</span>");
+                    sb.AppendLine("          </div>");
+                    sb.AppendLine($"          <p class='timeline-subtitle'>{HttpUtility.HtmlEncode(edu.Institution)}</p>");
+                    sb.AppendLine("        </div>");
+                }
+                sb.AppendLine("      </section>");
+            }
+            
+            sb.AppendLine("    </div>");
+            
+            if (cvData.Skills?.Count > 0)
+            {
+                sb.AppendLine("    <section style='margin-top: 40px;'>");
+                sb.AppendLine("      <h3 class='section-title'>Kỹ năng</h3>");
+                sb.AppendLine("      <div class='skills-container'>");
+                int count = 0;
+                foreach (var skill in cvData.Skills)
+                {
+                    string skillClass = count < 5 ? "skill-primary" : "skill-secondary";
+                    sb.AppendLine($"        <span class='skill-tag {skillClass}'>{HttpUtility.HtmlEncode(skill.Name)}</span>");
+                    count++;
+                }
+                sb.AppendLine("      </div>");
+                sb.AppendLine("    </section>");
+            }
+            
+            sb.AppendLine("  </main>");
+            sb.AppendLine("</div>");
+            
+            return sb.ToString();
+        }
+
+        // ==================== FORMAL TEMPLATE ====================
+        private string GetFormalStyles()
+        {
+            return @"
+                * { box-sizing: border-box; margin: 0; padding: 0; }
+                body {
+                    font-family: 'Roboto', Arial, sans-serif;
+                    background-color: #f3f4f6;
+                    color: #1f2937;
+                    line-height: 1.6;
+                    padding: 20px;
+                }
+                .formal-container {
+                    max-width: 850px;
+                    margin: 0 auto;
+                    background: #ffffff;
+                    padding: 32px;
+                }
+                /* Header - Horizontal Layout */
+                .formal-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    padding-bottom: 20px;
+                    border-bottom: 2px solid #333333;
+                    margin-bottom: 20px;
+                }
+                .header-content {
+                    flex: 1;
+                }
+                .formal-header h1 {
+                    font-size: 32px;
+                    color: #1f2937;
+                    margin: 0 0 8px 0;
+                    font-weight: 700;
+                }
+                .formal-header h2 {
+                    font-size: 18px;
+                    color: #4b5563;
+                    margin: 0;
+                    font-weight: 400;
+                }
+                .formal-header .profile-img {
+                    width: 100px;
+                    height: 100px;
+                    border-radius: 50%;
+                    object-fit: cover;
+                    border: 3px solid #d1d5db;
+                }
+                /* Contact Bar */
+                .contact-bar {
+                    display: flex;
+                    gap: 24px;
+                    flex-wrap: wrap;
+                    padding: 16px 0;
+                    border-bottom: 1px solid #e5e7eb;
+                    margin-bottom: 28px;
+                }
+                .contact-bar .contact-item {
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                    color: #4b5563;
+                    font-size: 14px;
+                }
+                .contact-bar .material-icons {
+                    font-size: 18px;
+                    color: #6b7280;
+                }
+                /* Sections */
+                .section {
+                    margin-bottom: 32px;
+                }
+                .section-title {
+                    font-size: 16px;
+                    color: #1f2937;
+                    border-bottom: 2px solid #333333;
+                    padding-bottom: 6px;
+                    margin-bottom: 20px;
+                    font-weight: 700;
+                    text-transform: uppercase;
+                    letter-spacing: 1px;
+                }
+                .formal-item {
+                    margin-bottom: 24px;
+                    padding-bottom: 16px;
+                    border-bottom: 1px solid #f3f4f6;
+                }
+                .formal-item:last-child {
+                    border-bottom: none;
+                }
+                .item-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: flex-start;
+                    margin-bottom: 8px;
+                }
+                .item-title {
+                    font-size: 16px;
+                    color: #1f2937;
+                    margin: 0 0 4px 0;
+                    font-weight: 600;
+                }
+                .item-subtitle {
+                    font-size: 14px;
+                    color: #4b5563;
+                    margin: 0 0 8px 0;
+                    font-weight: 500;
+                }
+                .item-date {
+                    font-size: 13px;
+                    color: #6b7280;
+                    font-style: italic;
+                    white-space: nowrap;
+                    margin-left: 16px;
+                }
+                .item-description {
+                    color: #4b5563;
+                    font-size: 14px;
+                    line-height: 1.6;
+                    margin-top: 8px;
+                }
+                /* Skills - Bullet List */
+                .skills-list {
+                    list-style: none;
+                    padding: 0;
+                    margin: 0;
+                    display: grid;
+                    grid-template-columns: repeat(2, 1fr);
+                    gap: 8px 16px;
+                }
+                .skill-item {
+                    color: #1f2937;
+                    font-size: 14px;
+                    padding: 6px 0;
+                }
+                .skill-item::before {
+                    content: '•';
+                    margin-right: 8px;
+                    color: #333333;
+                    font-size: 18px;
+                }
+                .skill-level {
+                    color: #6b7280;
+                    font-size: 13px;
+                }
+            ";
+        }
+
+        private string GenerateFormalTemplate(CVDataDto cvData)
+        {
+            var sb = new StringBuilder();
+            
+            sb.AppendLine("<div class='formal-container'>");
+            
+            // Header - Horizontal
+            sb.AppendLine("  <div class='formal-header'>");
+            sb.AppendLine("    <div class='header-content'>");
+            sb.AppendLine($"      <h1>{HttpUtility.HtmlEncode(cvData.PersonalInfo?.FullName ?? "Họ và Tên")}</h1>");
+            string jobTitle = cvData.Experiences?.FirstOrDefault()?.Position ?? "Ứng viên";
+            sb.AppendLine($"      <h2>{HttpUtility.HtmlEncode(jobTitle)}</h2>");
+            sb.AppendLine("    </div>");
+            
+            if (!string.IsNullOrEmpty(cvData.PersonalInfo?.AvatarBase64))
+            {
+                sb.AppendLine($"    <img src='data:image/png;base64,{cvData.PersonalInfo.AvatarBase64}' alt='Profile' class='profile-img' />");
+            }
+            sb.AppendLine("  </div>");
+            
+            // Contact Bar
+            sb.AppendLine("  <div class='contact-bar'>");
+            if (!string.IsNullOrEmpty(cvData.PersonalInfo?.Email))
+                sb.AppendLine($"    <div class='contact-item'><span class='material-icons'>email</span><span>{HttpUtility.HtmlEncode(cvData.PersonalInfo.Email)}</span></div>");
+            if (!string.IsNullOrEmpty(cvData.PersonalInfo?.Phone))
+                sb.AppendLine($"    <div class='contact-item'><span class='material-icons'>phone</span><span>{HttpUtility.HtmlEncode(cvData.PersonalInfo.Phone)}</span></div>");
+            if (!string.IsNullOrEmpty(cvData.PersonalInfo?.Address))
+                sb.AppendLine($"    <div class='contact-item'><span class='material-icons'>home</span><span>{HttpUtility.HtmlEncode(cvData.PersonalInfo.Address)}</span></div>");
+            sb.AppendLine("  </div>");
+            
+            // Summary
+            if (!string.IsNullOrEmpty(cvData.PersonalInfo?.Summary))
+            {
+                sb.AppendLine("  <div class='section'>");
+                sb.AppendLine("    <h3 class='section-title'>TÓM TẮT</h3>");
+                sb.AppendLine($"    <p>{HttpUtility.HtmlEncode(cvData.PersonalInfo.Summary)}</p>");
+                sb.AppendLine("  </div>");
+            }
+            
+            // Experience
+            if (cvData.Experiences?.Count > 0)
+            {
+                sb.AppendLine("  <div class='section'>");
+                sb.AppendLine("    <h3 class='section-title'>KINH NGHIỆM LÀM VIỆC</h3>");
+                foreach (var exp in cvData.Experiences)
+                {
+                    sb.AppendLine("    <div class='formal-item'>");
+                    sb.AppendLine("      <div class='item-header'>");
+                    sb.AppendLine("        <div>");
+                    sb.AppendLine($"          <h4 class='item-title'>{HttpUtility.HtmlEncode(exp.Position)}</h4>");
+                    sb.AppendLine($"          <p class='item-subtitle'>{HttpUtility.HtmlEncode(exp.Company)}</p>");
+                    sb.AppendLine("        </div>");
+                    sb.AppendLine($"        <div class='item-date'>{exp.StartDate:MM/yyyy} - {(exp.EndDate.HasValue ? exp.EndDate.Value.ToString("MM/yyyy") : "Hiện tại")}</div>");
+                    sb.AppendLine("      </div>");
+                    if (!string.IsNullOrEmpty(exp.Description))
+                        sb.AppendLine($"      <p class='item-description'>{HttpUtility.HtmlEncode(exp.Description)}</p>");
+                    sb.AppendLine("    </div>");
+                }
+                sb.AppendLine("  </div>");
+            }
+            
+            // Education
+            if (cvData.Educations?.Count > 0)
+            {
+                sb.AppendLine("  <div class='section'>");
+                sb.AppendLine("    <h3 class='section-title'>HỌC VẤN</h3>");
+                foreach (var edu in cvData.Educations)
+                {
+                    sb.AppendLine("    <div class='formal-item'>");
+                    sb.AppendLine("      <div class='item-header'>");
+                    sb.AppendLine("        <div>");
+                    sb.AppendLine($"          <h4 class='item-title'>{HttpUtility.HtmlEncode(edu.Degree)}</h4>");
+                    sb.AppendLine($"          <p class='item-subtitle'>{HttpUtility.HtmlEncode(edu.Institution)}</p>");
+                    sb.AppendLine("        </div>");
+                    sb.AppendLine($"        <div class='item-date'>{edu.StartYear} - {edu.EndYear?.ToString() ?? "Nay"}</div>");
+                    sb.AppendLine("      </div>");
+                    if (!string.IsNullOrEmpty(edu.FieldOfStudy))
+                        sb.AppendLine($"      <p class='item-description'>Chuyên ngành: {HttpUtility.HtmlEncode(edu.FieldOfStudy)}</p>");
+                    sb.AppendLine("    </div>");
+                }
+                sb.AppendLine("  </div>");
+            }
+            
+            // Skills
+            if (cvData.Skills?.Count > 0)
+            {
+                sb.AppendLine("  <div class='section'>");
+                sb.AppendLine("    <h3 class='section-title'>KỸ NĂNG</h3>");
+                sb.AppendLine("    <ul class='skills-list'>");
+                foreach (var skill in cvData.Skills)
+                {
+                    sb.Append($"      <li class='skill-item'>{HttpUtility.HtmlEncode(skill.Name)}");
+                    if (!string.IsNullOrEmpty(skill.Level))
+                        sb.Append($" <span class='skill-level'>- {HttpUtility.HtmlEncode(skill.Level)}</span>");
+                    sb.AppendLine("</li>");
+                }
+                sb.AppendLine("    </ul>");
+                sb.AppendLine("  </div>");
+            }
+            
+            sb.AppendLine("</div>");
+            
+            return sb.ToString();
+        }
+    }
+}

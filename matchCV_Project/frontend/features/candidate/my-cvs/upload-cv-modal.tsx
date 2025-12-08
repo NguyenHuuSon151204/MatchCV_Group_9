@@ -1,0 +1,172 @@
+import { useState } from 'react'
+import { Modal } from '@/components/common/modal'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { useUpload } from '@/hooks/useUpload'
+import { cvService } from '@/lib/services/cv-service'
+import { useToastContext } from '@/contexts/toast-context'
+
+interface UploadCvModalProps {
+  open: boolean
+  onClose: () => void
+  cvId: string | null
+  onUploadSuccess?: () => void
+}
+
+export function UploadCvModal({ open, onClose, cvId, onUploadSuccess }: UploadCvModalProps) {
+  const { upload, uploading } = useUpload(onUploadSuccess)
+  const [file, setFile] = useState<File | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const toast = useToastContext()
+
+  // Only show form if creating new CV (cvId is null)
+  const [formData, setFormData] = useState({
+    name: '',
+    fullName: '',
+    position: '',
+    description: ''
+  })
+
+  // Pre-fill CV name if file selected and name is empty
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = e.target.files?.[0] || null
+    setFile(selected)
+    if (selected && !cvId && !formData.name) {
+      setFormData(prev => ({ ...prev, name: selected.name.replace(/\.[^/.]+$/, "") }))
+    }
+  }
+
+  const handleUpload = async () => {
+    if (!file) {
+      setError('Please select a file to upload.')
+      return
+    }
+    setError(null)
+
+    try {
+      let targetId = cvId
+
+      // If creating new CV, create metadata first
+      if (!targetId) {
+        if (!formData.name || !formData.fullName || !formData.position) {
+          setError('Please fill in all required fields.')
+          return
+        }
+
+        const newCv = await cvService.createCV({
+          name: formData.name,
+          position: formData.position,
+          description: formData.description,
+          cvData: {
+            personalInfo: {
+              fullName: formData.fullName,
+              position: formData.position,
+              summary: formData.description
+            }
+          }
+        })
+        targetId = newCv.id
+      }
+
+      await upload(targetId, file)
+      setFile(null)
+      setFormData({ name: '', fullName: '', position: '', description: '' })
+      onClose()
+
+      // If we created a new one, we need to trigger success callback to refresh list
+      if (!cvId && onUploadSuccess) {
+        onUploadSuccess()
+      }
+
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Upload failed')
+      toast.error('Error', err instanceof Error ? err.message : 'Upload failed')
+    }
+  }
+
+  const isFormValid = cvId ? true : (formData.name && formData.fullName && formData.position)
+
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={cvId ? "Upload New Version" : "Create & Upload CV"}
+      description="Fill in the details and attach your CV file."
+      footer={
+        <>
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={handleUpload} disabled={uploading || !file || !isFormValid}>
+            {uploading ? 'Processing...' : (cvId ? 'Upload' : 'Create & Upload')}
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        {/* Only show form inputs when creating new CV */}
+        {!cvId && (
+          <>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">CV Name</label>
+              <Input
+                placeholder="e.g. My Fullstack CV"
+                value={formData.name}
+                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Full Name</label>
+              <Input
+                placeholder="e.g. John Doe"
+                value={formData.fullName}
+                onChange={(e) => setFormData(prev => ({ ...prev, fullName: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Target Position</label>
+              <Input
+                placeholder="e.g. Senior Developer"
+                value={formData.position}
+                onChange={(e) => setFormData(prev => ({ ...prev, position: e.target.value }))}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Description (Optional)</label>
+              <Textarea
+                placeholder="Brief description..."
+                value={formData.description}
+                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+              />
+            </div>
+            <div className="border-t border-border/50 my-4" />
+          </>
+        )}
+
+        <label className="block cursor-pointer rounded-2xl border border-dashed border-border/60 px-4 py-6 text-center text-sm text-muted-foreground hover:border-primary/50 bg-muted/10">
+          <input
+            type="file"
+            accept=".pdf,.doc,.docx"
+            className="hidden"
+            onChange={handleFileChange}
+          />
+          {file ? (
+            <>
+              <p className="font-semibold text-card-foreground">{file.name}</p>
+              <p>{(file.size / 1024).toFixed(1)} KB</p>
+            </>
+          ) : (
+            <>
+              <p className="font-semibold text-card-foreground">Click to select a file</p>
+              <p>PDF, DOCX up to 10MB</p>
+            </>
+          )}
+        </label>
+        {error && <p className="text-sm text-destructive">{error}</p>}
+      </div>
+    </Modal>
+  )
+}
+
+

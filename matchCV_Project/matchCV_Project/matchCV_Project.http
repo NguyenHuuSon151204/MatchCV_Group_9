@@ -1,0 +1,96 @@
+@matchCV_Project_HostAddress = http://localhost:5185
+@baseUrl = {{matchCV_Project_HostAddress}}/api/cv
+
+### Variables
+@userId = 1
+@cvId = 1
+
+###############################################
+# 1. CREATE CV - POST /api/cv
+###############################################
+POST {{baseUrl}}
+Content-Type: application/json
+
+{
+  "originalName": "My_Resume_2024.pdf",
+  "templateId": 1
+}
+
+### Response: 201 Created với DocumentDto
+
+###############################################
+# 2. GET ALL CVs BY USER - GET /api/cv/user/{id}
+###############################################
+GET {{baseUrl}}/user/{{userId}}
+Accept: application/json
+
+### Response: 200 OK với danh sách DocumentDto
+
+###############################################
+# 3. GET CV BY ID - GET /api/cv/{id}
+###############################################
+GET {{baseUrl}}/{{cvId}}
+Accept: application/json
+
+### Response: 200 OK với DocumentDto
+
+###############################################
+# 4. UPDATE CV - PUT /api/cv/{id}
+###############################################
+PUT {{baseUrl}}/{{cvId}}
+Content-Type: application/json
+
+{
+  "originalName": "Updated_Resume_2024.pdf",
+  "templateId": 2
+}
+
+### Response: 200 OK với DocumentDto đã cập nhật
+
+###############################################
+# 5. UPLOAD CV FILE - POST /api/cv/{id}/upload
+###############################################
+# Note: Sử dụng form-data với key "file" trong Postman hoặc REST Client
+POST {{baseUrl}}/{{cvId}}/upload
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="file"; filename="test_cv.pdf"
+Content-Type: application/pdf
+
+< ./test_cv.pdf
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+### Response: 200 OK với DocumentDto đã cập nhật file info
+
+###############################################
+# 6. ANALYZE CV - POST /api/cv/{id}/analyze
+###############################################
+POST {{baseUrl}}/{{cvId}}/analyze
+Accept: application/json
+
+### Response: 200 OK với AnalysisResultDto (score, confidence, evidence)
+
+###############################################
+# 7. DELETE CV - DELETE /api/cv/{id}
+###############################################
+DELETE {{baseUrl}}/{{cvId}}
+Accept: application/json
+
+### Response: 204 No Content
+
+###############################################
+# 8. SWAGGER UI - GET /swagger
+###############################################
+GET {{matchCV_Project_HostAddress}}/swagger
+Accept: text/html
+
+### Response: Swagger UI page
+
+###############################################
+# 9. SWAGGER JSON - GET /swagger/v1/swagger.json
+###############################################
+GET {{matchCV_Project_HostAddress}}/swagger/v1/swagger.json
+Accept: application/json
+
+### Response: Swagger JSON specification
