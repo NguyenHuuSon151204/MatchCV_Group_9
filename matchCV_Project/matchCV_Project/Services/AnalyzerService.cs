@@ -1,10 +1,10 @@
-﻿using MatchCV_Project.Data;
-using MatchCV_Project.Interfaces;
-using MatchCV_Project.Models;
-using MatchCV_Project.Models.Dtos;
+using matchCV_Project.Data;
+using matchCV_Project.Interfaces;
+using matchCV_Project.Models;
+using matchCV_Project.Models.Dtos;
 using Microsoft.EntityFrameworkCore;
 
-namespace MatchCV_Project.Services;
+namespace matchCV_Project.Services;
 
 public class AnalyzerService : IAnalyzerService
 {
@@ -42,8 +42,8 @@ public class AnalyzerService : IAnalyzerService
                 Skills = document.DocumentSkills.Select(ds => new SkillAnalysisDto
                 {
                     Name = ds.Skill.Name,
-                    Proficiency = ds.Proficiency,
-                    Confidence = ds.Confidence ?? 0.8f
+                    Proficiency = CalculateProficiency(ds.Years ?? 0, ds.Confidence ?? 0),
+                    Confidence = (float)(ds.Confidence ?? 0.8)
                 }).ToList(),
                 Experiences = document.Experiences.Count,
                 Educations = document.Educations.Count
@@ -137,5 +137,13 @@ public class AnalyzerService : IAnalyzerService
     {
         // Mock: 75% base match
         return 75;
+    }
+
+    private string CalculateProficiency(double years, double confidence)
+    {
+        if (years >= 5) return "Expert";
+        if (years >= 3) return "Advanced";
+        if (years >= 1) return "Intermediate";
+        return "Beginner";
     }
 }

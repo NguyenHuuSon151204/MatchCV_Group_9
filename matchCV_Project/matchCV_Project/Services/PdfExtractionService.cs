@@ -1,9 +1,9 @@
-using MatchCV_Project.Interfaces;
+using matchCV_Project.Interfaces;
 // using UglyToad.PdfPig;
 // using UglyToad.PdfPig.Content;
 using System.Text.RegularExpressions;
 
-namespace MatchCV_Project.Services;
+namespace matchCV_Project.Services;
 
 public class PdfExtractionService : IPdfExtractionService
 {

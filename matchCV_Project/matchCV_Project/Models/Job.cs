@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -22,7 +22,14 @@ public partial class Job
 
     public string? RawText { get; set; }
 
+    public string? JobDescription { get; set; }
+
+    [StringLength(50)]
+    public string? Status { get; set; }
+
     public DateTime CreatedAt { get; set; }
+
+    public DateTime? UpdatedAt { get; set; }
 
     public string? MustHaveCheck { get; set; }
 

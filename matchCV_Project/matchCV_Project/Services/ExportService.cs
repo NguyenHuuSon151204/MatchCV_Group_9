@@ -1,16 +1,16 @@
-﻿using MatchCV_Project.Models;
+using matchCV_Project.Models;
 using ApiRestFul.Models.DTOs;
 using ApiRestFul.Services;
 using iTextSharp.text;
 using iTextSharp.text.pdf;
-using MatchCV_Project.Data;
+using matchCV_Project.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
 using System.IO;
 using System.Threading.Tasks;
 
-namespace MatchCV_Project.Services
+namespace matchCV_Project.Services
 {
     public class ExportService : IExportService
     {
@@ -51,7 +51,7 @@ namespace MatchCV_Project.Services
 
             return request.Format.ToLowerInvariant() switch
             {
-                "pdf" => GeneratePdf(new MatchCV_Project.Models.Document
+                "pdf" => GeneratePdf(new matchCV_Project.Models.Document
                 {
                     Id = cv.Id,
                     DocType = cv.DocType,
@@ -65,7 +65,7 @@ namespace MatchCV_Project.Services
             };
         }
 
-        private byte[] GeneratePdf(MatchCV_Project.Models.Document cv)
+        private byte[] GeneratePdf(matchCV_Project.Models.Document cv)
         {
             using var ms = new MemoryStream();
             try
@@ -97,7 +97,7 @@ namespace MatchCV_Project.Services
 
                 // Add user info
                 AddInfoLine(document, "Họ và tên", cv.User?.DisplayName ?? "N/A", normalFont);
-                AddInfoLine(document, "Email", cv.User?.EmailAddress ?? "N/A", normalFont);
+                AddInfoLine(document, "Email", cv.User?.Email ?? "N/A", normalFont);
                 AddInfoLine(document, "Loại tài liệu", cv.DocType, normalFont);
                 AddInfoLine(document, "Tên file gốc", cv.OriginalName, normalFont);
                 AddInfoLine(document, "Ngày tải lên", cv.CreatedAt.ToString("dd/MM/yyyy HH:mm"), normalFont);

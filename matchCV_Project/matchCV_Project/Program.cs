@@ -1,4 +1,4 @@
-﻿using FluentValidation;
+using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.EntityFrameworkCore;
 using matchCV_Project.Data;
@@ -9,8 +9,11 @@ using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// DbContext - Using AppDbContext (more complete)
+// DbContext - Register both contexts
 builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("Default")));
+
+builder.Services.AddDbContext<MatchCvContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("Default")));
 
 // Core services from HEAD

@@ -1,12 +1,12 @@
-﻿using ApiRestFul.DTOs;
-using ApiRestFul.Services;
-using MatchCV_Project.Models;
+using ApiRestFul.DTOs;
+using matchCV_Project.Interfaces;
+using matchCV_Project.Models;
 using iText.Html2pdf;
 using System.Text;
-using MatchCV_Project.Data;
+using matchCV_Project.Data;
 using Microsoft.EntityFrameworkCore;
 
-namespace MatchCV_Project.Services
+namespace matchCV_Project.Services
 {
     public class TemplateService : ITemplateService
     {
@@ -30,7 +30,7 @@ namespace MatchCV_Project.Services
                 Key = t.Key,
                 Name = t.Name,
                 Description = t.Description,
-                ThumbnailUrl = t.ThumbnailUrl,
+                ThumbnailUrl = "/images/templates/default.png", // Default thumbnail
                 TemplateType = t.Key
             }).ToList();
         }

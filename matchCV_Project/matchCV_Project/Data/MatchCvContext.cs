@@ -1,10 +1,9 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
-using MatchCV_Project.Models;
-using MatchCV_Project.Models;
+using matchCV_Project.Models;
 
-namespace MatchCV_Project.Data;
+namespace matchCV_Project.Data;
 
 public class MatchCvContext : DbContext
 {
@@ -14,9 +13,9 @@ public class MatchCvContext : DbContext
 
     // Core DbSets (Merged from MatchCvContext and AppDbContext)
     public virtual DbSet<User> Users { get; set; }
-    public virtual DbSet<CvTemplate> CvTemplates { get; set; }
+    public virtual DbSet<Cvtemplate> CvTemplates { get; set; }
     public virtual DbSet<Document> Documents { get; set; }
-    public virtual DbSet<MatchCV_Project.Models.Skill> Skills { get; set; }
+    public virtual DbSet<matchCV_Project.Models.Skill> Skills { get; set; }
     public virtual DbSet<DocumentSkill> DocumentSkills { get; set; }
     public virtual DbSet<Experience> Experiences { get; set; }
     public virtual DbSet<Education> Educations { get; set; }
@@ -91,7 +90,7 @@ public class MatchCvContext : DbContext
             entity.HasOne(d => d.Section).WithMany(p => p.Bullets).HasConstraintName("FK_Bullets_Sections");
         });
 
-        modelBuilder.Entity<CvTemplate>(entity =>
+        modelBuilder.Entity<Cvtemplate>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PK__CVTempla__3214EC07AE0D3463");
             entity.Property(e => e.IsActive).HasDefaultValue(true);
@@ -235,7 +234,7 @@ public class MatchCvContext : DbContext
             entity.HasOne(d => d.Document).WithMany(p => p.Sections).HasConstraintName("FK_Sections_Documents");
         });
 
-        modelBuilder.Entity<MatchCV_Project.Models.Skill>(entity =>
+        modelBuilder.Entity<matchCV_Project.Models.Skill>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PK__Skills__3214EC0709FDFA23");
             entity.Property(e => e.NormName).IsFixedLength();
@@ -245,7 +244,7 @@ public class MatchCvContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("PK__Users__3214EC07AE321C34");
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
-            entity.HasIndex(u => u.EmailAddress).IsUnique();
+            entity.HasIndex(u => u.Email).IsUnique();
         });
 
         // Seed Sample Data
@@ -256,22 +255,22 @@ public class MatchCvContext : DbContext
     {
         // Sample Users
         modelBuilder.Entity<User>().HasData(
-            new User { Id = 1, DisplayName = "John Doe", EmailAddress = "john@example.com", Role = "Candidate", CreatedAt = DateTime.UtcNow },
-            new User { Id = 2, DisplayName = "Jane Smith", EmailAddress = "jane@example.com", Role = "Candidate", CreatedAt = DateTime.UtcNow }
+            new User { Id = 1, DisplayName = "John Doe", Email = "john@example.com", Role = "Candidate", CreatedAt = DateTime.UtcNow },
+            new User { Id = 2, DisplayName = "Jane Smith", Email = "jane@example.com", Role = "Candidate", CreatedAt = DateTime.UtcNow }
         );
 
         // Sample CV Templates
-        modelBuilder.Entity<CvTemplate>().HasData(
-            new CvTemplate { Id = 1, Key = "modern", Name = "Modern CV", Description = "Modern professional CV template", TemplatePath = "/templates/modern.html", IsActive = true, CreatedAt = DateTime.UtcNow },
-            new CvTemplate { Id = 2, Key = "classic", Name = "Classic CV", Description = "Classic professional CV template", TemplatePath = "/templates/classic.html", IsActive = true, CreatedAt = DateTime.UtcNow }
+        modelBuilder.Entity<Cvtemplate>().HasData(
+            new Cvtemplate { Id = 1, Key = "modern", Name = "Modern CV", Description = "Modern professional CV template", TemplatePath = "/templates/modern.html", IsActive = true, CreatedAt = DateTime.UtcNow },
+            new Cvtemplate { Id = 2, Key = "classic", Name = "Classic CV", Description = "Classic professional CV template", TemplatePath = "/templates/classic.html", IsActive = true, CreatedAt = DateTime.UtcNow }
         );
 
         // Sample Skills
-        modelBuilder.Entity<MatchCV_Project.Models.Skill>().HasData(
-            new MatchCV_Project.Models.Skill { Id = 1, Name = "C#", NormName = "csharp", Category = "Programming" },
-            new MatchCV_Project.Models.Skill { Id = 2, Name = "ASP.NET Core", NormName = "aspnetcore", Category = "Framework" },
-            new MatchCV_Project.Models.Skill { Id = 3, Name = "SQL Server", NormName = "sqlserver", Category = "Database" },
-            new MatchCV_Project.Models.Skill { Id = 4, Name = "JavaScript", NormName = "javascript", Category = "Programming" }
+        modelBuilder.Entity<matchCV_Project.Models.Skill>().HasData(
+            new matchCV_Project.Models.Skill { Id = 1, Name = "C#", NormName = "csharp", Category = "Programming" },
+            new matchCV_Project.Models.Skill { Id = 2, Name = "ASP.NET Core", NormName = "aspnetcore", Category = "Framework" },
+            new matchCV_Project.Models.Skill { Id = 3, Name = "SQL Server", NormName = "sqlserver", Category = "Database" },
+            new matchCV_Project.Models.Skill { Id = 4, Name = "JavaScript", NormName = "javascript", Category = "Programming" }
         );
 
         // Sample Documents
@@ -294,8 +293,8 @@ public class MatchCvContext : DbContext
 
         // Sample DocumentSkills
         modelBuilder.Entity<DocumentSkill>().HasData(
-            new DocumentSkill { Id = 1, DocumentId = 1, SkillId = 1, YearsExperience = 5, Proficiency = "Advanced", Confidence = 0.95f },
-            new DocumentSkill { Id = 2, DocumentId = 1, SkillId = 2, YearsExperience = 3, Proficiency = "Intermediate", Confidence = 0.85f }
+            new DocumentSkill { Id = 1, DocumentId = 1, SkillId = 1, Years = 5, Confidence = 0.95, Source = "Resume" },
+            new DocumentSkill { Id = 2, DocumentId = 1, SkillId = 2, Years = 3, Confidence = 0.85, Source = "Resume" }
         );
     }
 }

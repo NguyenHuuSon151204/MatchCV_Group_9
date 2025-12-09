@@ -1,14 +1,12 @@
-﻿using MatchCV_Project.Data;
-using MatchCV_Project.Interfaces;
-using MatchCV_Project.Models;
-using MatchCV_Project.Models.Dtos;
+using matchCV_Project.Data;
+using matchCV_Project.Interfaces;
+using matchCV_Project.Models;
+using matchCV_Project.Models.Dtos;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Hosting;
-
-using MatchCV_Project.Services;
 using System.Text.Json;
 
-namespace MatchCV_Project.Services;
+namespace matchCV_Project.Services;
 
 public class DocumentService : IDocumentService
 {
@@ -106,19 +104,19 @@ public class DocumentService : IDocumentService
         return new DocumentDto
         {
             Id = document.Id,
-            UserId = document.UserId,
+            UserId = document.UserId ?? 0,
             OriginalName = document.OriginalName,
             Title = document.OriginalName, // Map Title from OriginalName
             TemplateType = document.CvTemplate?.Key ?? "professional", // Map TemplateType
             DocType = document.DocType,
-            FileName = document.FileName,
-            ContentType = document.ContentType,
+            FileName = document.FileName ?? string.Empty,
+            ContentType = document.ContentType ?? string.Empty,
             FileSize = document.FileSize,
             AiConfidence = document.AiConfidence,
             TotalScore = document.TotalScore,
-            Status = document.Status,
+            Status = document.Status ?? "Draft",
             CreatedAt = document.CreatedAt,
-            UpdatedAt = document.UpdatedAt,
+            UpdatedAt = document.UpdatedAt ?? document.CreatedAt,
             SkillsCount = document.DocumentSkills?.Count ?? 0,
             ExperiencesCount = document.Experiences?.Count ?? 0,
             EducationsCount = document.Educations?.Count ?? 0,
@@ -201,7 +199,7 @@ public class DocumentService : IDocumentService
             document.StoragePath = storagePath;
             document.FileName = file.FileName;
             document.ContentType = file.ContentType;
-            document.FileSize = file.Length;
+            document.FileSize = (int)file.Length;
             document.DocType = Path.GetExtension(file.FileName).ToUpper();
             document.Status = "Uploaded";
             document.UpdatedAt = DateTime.UtcNow;

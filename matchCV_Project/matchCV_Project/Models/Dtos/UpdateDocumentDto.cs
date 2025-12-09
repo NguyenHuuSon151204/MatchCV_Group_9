@@ -1,4 +1,4 @@
-﻿namespace MatchCV_Project.Models.Dtos;
+namespace matchCV_Project.Models.Dtos;
 
 public class UpdateDocumentDto
 {

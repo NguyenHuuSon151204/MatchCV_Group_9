@@ -1,7 +1,6 @@
-﻿using MatchCV_Project.Models;
-using MatchCV_Project.Interfaces;
+using matchCV_Project.Models;
 
-namespace MatchCV_Project.Interfaces;
+namespace matchCV_Project.Interfaces;
 
 public interface IDocumentRepository : IBaseRepository<Document>
 {

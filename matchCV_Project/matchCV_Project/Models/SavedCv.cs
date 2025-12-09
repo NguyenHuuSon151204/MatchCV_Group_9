@@ -1,8 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using MatchCV_Project.Models;
 
-namespace MatchCV_Project.Models;
+namespace matchCV_Project.Models;
     [Table("SavedCVs")]
     public class SavedCv
     {

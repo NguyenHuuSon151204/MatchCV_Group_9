@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -25,6 +25,9 @@ public partial class Document
     [StringLength(100)]
     public string? ContentType { get; set; }
 
+    [StringLength(4000)]
+    public string? Content { get; set; }
+
     [StringLength(400)]
     public string StoragePath { get; set; } = null!;
 
@@ -37,7 +40,32 @@ public partial class Document
 
     public DateTime UploadedAt { get; set; }
 
+    public DateTime CreatedAt { get; set; }
+
+    public DateTime? UpdatedAt { get; set; }
+
+    [StringLength(50)]
+    public string? Status { get; set; }
+
+    public int? TemplateId { get; set; }
+
+    [StringLength(250)]
+    public string? FileName { get; set; }
+
+    public int? FileSize { get; set; }
+
+    [Column(TypeName = "nvarchar(max)")]
+    public string? CvData { get; set; }
+
+    public float? TotalScore { get; set; }
+
+    public float? AiConfidence { get; set; }
+
     public bool IsDeleted { get; set; }
+
+    [ForeignKey("TemplateId")]
+    [InverseProperty("Documents")]
+    public virtual Cvtemplate? CvTemplate { get; set; }
 
     [InverseProperty("Document")]
     public virtual ICollection<Application> Applications { get; set; } = new List<Application>();
@@ -66,4 +94,12 @@ public partial class Document
     [ForeignKey("UserId")]
     [InverseProperty("Documents")]
     public virtual User? User { get; set; }
+
+    [InverseProperty("BusinessLicenseDocument")]
+    public virtual ICollection<RecruiterVerification> RecruiterVerificationsAsBusinessLicense { get; set; } = new List<RecruiterVerification>();
+
+    [InverseProperty("CompanyProofDocument")]
+    public virtual ICollection<RecruiterVerification> RecruiterVerificationsAsCompanyProof { get; set; } = new List<RecruiterVerification>();
+
+    public virtual Ocrresult? Ocrresult { get; set; }
 }

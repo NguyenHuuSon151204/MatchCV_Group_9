@@ -1,11 +1,11 @@
 using ApiRestFul.DTOs;
-using ApiRestFul.Services;
-using MatchCV_Project.Data;
-using MatchCV_Project.Models;
+using matchCV_Project.Interfaces;
+using matchCV_Project.Data;
+using matchCV_Project.Models;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 
-namespace MatchCV_Project.Services
+namespace matchCV_Project.Services
 {
     public class CVService : ICVService
     {

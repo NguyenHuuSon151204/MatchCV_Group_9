@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using matchCV_Project.Models;
 using Microsoft.EntityFrameworkCore;
@@ -11,7 +11,7 @@ public partial class AppDbContext : DbContext
     {
     }
 
-    public AppDbContext(DbContextOptions<DbContext> options)
+    public AppDbContext(DbContextOptions<AppDbContext> options)
         : base(options)
     {
     }
@@ -65,6 +65,12 @@ public partial class AppDbContext : DbContext
     public virtual DbSet<Skill> Skills { get; set; }
 
     public virtual DbSet<User> Users { get; set; }
+
+    public virtual DbSet<SavedCv> SavedCVs { get; set; }
+
+    public virtual DbSet<EmailVerificationToken> EmailVerificationTokens { get; set; }
+
+    public virtual DbSet<RecruiterVerification> RecruiterVerifications { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
@@ -292,6 +298,59 @@ public partial class AppDbContext : DbContext
             entity.HasKey(e => e.Id).HasName("PK__Users__3214EC07AE321C34");
 
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
+        });
+
+        modelBuilder.Entity<SavedCv>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__SavedCVs__3214EC07");
+
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
+            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("(sysutcdatetime())");
+
+            entity.HasOne(d => d.User).WithMany(p => p.SavedCVs)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("FK_SavedCVs_Users");
+        });
+
+        modelBuilder.Entity<EmailVerificationToken>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__EmailVerificationTokens__3214EC07");
+
+            entity.HasOne(d => d.User).WithMany(p => p.EmailVerificationTokens)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_EmailVerificationTokens_Users");
+        });
+
+        modelBuilder.Entity<RecruiterVerification>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__RecruiterVerifications__3214EC07");
+
+            entity.Property(e => e.Status).HasDefaultValue("Pending");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
+
+            entity.HasOne(d => d.Recruiter).WithMany(p => p.RecruiterVerifications)
+                .HasForeignKey(d => d.RecruiterId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_RecruiterVerification_Users_Recruiter");
+
+            entity.HasOne(d => d.BusinessLicenseDocument).WithMany(p => p.RecruiterVerificationsAsBusinessLicense)
+                .HasForeignKey(d => d.BusinessLicenseDocumentId)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_RecruiterVerification_Documents_BusinessLicense");
+
+            entity.HasOne(d => d.CompanyProofDocument).WithMany(p => p.RecruiterVerificationsAsCompanyProof)
+                .HasForeignKey(d => d.CompanyProofDocumentId)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_RecruiterVerification_Documents_CompanyProof");
+
+            entity.HasOne(d => d.ReviewedByAdmin).WithMany(p => p.RecruiterVerificationsReviewed)
+                .HasForeignKey(d => d.ReviewedByAdminId)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_RecruiterVerification_Users_Admin");
+
+            entity.HasCheckConstraint("CK_RecruiterVerification_Status", "Status IN ('Pending', 'Approved', 'Rejected')");
         });
 
         OnModelCreatingPartial(modelBuilder);

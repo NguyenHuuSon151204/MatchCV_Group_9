@@ -1,6 +1,6 @@
 using ApiRestFul.DTOs;
 
-namespace ApiRestFul.Services
+namespace matchCV_Project.Interfaces
 {
     public interface ICVService
     {

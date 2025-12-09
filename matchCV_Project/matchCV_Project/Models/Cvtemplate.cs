@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -30,6 +30,11 @@ public partial class Cvtemplate
 
     public bool IsActive { get; set; }
 
+    public DateTime? CreatedAt { get; set; }
+
     [InverseProperty("Template")]
     public virtual ICollection<Export> Exports { get; set; } = new List<Export>();
+
+    [InverseProperty("CvTemplate")]
+    public virtual ICollection<Document> Documents { get; set; } = new List<Document>();
 }

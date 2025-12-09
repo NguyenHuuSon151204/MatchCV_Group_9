@@ -1,17 +1,14 @@
-using MatchCV_Project.Data;
-using MatchCV_Project.Interfaces;
-using MatchCV_Project.Models;
+using matchCV_Project.Data;
+using matchCV_Project.Interfaces;
+using matchCV_Project.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace MatchCV_Project.Repositories;
+namespace matchCV_Project.Repositories;
 
 public class JobRepository : BaseRepository<Job>, IJobRepository
 {
-    private readonly MatchCvContext _context;
-
     public JobRepository(MatchCvContext context) : base(context)
     {
-        _context = context;
     }
 
     public async Task<IEnumerable<Job>> GetUserJobsAsync(int userId)

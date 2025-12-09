@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -34,4 +34,16 @@ public partial class User
 
     [InverseProperty("AssignedUser")]
     public virtual ICollection<LicenseKey> LicenseKeys { get; set; } = new List<LicenseKey>();
+
+    [InverseProperty("Recruiter")]
+    public virtual ICollection<RecruiterVerification> RecruiterVerifications { get; set; } = new List<RecruiterVerification>();
+
+    [InverseProperty("ReviewedByAdmin")]
+    public virtual ICollection<RecruiterVerification> RecruiterVerificationsReviewed { get; set; } = new List<RecruiterVerification>();
+
+    [InverseProperty("User")]
+    public virtual ICollection<EmailVerificationToken> EmailVerificationTokens { get; set; } = new List<EmailVerificationToken>();
+
+    [InverseProperty("User")]
+    public virtual ICollection<SavedCv> SavedCVs { get; set; } = new List<SavedCv>();
 }
