@@ -7,6 +7,7 @@ import type { CV } from '@/lib/types'
 
 interface CVCardProps {
   cv: CV
+  onView: (id: string) => void
   onEdit: (id: string) => void
   onAnalyze: (id: string) => void
   onRewrite: (id: string) => void
@@ -14,7 +15,7 @@ interface CVCardProps {
   onDelete: (id: string) => void
 }
 
-export function CVCard({ cv, onEdit, onAnalyze, onRewrite, onExport, onDelete }: CVCardProps) {
+export function CVCard({ cv, onView, onEdit, onAnalyze, onRewrite, onExport, onDelete }: CVCardProps) {
   return (
     <div className="rounded-3xl border border-border/40 bg-card/70 p-4 shadow-lg shadow-black/5">
       <div className="flex items-start gap-3">
@@ -39,8 +40,14 @@ export function CVCard({ cv, onEdit, onAnalyze, onRewrite, onExport, onDelete }:
       </div>
       <div className="mt-4 grid grid-cols-2 gap-2 text-xs font-semibold">
         <button
+          onClick={() => onView(cv.id)}
+          className="col-span-2 rounded-2xl border border-blue-500/30 px-3 py-2 text-blue-600 hover:border-blue-500/60"
+        >
+          View CV
+        </button>
+        <button
           onClick={() => onEdit(cv.id)}
-          className="col-span-2 rounded-2xl border border-blue-500/30 px-3 py-2 text-blue-500 hover:border-blue-500/60"
+          className="col-span-2 rounded-2xl border border-blue-500/30 px-3 py-2 text-blue-600 hover:border-blue-500/60"
         >
           Edit CV
         </button>
@@ -52,7 +59,7 @@ export function CVCard({ cv, onEdit, onAnalyze, onRewrite, onExport, onDelete }:
         </button>
         <button
           onClick={() => onRewrite(cv.id)}
-          className="rounded-2xl border border-border/40 px-3 py-2 text-purple-300 hover:border-purple-500/60"
+          className="rounded-2xl border border-border/40 px-3 py-2 text-purple-600 hover:border-purple-500/60"
         >
           Rewrite
         </button>

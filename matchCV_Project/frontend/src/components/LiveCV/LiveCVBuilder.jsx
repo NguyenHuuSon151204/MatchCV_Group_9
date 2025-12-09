@@ -4,7 +4,7 @@ import { useToastContext } from '@/contexts/toast-context';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { exportCvPdf, getTemplates } from '@/api/templateApi';
-import { saveCV, getCVById } from '@/api/cvApi';
+import { saveCV, getCVById, uploadCVFile } from '@/api/cvApi';
 import ProfessionalTemplate from './templates/ProfessionalTemplate';
 import ModernTemplate from './templates/ModernTemplate';
 import FormalTemplate from './templates/FormalTemplate';
@@ -93,10 +93,15 @@ function LiveCVBuilder() {
                         }
                     }));
                 } else if (typeof window !== 'undefined') {
-                    const savedCvData = localStorage.getItem('liveCvData');
-                    if (savedCvData) {
-                        const parsedData = JSON.parse(savedCvData);
-                        setCvData(parsedData);
+                    // Only load from localStorage if NOT editing an existing CV (cvId is null)
+                    if (!cvId) {
+                        const savedCvData = localStorage.getItem('liveCvData');
+                        if (savedCvData) {
+                            const parsedData = JSON.parse(savedCvData);
+                            setCvData(parsedData);
+                        } else {
+                            setShowTemplateSelection(true);
+                        }
                     }
                 }
             } catch (error) {
@@ -109,6 +114,23 @@ function LiveCVBuilder() {
         fetchTemplates();
     }, [searchParams, location.state]);
 
+    const emptyCvData = {
+        templateType: 'professional',
+        personalInfo: {
+            fullName: '',
+            position: '',
+            email: '',
+            phone: '',
+            address: '',
+            summary: '',
+            avatarBase64: DEFAULT_AVATAR_BASE64,
+            website: ''
+        },
+        experiences: [],
+        educations: [],
+        skills: []
+    };
+
     const loadCVFromHistory = async (id) => {
         try {
             const savedCV = await getCVById(id);
@@ -117,15 +139,31 @@ function LiveCVBuilder() {
                 const loadedCvData = savedCV.cvData || savedCV.CvData;
 
                 if (loadedCvData) {
+                    let parsedCvData = loadedCvData;
+                    if (typeof parsedCvData === 'string') {
+                        try {
+                            parsedCvData = JSON.parse(parsedCvData);
+                        } catch (e) {
+                            console.error("Error parsing cvData string:", e);
+                        }
+                    }
+
                     // Ensure loaded data is merged with initial structure to prevent missing fields
                     setCvData(prev => ({
                         ...initialCvData,
-                        ...loadedCvData,
-                        personalInfo: { ...initialCvData.personalInfo, ...(loadedCvData.personalInfo || {}) },
-                        experiences: loadedCvData.experiences || [],
-                        educations: loadedCvData.educations || [],
-                        skills: loadedCvData.skills || []
+                        ...parsedCvData,
+                        personalInfo: { ...initialCvData.personalInfo, ...(parsedCvData.personalInfo || {}) },
+                        experiences: parsedCvData.experiences || [],
+                        educations: parsedCvData.educations || [],
+                        skills: parsedCvData.skills || []
                     }));
+                } else {
+                    // If CV exists but has no data (e.g. uploaded DOCX/Image), start with empty state
+                    toast.info('CV này là file được tải lên và chưa có dữ liệu có thể chỉnh sửa. Bạn có thể bắt đầu nhập lại nội dung.');
+                    setCvData({
+                        ...emptyCvData,
+                        templateType: savedCV.templateType || savedCV.TemplateType || 'professional'
+                    });
                 }
 
                 setCvTitle(savedCV.title || savedCV.Title || '');
@@ -180,7 +218,7 @@ function LiveCVBuilder() {
         reader.readAsDataURL(file);
     };
 
-    const saveCvToBackend = async (titleToUse) => {
+    const saveCvToBackend = async (titleToUse, overrideId = null) => {
         // Helper to parse MM/YYYY to ISO Date
         const parseDate = (dateStr) => {
             if (!dateStr) return new Date().toISOString();
@@ -211,10 +249,10 @@ function LiveCVBuilder() {
             }))
         };
 
-        console.log('Saving CV Data:', formattedCvData);
+        const idToSend = overrideId !== null ? overrideId : (parseInt(currentCvId) || 0);
 
         return await saveCV({
-            id: parseInt(currentCvId) || 0,
+            id: idToSend,
             title: titleToUse,
             templateType: cvData.templateType,
             cvData: formattedCvData
@@ -222,8 +260,7 @@ function LiveCVBuilder() {
     };
 
     const handleSaveCV = async (forceExit = false) => {
-        // If called from event handler, forceExit will be the event object, so check type
-        const shouldExit = (typeof forceExit === 'boolean' && forceExit) || isExitAfterSave;
+        const shouldUploadAndExit = (typeof forceExit === 'boolean' && forceExit) || isExitAfterSave;
 
         if (!cvTitle.trim()) {
             toast.warning('Vui lòng nhập tên cho CV của bạn');
@@ -232,9 +269,6 @@ function LiveCVBuilder() {
 
         try {
             const result = await saveCvToBackend(cvTitle);
-            console.log('Save result:', result);
-
-            // Handle both camelCase (id) and PascalCase (Id)
             const savedId = result ? (result.id || result.Id) : null;
 
             if (savedId) {
@@ -242,10 +276,60 @@ function LiveCVBuilder() {
                 toast.success('CV đã được lưu thành công!');
                 setShowSaveDialog(false);
 
-                if (shouldExit) {
-                    navigate('/app/my-cvs');
+                if (shouldUploadAndExit) {
+                    setIsExporting(true);
+                    toast.info('Đang tạo và cập nhật file PDF...');
+
+                    try {
+                        const parseDate = (dateStr) => {
+                            if (!dateStr) return null;
+                            if (dateStr.includes('/')) {
+                                const [month, year] = dateStr.split('/');
+                                return new Date(parseInt(year), parseInt(month) - 1, 1).toISOString();
+                            }
+                            return new Date(dateStr).toISOString();
+                        };
+
+                        const exportData = {
+                            templateType: cvData.templateType,
+                            personalInfo: {
+                                ...cvData.personalInfo,
+                                avatarBase64: cvData.personalInfo.avatarBase64 || ''
+                            },
+                            experiences: cvData.experiences.map(exp => ({
+                                ...exp,
+                                startDate: parseDate(exp.startDate),
+                                endDate: exp.endDate ? parseDate(exp.endDate) : null
+                            })),
+                            educations: cvData.educations.map(edu => ({
+                                ...edu,
+                                startYear: parseInt(edu.startYear) || null,
+                                endYear: parseInt(edu.endYear) || null
+                            })),
+                            skills: cvData.skills
+                        };
+
+                        const pdfBlob = await exportCvPdf(exportData);
+
+                        const fileName = `CV_${cvData.personalInfo.fullName.replace(/\s+/g, '_')}.pdf`;
+                        const pdfFile = new File([pdfBlob], fileName, { type: 'application/pdf' });
+
+                        // Update the EXISTING file (savedId) with the PDF
+                        // The backend will preserve the Template Data so it remains editable.
+                        await uploadCVFile(savedId, pdfFile);
+
+                        // CRITICAL: Save AGAIN to ensure Status is reset to 'Draft' (Editable template)
+                        // because uploading the file might have set it to 'Uploaded' (Read-only).
+                        // Pass savedId explicitly to avoid race condition with React state update
+                        await saveCvToBackend(cvTitle, savedId);
+
+                        toast.success('Đã cập nhật file PDF thành công! Bạn vẫn có thể chỉnh sửa mẫu này.');
+                        navigate('/app/my-cvs');
+                    } catch (uploadError) {
+                        console.error('Error generating/uploading PDF:', uploadError);
+                        toast.error('Lỗi khi cập nhật file PDF. CV của bạn đã được lưu dưới dạng bản nháp.');
+                    }
                 } else {
-                    // Update URL without reloading if the ID changed or if it was new
                     if (currentCvId !== savedId) {
                         navigate(`/app/cv-builder?id=${savedId}`, { replace: true });
                     }
@@ -262,6 +346,10 @@ function LiveCVBuilder() {
             } else {
                 toast.error('Không thể lưu CV. Vui lòng thử lại.');
             }
+        } finally {
+            if (!shouldUploadAndExit) {
+                setIsExporting(false);
+            }
         }
     };
 
@@ -274,19 +362,16 @@ function LiveCVBuilder() {
                 return;
             }
 
-            // Auto-save before export
             try {
                 const titleToSave = cvTitle || `CV ${cvData.personalInfo.fullName}`;
                 const result = await saveCvToBackend(titleToSave);
 
-                // Update state regardless of whether it was new or existing, to ensure sync
                 if (result) {
                     const savedId = result.id || result.Id;
                     if (savedId) {
                         const prevId = currentCvId;
                         setCurrentCvId(savedId);
 
-                        // If it was a new CV (ID 0) or ID changed, update URL
                         if (prevId === 0 || prevId !== savedId) {
                             setCvTitle(titleToSave);
                             navigate(`/app/cv-builder?id=${savedId}`, { replace: true });
@@ -295,7 +380,6 @@ function LiveCVBuilder() {
                 }
             } catch (saveError) {
                 console.error('Auto-save failed:', saveError);
-                // Continue with export even if save fails
             }
 
             const parseDate = (dateStr) => {
@@ -341,7 +425,6 @@ function LiveCVBuilder() {
 
             const response = await exportCvPdf(exportData);
 
-            // Create blob link to download
             const url = window.URL.createObjectURL(new Blob([response]));
             const link = document.createElement('a');
             link.href = url;
@@ -378,7 +461,7 @@ function LiveCVBuilder() {
         setCvData(initialCvData);
         setCvTitle('');
         setCurrentCvId(0);
-        navigate('/app/cv-builder'); // Clear ID from URL
+        navigate('/app/cv-builder');
         setShowConfirmNewCV(false);
     };
 
@@ -391,7 +474,6 @@ function LiveCVBuilder() {
         }
     };
 
-    // Safety check to prevent crash if cvData is somehow undefined
     if (!cvData) {
         return <div className="p-4 text-center">Đang tải dữ liệu...</div>;
     }
@@ -575,19 +657,21 @@ function LiveCVBuilder() {
                             <h3>Lưu CV</h3>
                         </div>
                         <div className="mb-6">
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium text-gray-700">Tên CV:</label>
-                                <Input
-                                    type="text"
-                                    value={cvTitle}
-                                    onChange={(e) => setCvTitle(e.target.value)}
-                                    placeholder="Ví dụ: CV Quản lý nhà hàng"
-                                    className="w-full"
-                                    autoFocus
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter') handleSaveCV(true);
-                                    }}
-                                />
+                            <div className="space-y-4">
+                                <div className="space-y-2">
+                                    <label className="text-sm font-medium text-gray-700">Tên CV:</label>
+                                    <Input
+                                        type="text"
+                                        value={cvTitle}
+                                        onChange={(e) => setCvTitle(e.target.value)}
+                                        placeholder="Ví dụ: CV Quản lý nhà hàng"
+                                        className="w-full"
+                                        autoFocus
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter') handleSaveCV(true);
+                                        }}
+                                    />
+                                </div>
                             </div>
                         </div>
                         <div className="flex justify-end gap-3">
@@ -598,10 +682,11 @@ function LiveCVBuilder() {
                                 Hủy
                             </Button>
                             <Button variant="secondary" onClick={() => handleSaveCV(false)}>
-                                Lưu lại
+                                Lưu nháp
                             </Button>
-                            <Button onClick={() => handleSaveCV(true)}>
-                                Lưu & Thoát
+                            <Button onClick={() => handleSaveCV(true)} className="gap-2">
+                                <span className="material-icons text-sm">cloud_upload</span>
+                                Lưu & Cập nhật PDF
                             </Button>
                         </div>
                     </div>

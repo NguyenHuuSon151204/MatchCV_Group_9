@@ -3,7 +3,7 @@
 import { useMemo, useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { formatDistanceToNow } from 'date-fns'
-import { Download, Plus, Sparkles, Trash2, Upload as UploadIcon, Search } from 'lucide-react'
+import { Download, Plus, Sparkles, Trash2, Upload as UploadIcon, Search, Eye } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { ScoreCircle } from '@/components/common/score-circle'
@@ -14,6 +14,7 @@ import { UploadCvModal } from '@/features/candidate/my-cvs/upload-cv-modal'
 import { CreateCvDialog } from '@/features/candidate/my-cvs/create-cv-dialog'
 import { CreateOptionDialog } from '@/features/candidate/my-cvs/create-option-dialog'
 import { EditOptionDialog } from '@/features/candidate/my-cvs/edit-option-dialog'
+import { ViewCvDialog } from '@/features/candidate/my-cvs/view-cv-dialog'
 
 export function MyCVsPage() {
   const navigate = useNavigate()
@@ -21,6 +22,7 @@ export function MyCVsPage() {
   const [uploadOpen, setUploadOpen] = useState(false)
   const [createOpen, setCreateOpen] = useState(false)
   const [optionOpen, setOptionOpen] = useState(false)
+  const [viewOpen, setViewOpen] = useState(false)
   const [editOptionId, setEditOptionId] = useState<string | null>(null)
   const [selectedCvId, setSelectedCvId] = useState<string | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
@@ -41,11 +43,14 @@ export function MyCVsPage() {
 
   // Filter CVs based on search query
   const filteredCVs = useMemo(() => {
+    // Show ALL CVs. Do NOT filter out 'Untitled CV' or Drafts.
+    const visibleCvs = cvs;
+
     if (!searchQuery.trim()) {
-      return cvs
+      return visibleCvs;
     }
     const query = searchQuery.toLowerCase().trim()
-    return cvs.filter(
+    return visibleCvs.filter(
       (cv) =>
         cv.name.toLowerCase().includes(query) ||
         cv.position.toLowerCase().includes(query) ||
@@ -135,6 +140,7 @@ export function MyCVsPage() {
           <p className="text-sm text-muted-foreground">Manage, analyze, rewrite, and export every CV in one place.</p>
         </div>
         <div className="flex flex-wrap gap-3">
+
           <Button
             className="gap-2 rounded-full"
             onClick={() => setOptionOpen(true)}
@@ -172,7 +178,7 @@ export function MyCVsPage() {
                 <th className="px-6 py-4 text-left">CV Name</th>
                 <th className="px-6 py-4 text-left">Last Modified</th>
                 <th className="px-6 py-4 text-left">Status</th>
-                <th className="px-6 py-4 text-left">AI Score</th>
+
                 <th className="px-6 py-4 text-left">Actions</th>
               </tr>
             </thead>
@@ -212,18 +218,28 @@ export function MyCVsPage() {
                     <td className="px-6 py-4">
                       <StatusBadge status={cv.status} />
                     </td>
-                    <td className="px-6 py-4">
-                      <ScoreCircle score={cv.score} />
-                    </td>
+
                     <td className="px-6 py-4">
                       <div className="flex flex-wrap gap-2">
                         <Button
                           size="sm"
                           className="rounded-full bg-blue-500/20 text-blue-600"
                           variant="ghost"
+                          onClick={() => {
+                            setSelectedCvId(cv.id)
+                            setViewOpen(true)
+                          }}
+                        >
+                          <Eye className="mr-1 size-4" />
+
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="rounded-full bg-blue-500/20 text-blue-600"
+                          variant="ghost"
                           onClick={() => setEditOptionId(cv.id)}
                         >
-                          <Sparkles className="mr-1 size-4" />
+
                           Edit
                         </Button>
                         <Button
@@ -238,10 +254,11 @@ export function MyCVsPage() {
                         </Button>
                         <Button
                           size="sm"
-                          className="rounded-full bg-purple-500/20 text-purple-100"
+                          className="rounded-full bg-purple-100 text-purple-700 dark:bg-purple-500/20 dark:text-purple-100"
                           variant="ghost"
                           onClick={() => navigate('/app/ai-rewrite', { state: { cvId: cv.id } })}
                         >
+                          <Sparkles className="mr-1 size-4" />
                           Rewrite
                         </Button>
                         <Button
@@ -251,7 +268,7 @@ export function MyCVsPage() {
                           onClick={() => handleExport(cv.id, 'pdf')}
                         >
                           <Download className="mr-1 size-4" />
-                          Export
+
                         </Button>
 
                         <Button
@@ -262,7 +279,7 @@ export function MyCVsPage() {
                           disabled={busyId === cv.id}
                         >
                           <Trash2 className="mr-1 size-4" />
-                          Delete
+
                         </Button>
                       </div>
                     </td>
@@ -295,6 +312,10 @@ export function MyCVsPage() {
               <CVCard
                 key={cv.id}
                 cv={cv}
+                onView={(id) => {
+                  setSelectedCvId(id)
+                  setViewOpen(true)
+                }}
                 onEdit={(id) => setEditOptionId(id)}
                 onAnalyze={handleAnalyze}
                 onRewrite={(id) => navigate('/ai-rewrite', { state: { cvId: id } })}
@@ -332,6 +353,15 @@ export function MyCVsPage() {
         }}
         cvId={selectedCvId}
         onUploadSuccess={refresh}
+      />
+
+      <ViewCvDialog
+        open={viewOpen}
+        onClose={() => {
+          setViewOpen(false)
+          setSelectedCvId(null)
+        }}
+        cv={cvs.find(c => c.id === selectedCvId) || null}
       />
     </section>
   )

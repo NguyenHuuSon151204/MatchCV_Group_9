@@ -42,7 +42,7 @@ const mockCVs: CV[] = [
     position: 'Product Manager',
     description: 'Product strategy and execution',
     modifiedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-    status: 'activing',
+    status: 'active',
   },
   {
     id: '5',
@@ -102,13 +102,13 @@ function mapDocumentDtoToCV(dto: DocumentDto | any): CV {
 
   return {
     id: dto.Id?.toString() || dto.id?.toString() || '',
-    name: dto.OriginalName || dto.name || 'Untitled CV',
-    position: dto.DocType || dto.position || '',
-    description: dto.FileName || dto.description,
+    name: dto.OriginalName || dto.originalName || dto.Title || dto.title || dto.name || 'Untitled CV',
+    position: dto.DocType || dto.docType || dto.position || '',
+    description: dto.FileName || dto.fileName || dto.description,
     modifiedAt,
     status: mapBackendStatusToFrontend(dto.Status || dto.status || 'draft'),
-    score: dto.TotalScore ?? dto.AiConfidence ?? dto.score,
-    fileUrl: dto.FileName ? `/uploads/${dto.FileName}` : undefined,
+    score: dto.TotalScore ?? dto.totalScore ?? dto.AiConfidence ?? dto.aiConfidence ?? dto.score,
+    fileUrl: (dto.FileName || dto.fileName) ? `/uploads/${dto.FileName || dto.fileName}` : undefined,
   }
 }
 
@@ -122,7 +122,7 @@ function mapBackendStatusToFrontend(status: string): CVStatus {
     uploaded: 'uploaded',
     analyzed: 'analyzed',
     submitted: 'submitted',
-    active: 'activing',
+    active: 'active',
   }
   return statusMap[statusLower] || 'draft'
 }
@@ -149,7 +149,12 @@ export const cvService = {
   },
 
   async getCV(id: string): Promise<CV | null> {
-    const response = await apiClient.get<CV>(`/cv/${id}`)
+    let userId = typeof window !== 'undefined' ? window.localStorage.getItem('matchcv-userId') : null
+    if (!userId) userId = '1'
+
+    const response = await apiClient.get<CV>(`/cv/${id}`, {
+      params: { userId: parseInt(userId, 10) }
+    })
     return mapDocumentDtoToCV(response.data)
   },
 
@@ -189,9 +194,14 @@ export const cvService = {
   },
 
   async updateCV(payload: UpdateCVInput): Promise<CV> {
+    let userId = typeof window !== 'undefined' ? window.localStorage.getItem('matchcv-userId') : null
+    if (!userId) userId = '1'
+
     const response = await apiClient.put<CV>(`/cv/${payload.id}`, {
       OriginalName: payload.name,
       DocType: 'CV',
+    }, {
+      params: { userId: parseInt(userId, 10) }
     })
     return mapDocumentDtoToCV(response.data)
   },
@@ -223,9 +233,14 @@ export const cvService = {
   },
 
   async analyzeCV(id: string): Promise<AnalyzeResult> {
+    let userId = typeof window !== 'undefined' ? window.localStorage.getItem('matchcv-userId') : null
+    if (!userId) userId = '1'
+
     return withFallback(
       async () => {
-        const response = await apiClient.post<any>(`/cv/analyze/${id}`)
+        const response = await apiClient.post<any>(`/cv/analyze/${id}`, {}, {
+          params: { userId: parseInt(userId, 10) }
+        })
         const data = response.data
 
         let evidence: string[] = []
@@ -265,7 +280,12 @@ export const cvService = {
   },
 
   async deleteCV(id: string): Promise<void> {
-    await apiClient.delete(`/cv/${id}`)
+    let userId = typeof window !== 'undefined' ? window.localStorage.getItem('matchcv-userId') : null
+    if (!userId) userId = '1'
+
+    await apiClient.delete(`/cv/${id}`, {
+      params: { userId: parseInt(userId, 10) }
+    })
   },
 
   async exportCV(id: string, format: 'pdf' | 'docx' | 'json'): Promise<Blob> {

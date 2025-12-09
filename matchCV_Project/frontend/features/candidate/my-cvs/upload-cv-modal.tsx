@@ -23,9 +23,6 @@ export function UploadCvModal({ open, onClose, cvId, onUploadSuccess }: UploadCv
   // Only show form if creating new CV (cvId is null)
   const [formData, setFormData] = useState({
     name: '',
-    fullName: '',
-    position: '',
-    description: ''
   })
 
   // Pre-fill CV name if file selected and name is empty
@@ -33,7 +30,7 @@ export function UploadCvModal({ open, onClose, cvId, onUploadSuccess }: UploadCv
     const selected = e.target.files?.[0] || null
     setFile(selected)
     if (selected && !cvId && !formData.name) {
-      setFormData(prev => ({ ...prev, name: selected.name.replace(/\.[^/.]+$/, "") }))
+      setFormData({ name: selected.name.replace(/\.[^/.]+$/, "") })
     }
   }
 
@@ -49,20 +46,20 @@ export function UploadCvModal({ open, onClose, cvId, onUploadSuccess }: UploadCv
 
       // If creating new CV, create metadata first
       if (!targetId) {
-        if (!formData.name || !formData.fullName || !formData.position) {
-          setError('Please fill in all required fields.')
+        if (!formData.name) {
+          setError('Please enter a CV name.')
           return
         }
 
         const newCv = await cvService.createCV({
           name: formData.name,
-          position: formData.position,
-          description: formData.description,
+          position: 'General', // Default for uploaded CVs
+          description: '',
           cvData: {
             personalInfo: {
-              fullName: formData.fullName,
-              position: formData.position,
-              summary: formData.description
+              fullName: 'Candidate',
+              position: 'General',
+              summary: ''
             }
           }
         })
@@ -71,7 +68,7 @@ export function UploadCvModal({ open, onClose, cvId, onUploadSuccess }: UploadCv
 
       await upload(targetId, file)
       setFile(null)
-      setFormData({ name: '', fullName: '', position: '', description: '' })
+      setFormData({ name: '' })
       onClose()
 
       // If we created a new one, we need to trigger success callback to refresh list
@@ -85,21 +82,21 @@ export function UploadCvModal({ open, onClose, cvId, onUploadSuccess }: UploadCv
     }
   }
 
-  const isFormValid = cvId ? true : (formData.name && formData.fullName && formData.position)
+  const isFormValid = cvId ? true : !!formData.name
 
   return (
     <Modal
       open={open}
       onClose={onClose}
-      title={cvId ? "Upload New Version" : "Create & Upload CV"}
-      description="Fill in the details and attach your CV file."
+      title={cvId ? "Upload New Version" : "Upload CV"}
+      description="Upload your CV file directly. We'll extract the details."
       footer={
         <>
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
           <Button onClick={handleUpload} disabled={uploading || !file || !isFormValid}>
-            {uploading ? 'Processing...' : (cvId ? 'Upload' : 'Create & Upload')}
+            {uploading ? 'Processing...' : (cvId ? 'Upload' : 'Upload')}
           </Button>
         </>
       }
@@ -113,31 +110,7 @@ export function UploadCvModal({ open, onClose, cvId, onUploadSuccess }: UploadCv
               <Input
                 placeholder="e.g. My Fullstack CV"
                 value={formData.name}
-                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Full Name</label>
-              <Input
-                placeholder="e.g. John Doe"
-                value={formData.fullName}
-                onChange={(e) => setFormData(prev => ({ ...prev, fullName: e.target.value }))}
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Target Position</label>
-              <Input
-                placeholder="e.g. Senior Developer"
-                value={formData.position}
-                onChange={(e) => setFormData(prev => ({ ...prev, position: e.target.value }))}
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Description (Optional)</label>
-              <Textarea
-                placeholder="Brief description..."
-                value={formData.description}
-                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                onChange={(e) => setFormData({ name: e.target.value })}
               />
             </div>
             <div className="border-t border-border/50 my-4" />

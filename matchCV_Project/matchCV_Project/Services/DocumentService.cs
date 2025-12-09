@@ -56,11 +56,12 @@ public class DocumentService : IDocumentService
             var document = new Document
             {
                 UserId = userId,
-                OriginalName = dto.Title ?? dto.OriginalName ?? "Untitled CV",
+                // Prioritize OriginalName over Title, checking for empty/whitespace
+                OriginalName = !string.IsNullOrWhiteSpace(dto.OriginalName) ? dto.OriginalName : (!string.IsNullOrWhiteSpace(dto.Title) ? dto.Title : "Untitled CV"),
                 CvTemplateId = templateId,
                 CvData = dto.CvData != null ? JsonSerializer.Serialize(dto.CvData) : null,
                 DocType = "CV",
-                Status = "Draft",
+                Status = "Active",
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
@@ -136,7 +137,16 @@ public class DocumentService : IDocumentService
         if (document.UserId != userId)
             throw new UnauthorizedAccessException("You are not allowed to update this CV");
 
-        document.OriginalName = dto.Title ?? dto.OriginalName ?? document.OriginalName;
+        // Prioritize OriginalName over Title, checking for empty/whitespace
+        if (!string.IsNullOrWhiteSpace(dto.OriginalName))
+        {
+            document.OriginalName = dto.OriginalName;
+        }
+        else if (!string.IsNullOrWhiteSpace(dto.Title))
+        {
+             document.OriginalName = dto.Title;
+        }
+        // else keep existing OriginalName
         
         // Update TemplateId if TemplateType is provided
         if (!string.IsNullOrEmpty(dto.TemplateType))
@@ -158,7 +168,7 @@ public class DocumentService : IDocumentService
             document.CvData = JsonSerializer.Serialize(dto.CvData);
         }
 
-        document.Status = "Draft";
+        document.Status = "Active";
         document.UpdatedAt = DateTime.UtcNow;
 
         await _documentRepository.UpdateAsync(document);
@@ -212,13 +222,17 @@ public class DocumentService : IDocumentService
             {
                 try 
                 {
-                    existingData = JsonSerializer.Deserialize<CVDataDto>(document.CvData);
+                    existingData = JsonSerializer.Deserialize<CVDataDto>(document.CvData, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
                 }
                 catch {}
             }
 
             // Extract text from PDF if it's a PDF file
-            if (file.ContentType == "application/pdf" || Path.GetExtension(file.FileName).ToLower() == ".pdf")
+            // FIX: If the CV already has structured data (created from a Template), DO NOT overwrite it with PDF text.
+            // This ensures the editable template is preserved while the PDF file is attached.
+            bool isBuilderCv = existingData != null && !string.IsNullOrEmpty(existingData.TemplateType);
+
+            if (!isBuilderCv && (file.ContentType == "application/pdf" || Path.GetExtension(file.FileName).ToLower() == ".pdf"))
             {
                 try
                 {

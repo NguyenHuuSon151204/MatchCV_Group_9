@@ -12,10 +12,10 @@ const statusMap: Record<
   }
 > = {
   draft: { label: 'Draft', variant: 'secondary', classes: 'bg-muted text-muted-foreground' },
-  uploaded: { label: 'Uploaded', variant: 'secondary', classes: 'bg-blue-500/20 text-blue-200' },
-  analyzed: { label: 'Analyzed', variant: 'default', classes: 'bg-emerald-500/20 text-emerald-200' },
-  submitted: { label: 'Submitted', variant: 'default', classes: 'bg-amber-500/20 text-amber-100' },
-  activing: { label: 'Activating', variant: 'outline', classes: 'border-primary/30 text-primary' },
+  uploaded: { label: 'Uploaded', variant: 'secondary', classes: 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-200' },
+  analyzed: { label: 'Analyzed', variant: 'default', classes: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200' },
+  submitted: { label: 'Submitted', variant: 'default', classes: 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-100' },
+  active: { label: 'Uploaded', variant: 'secondary', classes: 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-200' },
 }
 
 interface StatusBadgeProps {

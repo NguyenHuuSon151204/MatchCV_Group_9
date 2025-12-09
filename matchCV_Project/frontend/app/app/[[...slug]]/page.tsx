@@ -7,7 +7,7 @@ import { useState, useEffect, useMemo } from 'react'
 
 export default function AppPage() {
   const [isMounted, setIsMounted] = useState(false);
-  const [router, setRouter] = useState(null);
+  const [router, setRouter] = useState<any>(null);
 
   useEffect(() => {
     setIsMounted(true);

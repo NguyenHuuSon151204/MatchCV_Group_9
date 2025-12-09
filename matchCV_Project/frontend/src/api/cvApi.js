@@ -64,3 +64,26 @@ export const deleteCV = async (id) => {
         throw error;
     }
 };
+
+export const uploadCVFile = async (id, file) => {
+    try {
+        const userId = getUserId();
+        const formData = new FormData();
+        formData.append('file', file);
+
+        let url = `${BASE_PATH}/upload?userId=${userId}`;
+        if (id) {
+            url += `&id=${id}`;
+        }
+
+        const response = await api.post(url, formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+        });
+        return unwrapResponse(response);
+    } catch (error) {
+        console.error('Error uploading CV file:', error);
+        throw error;
+    }
+};

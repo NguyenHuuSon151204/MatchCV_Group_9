@@ -1,4 +1,4 @@
-export type CVStatus = 'draft' | 'uploaded' | 'analyzed' | 'submitted' | 'activing'
+export type CVStatus = 'draft' | 'uploaded' | 'analyzed' | 'submitted' | 'active'
 
 export interface CV {
   id: string
