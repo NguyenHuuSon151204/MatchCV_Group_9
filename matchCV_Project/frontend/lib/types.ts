@@ -5,7 +5,6 @@ export interface CV {
   name: string
   position: string
   description?: string
-  cvData?: any
   modifiedAt: string
   status: CVStatus
   score?: number
@@ -17,7 +16,6 @@ export interface CreateCVInput {
   name: string
   position: string
   description?: string
-  cvData?: any
 }
 
 export interface UpdateCVInput extends Partial<CreateCVInput> {
@@ -117,6 +115,9 @@ export interface AuthContextType {
   login: (email: string, password: string) => Promise<any>
   ggregister: (email: string, name: string, role: string) => Promise<any>
   register: (displayName: string, email: string, password: string, role: string) => Promise<any>
-  updateProfile: (payload: { displayName?: string; email?: string }) => Promise<User>
   logout: () => Promise<void>
+  forgotpass: (email: string) => Promise<any>
+  resetpass: (token: string, newPassword: string) => Promise<any>
+  updateProfile: (payload: { displayName?: string; email?: string }) => Promise<User>
 }
+

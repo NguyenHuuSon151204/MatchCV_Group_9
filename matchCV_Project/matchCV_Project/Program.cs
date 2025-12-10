@@ -78,6 +78,7 @@ builder.Services.AddScoped<ITemplateService, TemplateService>();
 builder.Services.AddScoped<IExportService, ExportService>();
 builder.Services.AddScoped<ICVService, CVService>();
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
+builder.Services.AddScoped<IAccountService, AccountService>();
 builder.Services.AddScoped<EmailService>();
 builder.Services.AddScoped<IGeminiService, GeminiService>();
 builder.Services.AddScoped<DynamicWeightService>();

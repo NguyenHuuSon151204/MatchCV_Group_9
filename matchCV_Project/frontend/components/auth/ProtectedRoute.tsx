@@ -14,11 +14,13 @@ export default function ProtectedRoute() {
 
   if (loading) return <></>;
 
-  if (!user) {
+  if (!user||user==null) {
     return <Navigate to="/auth/login" replace />
   }
 
   return <Outlet />;
 }
+
+
 
 

@@ -4,6 +4,7 @@ import { useContext } from "react";
 import { AuthContext } from "../../contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useRouter } from "next/navigation";
 
 export default function Profile() {
   const authContext = useContext(AuthContext);
@@ -11,7 +12,11 @@ export default function Profile() {
     throw new Error("AuthContext must be used within AuthProvider");
   }
   const { user, logout } = authContext;
-  if (!user) return null;
+  const router = useRouter();
+  if (!user){
+    router.push("/auth/login");
+    return null;
+  }
 
   console.log("Logged in user:", user);
 

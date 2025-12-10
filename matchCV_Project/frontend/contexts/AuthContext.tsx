@@ -47,6 +47,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         localStorage.setItem('matchcv-userId', res.data.user.id.toString());
       }
       return res;
+    } catch (err: any) {
+      throw err;
     } finally {
       setLoading(false);
     }
@@ -61,9 +63,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
         role,
       });
       setUser(res.data.user);
-      if (res.data.user?.id) {
-        localStorage.setItem('matchcv-userId', res.data.user.id.toString());
-      }
       return res;
     } finally {
       setLoading(false);
@@ -77,7 +76,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     role: string
   ) => {
     setUser(null);
-    localStorage.removeItem('matchcv-userId');
     setLoading(true);
     try {
       const res = await api.post("/account/register", {
@@ -85,6 +83,39 @@ export function AuthProvider({ children }: AuthProviderProps) {
         email,
         password,
         role,
+      });
+      return res;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const logout = async () => {
+    setLoading(true);
+    try {
+      await api.post("/account/logout");
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const forgotpass = async (email: string) => {
+    setLoading(true);
+    try {
+      const res = await api.post("/account/forgot-password", {email});
+      return res;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resetpass = async (token: string, newPassword: string) => {
+    setLoading(true);
+    try {
+      const res = await api.post("/account/reset-password", {
+        token,
+        newPassword,
       });
       return res;
     } finally {
@@ -110,24 +141,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
-  const logout = async () => {
-    setLoading(true);
-    try {
-      await api.post("/account/logout");
-      setUser(null);
-      localStorage.removeItem('matchcv-userId');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <AuthContext.Provider
-      value={{ user, loading, login, ggregister, register, updateProfile, logout }}
+      value={{ user, loading, login, ggregister, register, logout, forgotpass, resetpass, updateProfile }}
     >
       {children}
     </AuthContext.Provider>
   );
 }
-
 

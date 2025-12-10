@@ -73,6 +73,13 @@ export default function Login() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
+              <button
+                type="button"
+                onClick={() => router.push("/auth/forgot-pass")}
+                className="text-xs text-primary hover:underline mt-1"
+              >
+                Forgot password?
+              </button>
             </div>
             {error && (
               <p className="text-sm text-destructive">{error}</p>
@@ -122,4 +129,3 @@ export default function Login() {
     </div>
   );
 }
-

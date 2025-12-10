@@ -1,4 +1,5 @@
 ﻿using matchCV_Project.Data;
+using matchCV_Project.Interfaces;
 using matchCV_Project.Models;
 using matchCV_Project.Models.Dtos;
 using matchCV_Project.Services;
@@ -16,171 +17,162 @@ namespace matchCV_Project.Controllers
     [Route("api/account")]
     public class AccountController : ControllerBase
     {
-        private readonly MatchCvContext _context;
-        private readonly EmailService _email;
+        private readonly IAccountService _service;
+        private readonly ILogger<AccountController> _logger;
 
-        public AccountController(MatchCvContext context, EmailService email)
+        public AccountController(IAccountService service, ILogger<AccountController> logger)
         {
-            _context = context;
-            _email = email;
+            _service = service;
+            _logger = logger;
         }
 
-        // -----------------------------
+        // -------------------------
         // REGISTER
-        // -----------------------------
+        // -------------------------
         [HttpPost("register")]
         public async Task<IActionResult> Register(RegisterRequestDto req)
         {
-            if (string.IsNullOrWhiteSpace(req.Email) || string.IsNullOrWhiteSpace(req.Password))
-                return BadRequest(new { message = "Email and password are required." });
+            var baseUrl = $"{Request.Scheme}://{Request.Host}";
+            Console.WriteLine(baseUrl);
+            var (success, error) = await _service.RegisterAsync(req, baseUrl);
+            if (!success)
+                return BadRequest(new { message = error });
 
-            if (_context.Users.Any(u => u.Email == req.Email))
-                return BadRequest(new { message = "Email already registered" });
-
-            var user = new User
-            {
-                DisplayName = req.DisplayName,
-                Email = req.Email,
-                Password = req.Password,
-                Role = req.Role,
-                Verified = false
-            };
-
-            _context.Users.Add(user);
-            await _context.SaveChangesAsync();
-
-            await SendVerificationEmail(user);
-
-            return Ok(new { message = "Registration complete. Check your email for verification." });
+            return Ok(new { message = "Registration complete. Check your email." });
         }
 
-        // -----------------------------
-        // EMAIL VERIFICATION
-        // -----------------------------
+        // -------------------------
+        // VERIFY EMAIL
+        // -------------------------
         [HttpGet("verify-email")]
-        public IActionResult VerifyEmail(int userId, string token)
+        public async Task<IActionResult> VerifyEmail(int userId, string token)
         {
-            var rec = _context.EmailVerificationTokens
-                        .Include(t => t.User)
-                        .FirstOrDefault(t => t.UserId == userId && t.Token == token);
+            var (success, error) = await _service.VerifyEmailAsync(userId, token);
 
-            if (rec == null || rec.ExpiresAt < DateTime.UtcNow)
-                return BadRequest(new { message = "Invalid or expired token." });
+            if (!success)
+                return BadRequest(new { message = error });
 
-            rec.User.Verified = true;
-            _context.EmailVerificationTokens.Remove(rec);
-            _context.SaveChanges();
-
-            return Ok(new { message = "Email verified successfully." });
+            return Redirect("http://localhost:3000/auth/login");
         }
 
-        private async Task SendVerificationEmail(User user)
-        {
-            var oldTokens = _context.EmailVerificationTokens.Where(t => t.UserId == user.Id);
-            _context.EmailVerificationTokens.RemoveRange(oldTokens);
-
-            var token = Guid.NewGuid().ToString("N");
-
-            var ev = new EmailVerificationToken
-            {
-                UserId = user.Id,
-                Token = token,
-                ExpiresAt = DateTime.UtcNow.AddHours(24)
-            };
-
-            _context.EmailVerificationTokens.Add(ev);
-            await _context.SaveChangesAsync();
-
-            var verifyUrl = $"{Request.Scheme}://{Request.Host}/api/account/verify-email?userId={user.Id}&token={token}";
-            var html = $"<p>Hello {user.DisplayName},</p><p>Verify your account: <a href=\"{verifyUrl}\">Verify Email</a></p>";
-
-            await _email.SendEmailAsync(user.Email, "Verify your account", html);
-        }
-
-        // -----------------------------
+        // -------------------------
         // LOGIN
-        // -----------------------------
+        // -------------------------
         [HttpPost("login")]
         public async Task<IActionResult> Login(LoginRequestDto req)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == req.Email);
+            var (user, error) = await _service.LoginAsync(req);
 
-            if (user == null || user.Password != req.Password)
-                return BadRequest(new { message = "Invalid email or password" });
+            if (user == null)
+            {
+                _logger.LogWarning("Login failed for email {Email}: {Error}", req.Email, error ?? "Unknown error");
+                return BadRequest(new { message = error });
+            }
 
-            if (!user.Verified)
-                return BadRequest(new { message = "Please verify your email first." });
-
-            await SignInUser(user);
+            await SignIn(user);
 
             return Ok(new
             {
                 message = "Login successful",
-                user = new
-                {
-                    user.Id,
-                    user.Email,
-                    user.DisplayName,
-                    user.Role
-                }
+                user = new { user.Id, user.Email, user.DisplayName, user.Role }
             });
         }
 
-        // -----------------------------
-        // UPDATE PROFILE (display name / email)
-        // -----------------------------
-        [HttpPut("update-profile")]
-        [HttpPost("update-profile")] // accept POST for clients that block PUT
-        public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequestDto req)
+        // -------------------------
+        // GOOGLE LOGIN
+        // -------------------------
+        [HttpGet("google")]
+        public IActionResult GoogleLogin()
         {
-            if (HttpContext.User?.Identity?.IsAuthenticated != true)
-                return Unauthorized(new { message = "Not logged in" });
+            var redirectUrl = Url.Action("GoogleCallback");
+            var props = new AuthenticationProperties { RedirectUri = redirectUrl };
 
-            var userIdClaim = HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (!int.TryParse(userIdClaim, out var userId))
-                return Unauthorized(new { message = "Invalid session" });
+            return Challenge(props, GoogleDefaults.AuthenticationScheme);
+        }
 
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
-            if (user == null)
-                return Unauthorized(new { message = "User not found" });
+        [HttpGet("google-callback")]
+        public async Task<IActionResult> GoogleCallback()
+        {
+            var result = await HttpContext.AuthenticateAsync(GoogleDefaults.AuthenticationScheme);
+            if (result?.Principal == null)
+                return BadRequest(new { message = "Google authentication failed" });
 
-            if (!string.IsNullOrWhiteSpace(req.Email) && !req.Email.Equals(user.Email, StringComparison.OrdinalIgnoreCase))
+            var email = result.Principal.FindFirst(ClaimTypes.Email)?.Value;
+            var name = result.Principal.FindFirst(ClaimTypes.Name)?.Value;
+
+            if (email == null)
+                return BadRequest(new { message = "No email received" });
+
+            var existing = await _service.GetUserByEmailAsync(email);
+
+            if (existing != null)
             {
-                var emailExists = await _context.Users.AnyAsync(u => u.Email == req.Email && u.Id != user.Id);
-                if (emailExists)
-                    return BadRequest(new { message = "Email already in use." });
-
-                user.Email = req.Email;
+                await SignIn(existing);
+                return Redirect("http://localhost:3000/auth/google-success");
             }
 
-            if (!string.IsNullOrWhiteSpace(req.DisplayName))
-                user.DisplayName = req.DisplayName;
+            return Redirect($"http://localhost:3000/auth/choose-role?email={WebUtility.UrlEncode(email)}&name={WebUtility.UrlEncode(name)}");
+        }
 
-            user.UpdatedAt = DateTime.UtcNow;
-            await _context.SaveChangesAsync();
+        [HttpPost("google-complete")]
+        public async Task<IActionResult> GoogleComplete(GoogleSignupRequestDto req)
+        {
+            var user = await _service.CreateGoogleUserAsync(req.Email, req.Name, req.Role);
 
-            await SignInUser(user); // refresh auth cookie with updated claims
+            await SignIn(user);
 
             return Ok(new
             {
-                message = "Profile updated",
-                user = new
-                {
-                    user.Id,
-                    user.Email,
-                    user.DisplayName,
-                    user.Role
-                }
+                message = "Google signup complete",
+                user = new { user.Id, user.Email, user.DisplayName, user.Role }
             });
         }
 
-        private async Task SignInUser(User user)
+        // -------------------------
+        // ME
+        // -------------------------
+        [HttpGet("me")]
+        public async Task<IActionResult> Me()
+        {
+            var principal = HttpContext.User;
+
+            if (!principal.Identity?.IsAuthenticated ?? true)
+                return Unauthorized(new { message = "Not logged in" });
+
+            var idClaim = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (idClaim == null)
+                return Unauthorized(new { message = "Invalid session" });
+
+            var user = await _service.GetUserByIdAsync(int.Parse(idClaim));
+            if (user == null)
+                return Unauthorized(new { message = "Invalid session" });
+
+            return Ok(new
+            {
+                user = new { user.Id, user.Email, user.DisplayName, user.Role }
+            });
+        }
+
+        // -------------------------
+        // LOGOUT
+        // -------------------------
+        [HttpPost("logout")]
+        public async Task<IActionResult> Logout()
+        {
+            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            return Ok(new { message = "Logged out" });
+        }
+
+        // -------------------------
+        // HELPER: SIGN IN
+        // -------------------------
+        private async Task SignIn(User user)
         {
             var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                new Claim(ClaimTypes.Name, user.DisplayName ?? user.Email),
                 new Claim(ClaimTypes.Email, user.Email),
+                new Claim(ClaimTypes.Name, user.DisplayName ?? user.Email),
                 new Claim(ClaimTypes.Role, user.Role)
             };
 
@@ -198,114 +190,36 @@ namespace matchCV_Project.Controllers
             );
         }
 
-        // -----------------------------
-        // GOOGLE LOGIN
-        // -----------------------------
-        [HttpGet("google")]
-        public IActionResult GoogleLogin()
+        // ---------------------------------------------
+        // FORGOT PASSWORD (send reset email)
+        // POST: /api/account/forgot-password
+        // ---------------------------------------------
+        [HttpPost("forgot-password")]
+        public async Task<IActionResult> ForgotPassword(ForgotPasswordDto dto)
         {
-            var redirectUrl = Url.Action("GoogleCallback");
-            var properties = new AuthenticationProperties { RedirectUri = redirectUrl };
-            return Challenge(properties, GoogleDefaults.AuthenticationScheme);
+            var baseUrl = $"{Request.Scheme}://{Request.Host}";
+
+            var result = await _service.ForgotPasswordAsync(dto.Email, baseUrl);
+
+            if (!result.success)
+                return BadRequest(new { message = result.error });
+
+            return Ok(new { message = "Reset link sent to email." });
         }
 
-        [HttpGet("google-callback")]
-        public async Task<IActionResult> GoogleCallback()
+        // ---------------------------------------------
+        // RESET PASSWORD (validate token + update)
+        // POST: /api/account/reset-password
+        // ---------------------------------------------
+        [HttpPost("reset-password")]
+        public async Task<IActionResult> ResetPassword(ResetPasswordDto dto)
         {
-            var result = await HttpContext.AuthenticateAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            var result = await _service.ResetPasswordAsync(dto.Token, dto.NewPassword);
 
-            if (result?.Principal == null)
-                return BadRequest(new { message = "Google authentication failed" });
+            if (!result.success)
+                return BadRequest(new { message = result.error });
 
-            var email = result.Principal.FindFirst(ClaimTypes.Email)?.Value;
-            var name = result.Principal.FindFirst(ClaimTypes.Name)?.Value;
-
-            if (email == null)
-                return BadRequest(new { message = "No email received from Google" });
-
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
-
-            // if user already exists → login
-            if (user != null)
-            {
-                await SignInUser(user);
-                return Redirect("http://localhost:3000/auth/google-success");
-            }
-
-            var encodedEmail = WebUtility.UrlEncode(email);
-            var encodedName = WebUtility.UrlEncode(name);
-
-            // requires frontend to choose role
-            return Redirect($"http://localhost:3000/auth/choose-role?email={encodedEmail}&name={encodedName}");
-        }
-
-        [HttpPost("google-complete")]
-        public async Task<IActionResult> CompleteGoogleSignup(GoogleSignupRequestDto req)
-        {
-            var user = new User
-            {
-                DisplayName = req.Name,
-                Email = req.Email,
-                Password = Guid.NewGuid().ToString("N"),
-                Role = req.Role,
-                Verified = true
-            };
-
-            _context.Users.Add(user);
-            await _context.SaveChangesAsync();
-
-            await SignInUser(user);
-
-            return Ok(new
-            {
-                message = "Google signup complete",
-                user = new
-                {
-                    user.Id,
-                    user.Email,
-                    user.DisplayName,
-                    user.Role
-                }
-            });
-        }
-
-        [HttpGet("me")]
-        public IActionResult Me()
-        {
-            var userPrincipal = HttpContext.User;
-
-            if (userPrincipal?.Identity?.IsAuthenticated != true)
-                return Unauthorized(new { message = "Not logged in" });
-
-            var id = userPrincipal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var email = userPrincipal.FindFirst(ClaimTypes.Email)?.Value;
-            var displayName = userPrincipal.FindFirst(ClaimTypes.Name)?.Value;
-            var role = userPrincipal.FindFirst(ClaimTypes.Role)?.Value;
-
-            if (id == null)
-                return Unauthorized(new { message = "Invalid session" });
-
-            return Ok(new
-            {
-                user = new
-                {
-                    Id = int.Parse(id),
-                    Email = email,
-                    DisplayName = displayName,
-                    Role = role
-                }
-            });
-        }
-
-
-        // -----------------------------
-        // LOGOUT
-        // -----------------------------
-        [HttpPost("logout")]
-        public async Task<IActionResult> Logout()
-        {
-            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-            return Ok(new { message = "Logged out" });
+            return Ok(new { message = "Password has been reset successfully." });
         }
     }
 }
