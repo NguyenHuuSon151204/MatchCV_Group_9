@@ -1,6 +1,6 @@
 'use client'
 
-import { useContext } from 'react'
+import { useContext, useEffect, useState } from 'react'
 import {
   LayoutDashboard,
   FileText,
@@ -10,9 +10,10 @@ import {
   Settings,
   Briefcase,
   Plus,
-  Users
+  Users,
+  Bookmark
 } from 'lucide-react'
-import { NavLink } from 'react-router-dom'
+import { NavLink, useLocation } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { AuthContext } from '@/contexts/AuthContext'
 
@@ -22,7 +23,6 @@ const candidateNav = [
   { label: 'JD Analyzer', path: '/app/jd-analyzer', icon: BarChart3 },
   { label: 'AI Rewrite', path: '/app/ai-rewrite', icon: Sparkles },
   { label: 'Export', path: '/app/export', icon: Download },
-  { label: 'Find Jobs', path: '/app/jobs', icon: Briefcase },
   { label: 'Settings', path: '/app/settings', icon: Settings },
 ]
 
@@ -42,6 +42,20 @@ export function Sidebar({ isMobileOpen, onClose }: SidebarProps) {
   const { user } = useContext(AuthContext) || {}
   const role = user?.role || 'Candidate'
   const navItems = role === 'Recruiter' ? recruiterNav : candidateNav
+  const location = useLocation()
+  const [jobsOpen, setJobsOpen] = useState(false)
+
+  const jobLinks = [
+    { label: 'Find Jobs', path: '/app/jobs' },
+    { label: 'Saved JDs', path: '/app/saved-jds' },
+    { label: 'Applied Jobs', path: '/app/applied-jobs' },
+  ]
+
+  useEffect(() => {
+    if (location.pathname.startsWith('/app/jobs')) {
+      setJobsOpen(true)
+    }
+  }, [location.pathname])
 
   return (
     <>
@@ -93,6 +107,42 @@ export function Sidebar({ isMobileOpen, onClose }: SidebarProps) {
                 </NavLink>
               )
             })}
+            {/* Jobs parent + children */}
+            <button
+              className={cn(
+                'flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-semibold transition-all',
+                location.pathname.startsWith('/app/jobs')
+                  ? 'bg-sidebar-accent text-sidebar-accent-foreground shadow-lg shadow-primary/20'
+                  : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground'
+              )}
+              onClick={() => {
+                setJobsOpen((prev) => !prev)
+              }}
+            >
+              <Briefcase className="size-5" />
+              Jobs
+            </button>
+            {jobsOpen && (
+              <div className="ml-4 space-y-1">
+                {jobLinks.map((item) => (
+                  <NavLink
+                    key={item.path}
+                    to={item.path}
+                    className={({ isActive }) =>
+                      cn(
+                        'flex items-center gap-2 rounded-xl px-4 py-2 text-sm transition-all',
+                        isActive
+                          ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                          : 'text-sidebar-foreground/60 hover:bg-sidebar-accent/40 hover:text-sidebar-accent-foreground'
+                      )
+                    }
+                    onClick={onClose}
+                  >
+                    {item.label}
+                  </NavLink>
+                ))}
+              </div>
+            )}
           </nav>
 
           <div className="border-t border-sidebar-border px-6 py-4">

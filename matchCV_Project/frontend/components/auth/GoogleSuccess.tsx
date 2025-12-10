@@ -14,7 +14,7 @@ export default function GoogleSuccess() {
 
   useEffect(() => {
     if (!loading) {
-      if (user) router.push("/auth/profile");
+      if (user) router.push("/app/dashboard");
       else router.push("/auth/login");
     }
   }, [loading, user, router]);

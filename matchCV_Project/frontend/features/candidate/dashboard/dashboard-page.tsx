@@ -5,7 +5,8 @@ import { ActivityList } from '@/components/common/activity-list'
 import { ScoreCircle } from '@/components/common/score-circle'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { dashboardService } from '@/lib/services/dashboard-service'
-import type { DashboardMetrics } from '@/lib/types'
+import { activityService } from '@/lib/services/activity-service'
+import type { ActivityItem, DashboardMetrics } from '@/lib/types'
 
 const metricConfig = [
   { key: 'totalCVs', label: 'Total CVs', accent: 'from-purple-500 to-indigo-500' },
@@ -17,12 +18,14 @@ const metricConfig = [
 export function DashboardPage() {
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null)
   const [loading, setLoading] = useState(true)
+  const [activity, setActivity] = useState<ActivityItem[]>([])
 
   useEffect(() => {
     dashboardService
       .getMetrics()
       .then(setMetrics)
       .finally(() => setLoading(false))
+    setActivity(activityService.list())
   }, [])
 
   return (
@@ -86,7 +89,7 @@ export function DashboardPage() {
             <CardDescription>Track how you interact with AI workflows.</CardDescription>
           </CardHeader>
           <CardContent>
-            <ActivityList items={metrics?.activity ?? []} />
+            <ActivityList items={activity} />
           </CardContent>
         </Card>
       </div>

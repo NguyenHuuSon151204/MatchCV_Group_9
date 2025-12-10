@@ -1,23 +1,99 @@
 'use client'
 
-import { useState } from 'react'
+import { useContext, useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
 import { useTheme } from '@/components/providers/theme-provider'
+import { AuthContext } from '@/contexts/AuthContext'
+import { useToastContext } from '@/contexts/toast-context'
 
 const languages = ['English', 'Vietnamese', 'Japanese']
 
 export function SettingsPage() {
   const { theme, toggleTheme } = useTheme()
+  const auth = useContext(AuthContext)
+  const toast = useToastContext()
+  const [saving, setSaving] = useState(false)
   const [profile, setProfile] = useState({
-    fullName: 'Nguyễn Anh',
-    email: 'anh.nguyen@example.com',
-    headline: 'Senior Frontend Engineer',
+    fullName: '',
+    email: '',
+    headline: '',
     bio: '',
+    avatarBase64: '',
   })
   const [language, setLanguage] = useState(languages[0])
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
+
+  const handleAvatarChange = (file?: File) => {
+    if (!file) return
+    const maxSize = 2 * 1024 * 1024 // 2MB
+    if (file.size > maxSize) {
+      toast.error('Avatar too large', 'Please choose an image under 2MB.')
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      const base64 = (reader.result as string).split(',')[1]
+      setProfile((prev) => ({ ...prev, avatarBase64: base64 }))
+      setAvatarPreview(`data:${file.type};base64,${base64}`)
+    }
+    reader.readAsDataURL(file)
+  }
+
+  useEffect(() => {
+    if (auth?.user) {
+      setProfile((prev) => ({
+        ...prev,
+        fullName: auth.user.displayName || '',
+        email: auth.user.email || '',
+      }))
+    }
+    const storedExtras = typeof window !== 'undefined' ? localStorage.getItem('matchcv-profile-extras') : null
+    if (storedExtras) {
+      try {
+        const parsed = JSON.parse(storedExtras)
+        setProfile((prev) => ({
+          ...prev,
+          headline: parsed.headline || '',
+          bio: parsed.bio || '',
+          avatarBase64: parsed.avatarBase64 || '',
+        }))
+        if (parsed.language && languages.includes(parsed.language)) {
+          setLanguage(parsed.language)
+        }
+        if (parsed.avatarBase64) {
+          setAvatarPreview(`data:image/png;base64,${parsed.avatarBase64}`)
+        }
+      } catch {
+        // ignore malformed storage
+      }
+    }
+  }, [auth?.user])
+
+  const handleSaveProfile = async () => {
+    if (!auth) return
+    setSaving(true)
+    try {
+      await auth.updateProfile({
+        displayName: profile.fullName,
+        email: profile.email,
+      })
+      localStorage.setItem(
+        'matchcv-profile-extras',
+        JSON.stringify({ headline: profile.headline, bio: profile.bio, language, avatarBase64: profile.avatarBase64 })
+      )
+      toast.success('Profile updated', 'Your profile changes have been saved.')
+    } catch (error: any) {
+      const message = error?.response?.data?.message || error?.message || 'Unable to update profile.'
+      toast.error('Update failed', message)
+    } finally {
+      setSaving(false)
+    }
+  }
 
   return (
     <section className="space-y-6">
@@ -34,8 +110,29 @@ export function SettingsPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center gap-4">
-              <div className="size-16 rounded-full bg-gradient-to-br from-primary to-primary/50" />
-              <Button variant="outline" className="rounded-full border-border/60">
+              <label className="relative">
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg"
+                  className="hidden"
+                  ref={fileInputRef}
+                  onChange={(e) => handleAvatarChange(e.target.files?.[0])}
+                />
+                <div className="size-16 cursor-pointer overflow-hidden rounded-full border border-border/60 bg-gradient-to-br from-primary to-primary/50">
+                  {avatarPreview ? (
+                    <img src={avatarPreview} alt="Avatar" className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-xs text-primary-foreground/70">
+                      Add
+                    </div>
+                  )}
+                </div>
+              </label>
+              <Button
+                variant="outline"
+                className="rounded-full border-border/60"
+                onClick={() => fileInputRef.current?.click()}
+              >
                 Upload Avatar
               </Button>
             </div>
@@ -60,7 +157,9 @@ export function SettingsPage() {
                 onChange={(e) => setProfile((prev) => ({ ...prev, bio: e.target.value }))}
               />
             </div>
-            <Button className="rounded-full">Save profile</Button>
+            <Button className="rounded-full" onClick={handleSaveProfile} disabled={saving}>
+              {saving ? 'Saving...' : 'Save profile'}
+            </Button>
           </CardContent>
         </Card>
 
@@ -82,6 +181,15 @@ export function SettingsPage() {
               <CardTitle className="text-lg">Preferences</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              <div className="flex items-center justify-between rounded-2xl border border-border/40 bg-background/30 px-4 py-3">
+                <div>
+                  <p className="text-sm font-semibold text-destructive">Logout</p>
+                  <p className="text-xs text-muted-foreground">Sign out of your account</p>
+                </div>
+                <Button variant="destructive" className="rounded-full" onClick={() => auth?.logout()}>
+                  Logout
+                </Button>
+              </div>
               <div className="flex items-center justify-between rounded-2xl border border-border/40 bg-background/30 px-4 py-3">
                 <div>
                   <p className="text-sm font-semibold">Theme</p>
@@ -113,5 +221,3 @@ export function SettingsPage() {
     </section>
   )
 }
-
-

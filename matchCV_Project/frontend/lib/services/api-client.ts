@@ -6,18 +6,12 @@ const apiClient = axios.create({
   withCredentials: true,
 })
 
-// Request interceptor: Add auth token and userId
+// Request interceptor: Add auth token.
 apiClient.interceptors.request.use((config) => {
   if (typeof window !== 'undefined') {
     const token = window.localStorage.getItem('matchcv-token')
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
-    }
-
-    // Add userId to query params if not already present
-    const userId = window.localStorage.getItem('matchcv-userId')
-    if (userId && !config.params?.userId) {
-      config.params = { ...config.params, userId: parseInt(userId, 10) }
     }
   }
   return config

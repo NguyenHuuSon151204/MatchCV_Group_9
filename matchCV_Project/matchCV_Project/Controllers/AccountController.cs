@@ -126,6 +126,54 @@ namespace matchCV_Project.Controllers
             });
         }
 
+        // -----------------------------
+        // UPDATE PROFILE (display name / email)
+        // -----------------------------
+        [HttpPut("update-profile")]
+        [HttpPost("update-profile")] // accept POST for clients that block PUT
+        public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequestDto req)
+        {
+            if (HttpContext.User?.Identity?.IsAuthenticated != true)
+                return Unauthorized(new { message = "Not logged in" });
+
+            var userIdClaim = HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(userIdClaim, out var userId))
+                return Unauthorized(new { message = "Invalid session" });
+
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            if (user == null)
+                return Unauthorized(new { message = "User not found" });
+
+            if (!string.IsNullOrWhiteSpace(req.Email) && !req.Email.Equals(user.Email, StringComparison.OrdinalIgnoreCase))
+            {
+                var emailExists = await _context.Users.AnyAsync(u => u.Email == req.Email && u.Id != user.Id);
+                if (emailExists)
+                    return BadRequest(new { message = "Email already in use." });
+
+                user.Email = req.Email;
+            }
+
+            if (!string.IsNullOrWhiteSpace(req.DisplayName))
+                user.DisplayName = req.DisplayName;
+
+            user.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
+            await SignInUser(user); // refresh auth cookie with updated claims
+
+            return Ok(new
+            {
+                message = "Profile updated",
+                user = new
+                {
+                    user.Id,
+                    user.Email,
+                    user.DisplayName,
+                    user.Role
+                }
+            });
+        }
+
         private async Task SignInUser(User user)
         {
             var claims = new List<Claim>

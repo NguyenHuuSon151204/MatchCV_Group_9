@@ -3,10 +3,9 @@
 import { useMemo, useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { formatDistanceToNow } from 'date-fns'
-import { Download, Plus, Sparkles, Trash2, Upload as UploadIcon, Search } from 'lucide-react'
+import { Bot, Download, Eye, Plus, Sparkles, Trash2, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { ScoreCircle } from '@/components/common/score-circle'
 import { StatusBadge } from '@/components/common/status-badge'
 import { CVCard } from '@/components/common/cv-card'
 import { useCV } from '@/hooks/useCV'
@@ -14,10 +13,11 @@ import { UploadCvModal } from '@/features/candidate/my-cvs/upload-cv-modal'
 import { CreateCvDialog } from '@/features/candidate/my-cvs/create-cv-dialog'
 import { CreateOptionDialog } from '@/features/candidate/my-cvs/create-option-dialog'
 import { EditOptionDialog } from '@/features/candidate/my-cvs/edit-option-dialog'
+import type { CVStatus } from '@/lib/types'
 
 export function MyCVsPage() {
   const navigate = useNavigate()
-  const { cvs, loading, createCV, analyzeCV, deleteCV, exportCV, refresh } = useCV()
+  const { cvs, loading, createCV, analyzeCV, deleteCV, exportCV, viewCV, refresh } = useCV()
   const [uploadOpen, setUploadOpen] = useState(false)
   const [createOpen, setCreateOpen] = useState(false)
   const [optionOpen, setOptionOpen] = useState(false)
@@ -25,6 +25,8 @@ export function MyCVsPage() {
   const [selectedCvId, setSelectedCvId] = useState<string | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState<'all' | CVStatus>('all')
+  const [sortBy, setSortBy] = useState<'newest' | 'oldest'>('newest')
 
   // Listen for CV saved event from CV Builder
   useEffect(() => {
@@ -41,22 +43,51 @@ export function MyCVsPage() {
 
   // Filter CVs based on search query
   const filteredCVs = useMemo(() => {
-    if (!searchQuery.trim()) {
-      return cvs
+    let result = cvs
+
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim()
+      result = result.filter(
+        (cv) =>
+          cv.name.toLowerCase().includes(query) ||
+          cv.position.toLowerCase().includes(query) ||
+          (cv.description && cv.description.toLowerCase().includes(query))
+      )
     }
-    const query = searchQuery.toLowerCase().trim()
-    return cvs.filter(
-      (cv) =>
-        cv.name.toLowerCase().includes(query) ||
-        cv.position.toLowerCase().includes(query) ||
-        (cv.description && cv.description.toLowerCase().includes(query))
-    )
-  }, [cvs, searchQuery])
+
+    if (statusFilter !== 'all') {
+      result = result.filter((cv) => cv.status === statusFilter)
+    }
+
+    const sorted = [...result].sort((a, b) => {
+      const dateA = Number.isNaN(Date.parse(a.modifiedAt)) ? 0 : Date.parse(a.modifiedAt)
+      const dateB = Number.isNaN(Date.parse(b.modifiedAt)) ? 0 : Date.parse(b.modifiedAt)
+
+      switch (sortBy) {
+        case 'oldest':
+          return dateA - dateB
+        case 'newest':
+        default:
+          return dateB - dateA
+      }
+    })
+
+    return sorted
+  }, [cvs, searchQuery, statusFilter, sortBy])
 
   const handleAnalyze = async (id: string) => {
     setBusyId(id)
     await analyzeCV(id)
     setBusyId(null)
+  }
+
+  const handleView = async (id: string) => {
+    setBusyId(id)
+    try {
+      await viewCV(id)
+    } finally {
+      setBusyId(null)
+    }
   }
 
   const handleExport = async (id: string, format: 'pdf' | 'docx' | 'json') => {
@@ -157,6 +188,34 @@ export function MyCVsPage() {
             className="w-full pl-12 pr-4"
           />
         </div>
+        <div className="mt-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+          <div className="flex items-center gap-2">
+            <label className="text-xs font-semibold text-muted-foreground">Status</label>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as 'all' | CVStatus)}
+              className="h-10 rounded-full border border-border bg-background/80 px-3 text-sm"
+            >
+              <option value="all">All</option>
+              <option value="draft">Draft</option>
+              <option value="uploaded">Uploaded</option>
+              <option value="analyzed">Analyzed</option>
+              <option value="submitted">Submitted</option>
+              <option value="activing">Activating</option>
+            </select>
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-xs font-semibold text-muted-foreground">Sort by</label>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+              className="h-10 rounded-full border border-border bg-background/80 px-3 text-sm"
+            >
+              <option value="newest">Newest</option>
+              <option value="oldest">Oldest</option>
+            </select>
+          </div>
+        </div>
         {searchQuery && (
           <p className="mt-2 text-sm text-muted-foreground">
             Found {filteredCVs.length} CV{filteredCVs.length !== 1 ? 's' : ''} matching "{searchQuery}"
@@ -172,7 +231,6 @@ export function MyCVsPage() {
                 <th className="px-6 py-4 text-left">CV Name</th>
                 <th className="px-6 py-4 text-left">Last Modified</th>
                 <th className="px-6 py-4 text-left">Status</th>
-                <th className="px-6 py-4 text-left">AI Score</th>
                 <th className="px-6 py-4 text-left">Actions</th>
               </tr>
             </thead>
@@ -210,20 +268,31 @@ export function MyCVsPage() {
                       {formatDistanceToNow(new Date(cv.modifiedAt), { addSuffix: true })}
                     </td>
                     <td className="px-6 py-4">
-                      <StatusBadge status={cv.status} />
-                    </td>
-                    <td className="px-6 py-4">
-                      <ScoreCircle score={cv.score} />
+                      <div className="flex items-center gap-2">
+                        <StatusBadge status={cv.status} />
+                        <span className="text-[11px] text-muted-foreground">
+                          {formatDistanceToNow(new Date(cv.modifiedAt), { addSuffix: true })}
+                        </span>
+                      </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex flex-wrap gap-2">
+                        <Button
+                          size="icon"
+                          className="rounded-full bg-green-500/20 text-green-600"
+                          variant="ghost"
+                          onClick={() => handleView(cv.id)}
+                          disabled={busyId === cv.id}
+                          aria-label="View CV"
+                        >
+                          <Eye className="size-4" />
+                        </Button>
                         <Button
                           size="sm"
                           className="rounded-full bg-blue-500/20 text-blue-600"
                           variant="ghost"
                           onClick={() => setEditOptionId(cv.id)}
                         >
-                          <Sparkles className="mr-1 size-4" />
                           Edit
                         </Button>
                         <Button
@@ -242,27 +311,28 @@ export function MyCVsPage() {
                           variant="ghost"
                           onClick={() => navigate('/app/ai-rewrite', { state: { cvId: cv.id } })}
                         >
+                          <Bot className="mr-1 size-4" />
                           Rewrite
                         </Button>
                         <Button
-                          size="sm"
+                          size="icon"
                           className="rounded-full bg-muted/40 text-muted-foreground"
                           variant="ghost"
                           onClick={() => handleExport(cv.id, 'pdf')}
+                          aria-label="Export CV"
                         >
-                          <Download className="mr-1 size-4" />
-                          Export
+                          <Download className="size-4" />
                         </Button>
 
                         <Button
-                          size="sm"
+                          size="icon"
                           variant="ghost"
                           className="rounded-full text-destructive"
                           onClick={() => handleDelete(cv.id)}
                           disabled={busyId === cv.id}
+                          aria-label="Delete CV"
                         >
-                          <Trash2 className="mr-1 size-4" />
-                          Delete
+                          <Trash2 className="size-4" />
                         </Button>
                       </div>
                     </td>
@@ -295,6 +365,7 @@ export function MyCVsPage() {
               <CVCard
                 key={cv.id}
                 cv={cv}
+                onView={handleView}
                 onEdit={(id) => setEditOptionId(id)}
                 onAnalyze={handleAnalyze}
                 onRewrite={(id) => navigate('/ai-rewrite', { state: { cvId: id } })}

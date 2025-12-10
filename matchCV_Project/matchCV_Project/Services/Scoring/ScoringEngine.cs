@@ -76,7 +76,8 @@ public class ScoringEngine
         result.Breakdown["redflag"] = redflagPenalty;
         total += redflagPenalty;
 
-        result.TotalScore = Math.Clamp(total, 0, 100);
+        // Make scoring stricter: scale down to avoid generous totals
+        result.TotalScore = Math.Clamp((int)(total * 0.85), 0, 100);
         return result;
     }
 

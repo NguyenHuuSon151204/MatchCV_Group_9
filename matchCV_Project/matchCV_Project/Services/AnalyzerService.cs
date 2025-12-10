@@ -3,7 +3,9 @@ using matchCV_Project.Interfaces;
 using matchCV_Project.Models;
 using matchCV_Project.Models.Dtos;
 using matchCV_Project.Services.Scoring;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
+using System.IO;
 
 namespace matchCV_Project.Services;
 
@@ -12,12 +14,21 @@ public class AnalyzerService : IAnalyzerService
     private readonly MatchCvContext _context;
     private readonly ILogger<AnalyzerService> _logger;
     private readonly ScoringEngine _scoringEngine;
+    private readonly IPdfExtractionService _pdfExtraction;
+    private readonly IWebHostEnvironment _env;
 
-    public AnalyzerService(MatchCvContext context, ILogger<AnalyzerService> logger, ScoringEngine scoringEngine)
+    public AnalyzerService(
+        MatchCvContext context,
+        ILogger<AnalyzerService> logger,
+        ScoringEngine scoringEngine,
+        IPdfExtractionService pdfExtraction,
+        IWebHostEnvironment env)
     {
         _context = context;
         _logger = logger;
         _scoringEngine = scoringEngine;
+        _pdfExtraction = pdfExtraction;
+        _env = env;
     }
 
     public async Task<AnalysisResultDto> AnalyzeDocumentAsync(int documentId)
@@ -96,6 +107,64 @@ public class AnalyzerService : IAnalyzerService
             _logger.LogError($"Error calculating job match: {ex.Message}");
             throw;
         }
+    }
+
+    /// <summary>
+    /// Score a stored CV (Document) against a Job using weight-matrix (ScoringEngine)
+    /// </summary>
+    public async Task<ScoringResult> ScoreDocumentVsJobAsync(int documentId, int jobId, string industry = "IT", string level = "Mid")
+    {
+        var document = await _context.Documents.FirstOrDefaultAsync(d => d.Id == documentId);
+        var job = await _context.Jobs.FirstOrDefaultAsync(j => j.Id == jobId);
+
+        if (document == null || job == null)
+            throw new ArgumentException("Document or Job not found");
+
+        var cvText = await GetCvTextAsync(document);
+        if (string.IsNullOrWhiteSpace(cvText))
+        {
+            _logger.LogWarning("Document {DocumentId} has empty content. Returning zero score.", documentId);
+            return new ScoringResult
+            {
+                TotalScore = 0,
+                Breakdown = new Dictionary<string, int>
+                {
+                    ["keyword"] = 0,
+                    ["experience"] = 0,
+                    ["achievement"] = 0,
+                    ["portfolio"] = 0,
+                    ["leadership"] = 0,
+                    ["certification"] = 0,
+                    ["salary"] = 0,
+                    ["redflag"] = 0
+                },
+                Highlights = new List<string>(),
+                Warnings = new List<string> { "CV content is empty. Please upload a valid CV before analyzing." }
+            };
+        }
+
+        var jobText = job.JobDescription ?? job.RawText ?? job.Title ?? string.Empty;
+
+        var candidateInput = new CandidateScoringInput
+        {
+            CvText = cvText,
+            PortfolioUrl = "",
+            ExpectedSalary = null,
+            GithubUsername = null
+        };
+
+        var jobInput = new JobScoringInput
+        {
+            JdText = jobText,
+            Industry = industry,
+            Level = level,
+            BudgetMin = null,
+            BudgetMax = null
+        };
+
+        var result = await _scoringEngine.CalculateAsync(candidateInput, jobInput);
+        _logger.LogInformation("Scored document {DocumentId} vs job {JobId}. Score: {Score}", documentId, jobId, result.TotalScore);
+        return result;
     }
 
     private float CalculateMockScore(Document document)
@@ -177,6 +246,19 @@ public class AnalyzerService : IAnalyzerService
             _logger.LogError(ex, "Error scoring CV against JD");
             throw;
         }
+    }
+
+    private async Task<string> GetCvTextAsync(Document document)
+    {
+        if (!string.IsNullOrWhiteSpace(document.Content))
+            return document.Content;
+
+        if (string.IsNullOrWhiteSpace(document.StoragePath))
+            return string.Empty;
+
+        var webRoot = _env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+        var fullPath = Path.Combine(webRoot, document.StoragePath);
+        return await _pdfExtraction.ExtractTextFromPdfAsync(fullPath);
     }
 }
 

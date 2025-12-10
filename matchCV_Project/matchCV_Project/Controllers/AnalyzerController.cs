@@ -60,6 +60,49 @@ public class AnalyzerController : ControllerBase
     }
 
     /// <summary>
+    /// Score a stored CV (Document) against a Job using weight-matrix
+    /// </summary>
+    [HttpPost("score-document")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> ScoreDocumentVsJob([FromBody] ScoreDocumentRequestDto request)
+    {
+        try
+        {
+          if (request.DocumentId <= 0 || request.JobId <= 0)
+              return BadRequest(BaseResponseDto<ScoringResult>.FailureResponse("DocumentId and JobId are required"));
+
+          var result = await _analyzerService.ScoreDocumentVsJobAsync(
+              request.DocumentId,
+              request.JobId,
+              request.Industry ?? "IT",
+              request.Level ?? "Mid"
+          );
+
+          return Ok(BaseResponseDto<ScoringResult>.SuccessResponse(
+              result,
+              "CV scored successfully"
+          ));
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Invalid request to score document {DocumentId} vs job {JobId}", request.DocumentId, request.JobId);
+            return BadRequest(BaseResponseDto<ScoringResult>.FailureResponse(ex.Message));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error scoring document {DocumentId} vs job {JobId}", request.DocumentId, request.JobId);
+            return StatusCode(
+                StatusCodes.Status500InternalServerError,
+                BaseResponseDto<ScoringResult>.FailureResponse(
+                    "An error occurred while scoring the CV. Please try again later."
+                )
+            );
+        }
+    }
+
+    /// <summary>
     /// Analyze a document by ID
     /// </summary>
     [HttpPost("analyze/{documentId}")]
@@ -119,5 +162,16 @@ public class ScoreCvRequestDto
     /// Job level (Junior, Mid, Senior, Manager, etc.)
     /// Default: Mid
     /// </summary>
+    public string? Level { get; set; }
+}
+
+/// <summary>
+/// Request DTO for scoring a stored Document against a Job
+/// </summary>
+public class ScoreDocumentRequestDto
+{
+    public int DocumentId { get; set; }
+    public int JobId { get; set; }
+    public string? Industry { get; set; }
     public string? Level { get; set; }
 }

@@ -20,8 +20,8 @@ export function CreateCvDialog({ open, onClose, onCreate }: CreateCvDialogProps)
     })
 
     const handleSubmit = async () => {
-        if (!formData.name || !formData.fullName || !formData.position) {
-            return // Add validation if needed
+    if (!formData.name.trim()) {
+            return // Require only CV name
         }
 
         setLoading(true)
@@ -42,7 +42,7 @@ export function CreateCvDialog({ open, onClose, onCreate }: CreateCvDialogProps)
             open={open}
             onClose={onClose}
             title="Create New CV"
-            description="Enter the details for your new CV."
+            description="Just name your CV. Other fields are optional."
             footer={
                 <>
                     <Button variant="outline" onClick={onClose}>
@@ -68,7 +68,7 @@ export function CreateCvDialog({ open, onClose, onCreate }: CreateCvDialogProps)
 
                 <div className="space-y-2">
                     <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                        Your Full Name
+                        Your Full Name (optional)
                     </label>
                     <Input
                         placeholder="e.g. John Doe"
@@ -79,7 +79,7 @@ export function CreateCvDialog({ open, onClose, onCreate }: CreateCvDialogProps)
 
                 <div className="space-y-2">
                     <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                        Target Position
+                        Target Position (optional)
                     </label>
                     <Input
                         placeholder="e.g. Senior Software Engineer"
@@ -90,7 +90,7 @@ export function CreateCvDialog({ open, onClose, onCreate }: CreateCvDialogProps)
 
                 <div className="space-y-2">
                     <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                        Description (Optional)
+                        Description (optional)
                     </label>
                     <Textarea
                         placeholder="Briefly describe what this CV is for..."

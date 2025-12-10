@@ -8,6 +8,9 @@ interface ActivityListProps {
 export function ActivityList({ items }: ActivityListProps) {
   return (
     <div className="space-y-3">
+      {items.length === 0 && (
+        <p className="text-sm text-muted-foreground">No recent activity yet.</p>
+      )}
       {items.map((activity) => (
         <div
           key={activity.id}

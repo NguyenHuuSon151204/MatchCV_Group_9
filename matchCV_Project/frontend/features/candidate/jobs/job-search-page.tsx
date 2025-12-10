@@ -78,7 +78,7 @@ export function JobSearchPage() {
         ) : (
           filteredJobs.map((job) => <JobCard key={job.id} job={job} onViewDetails={() => {
             localStorage.setItem('selectedJob', JSON.stringify(job))
-            navigate(`/jobs/${job.id}`)
+            navigate(`/app/jobs/${job.id}`)
           }} />)
         )}
       </div>

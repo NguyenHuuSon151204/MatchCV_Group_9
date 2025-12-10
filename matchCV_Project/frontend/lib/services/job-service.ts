@@ -1,6 +1,13 @@
 import apiClient from '@/lib/services/api-client'
 import { CreateJobInput, Job, UpdateJobInput } from '@/lib/types'
 
+// Backend trả về dạng BaseResponseDto<T>
+interface BaseResponseDto<T> {
+  success: boolean
+  message: string
+  data: T
+}
+
 // Backend JobDto structure
 interface JobDto {
   Id: number
@@ -27,6 +34,21 @@ function mapJobDtoToJob(dto: JobDto | any): Job {
     createdAt: dto.CreatedAt ?? dto.createdAt,
     updatedAt: dto.UpdatedAt ?? dto.updatedAt,
   }
+}
+
+// Unwrap API responses that might be raw arrays or BaseResponseDto-wrapped
+const unwrapJobArray = (payload: any): JobDto[] => {
+  if (Array.isArray(payload)) return payload
+  if (payload?.data && Array.isArray(payload.data)) return payload.data
+  if (payload?.Data && Array.isArray(payload.Data)) return payload.Data
+  return []
+}
+
+const unwrapJob = (payload: any): JobDto | null => {
+  if (!payload) return null
+  if (payload?.data && !Array.isArray(payload.data)) return payload.data as JobDto
+  if (payload?.Data && !Array.isArray(payload.Data)) return payload.Data as JobDto
+  return payload as JobDto
 }
 
 async function withFallback<T>(request: () => Promise<T>, fallback: () => Promise<T>): Promise<T> {
@@ -64,6 +86,7 @@ let jobStore: Job[] = [
 ]
 
 export const jobService = {
+  // FIXED: Bóc đúng response.data.data từ BaseResponseDto
   async getJobs(searchTerm?: string, status?: string, userId?: number): Promise<Job[]> {
     return withFallback(
       async () => {
@@ -72,8 +95,9 @@ export const jobService = {
         if (status) params.status = status
         if (userId) params.userId = userId
 
-        const response = await apiClient.get<JobDto[]>(`/job/search`, { params })
-        return Array.isArray(response.data) ? response.data.map(mapJobDtoToJob) : []
+        const response = await apiClient.get<JobDto[] | BaseResponseDto<JobDto[]>>('/job/search', { params })
+        const jobs = unwrapJobArray(response.data)
+        return jobs.map(mapJobDtoToJob)
       },
       async () => {
         await delay(300)
@@ -98,11 +122,13 @@ export const jobService = {
     )
   },
 
+  // FIXED: getUserJobs
   async getUserJobs(userId: number): Promise<Job[]> {
     return withFallback(
       async () => {
-        const response = await apiClient.get<JobDto[]>(`/job/user/${userId}`)
-        return Array.isArray(response.data) ? response.data.map(mapJobDtoToJob) : []
+        const response = await apiClient.get<JobDto[] | BaseResponseDto<JobDto[]>>(`/job/user/${userId}`)
+        const jobs = unwrapJobArray(response.data)
+        return jobs.map(mapJobDtoToJob)
       },
       async () => {
         await delay(300)
@@ -111,14 +137,18 @@ export const jobService = {
     )
   },
 
+  // FIXED: getJob
   async getJob(id: number): Promise<Job | null> {
     return withFallback(
       async () => {
-        const userId = typeof window !== 'undefined' ? window.localStorage.getItem('matchcv-userId') : null
-        const response = await apiClient.get<JobDto>(`/job/${id}`, {
-          params: userId ? { userId: parseInt(userId, 10) } : {},
+        const userIdStr = typeof window !== 'undefined' ? window.localStorage.getItem('matchcv-userId') : null
+        const userId = userIdStr ? parseInt(userIdStr, 10) : null
+
+        const response = await apiClient.get<JobDto | BaseResponseDto<JobDto>>(`/job/${id}`, {
+          params: userId ? { userId } : {},
         })
-        return mapJobDtoToJob(response.data)
+        const job = unwrapJob(response.data)
+        return job ? mapJobDtoToJob(job) : null
       },
       async () => {
         await delay(200)
@@ -127,22 +157,26 @@ export const jobService = {
     )
   },
 
+  // FIXED: createJob
   async createJob(payload: CreateJobInput): Promise<Job> {
     return withFallback(
       async () => {
-        const userId = typeof window !== 'undefined' ? window.localStorage.getItem('matchcv-userId') : null
-        if (!userId) {
-          throw new Error('User ID not found')
-        }
-        const response = await apiClient.post<JobDto>('/job/create', {
+        const userIdStr = typeof window !== 'undefined' ? window.localStorage.getItem('matchcv-userId') : null
+        if (!userIdStr) throw new Error('User ID not found')
+        const userId = parseInt(userIdStr, 10)
+
+        const response = await apiClient.post<JobDto | BaseResponseDto<JobDto>>('/job/create', {
           Title: payload.title,
           Company: payload.company,
           JobDescription: payload.jobDescription,
           RawText: payload.rawText,
         }, {
-          params: { userId: parseInt(userId, 10) },
+          params: { userId },
         })
-        return mapJobDtoToJob(response.data)
+
+        const job = unwrapJob(response.data)
+        if (!job) throw new Error('Invalid create job response')
+        return mapJobDtoToJob(job)
       },
       async () => {
         await delay(250)
@@ -163,45 +197,50 @@ export const jobService = {
     )
   },
 
+  // FIXED: updateJob
   async updateJob(payload: UpdateJobInput): Promise<Job> {
     return withFallback(
       async () => {
-        const userId = typeof window !== 'undefined' ? window.localStorage.getItem('matchcv-userId') : null
-        if (!userId) {
-          throw new Error('User ID not found')
-        }
-        const response = await apiClient.put<JobDto>(`/job/${payload.id}`, {
+        const userIdStr = typeof window !== 'undefined' ? window.localStorage.getItem('matchcv-userId') : null
+        if (!userIdStr) throw new Error('User ID not found')
+        const userId = parseInt(userIdStr, 10)
+
+        const response = await apiClient.put<JobDto | BaseResponseDto<JobDto>>(`/job/${payload.id}`, {
           Title: payload.title,
           Company: payload.company,
           JobDescription: payload.jobDescription,
           RawText: payload.rawText,
           Status: payload.status,
         }, {
-          params: { userId: parseInt(userId, 10) },
+          params: { userId },
         })
-        return mapJobDtoToJob(response.data)
+
+        const job = unwrapJob(response.data)
+        if (!job) throw new Error('Invalid update job response')
+        return mapJobDtoToJob(job)
       },
       async () => {
         await delay(200)
-        jobStore = jobStore.map((job) => (job.id === payload.id ? { ...job, ...payload } : job))
+        jobStore = jobStore.map((job) =>
+          job.id === payload.id ? { ...job, ...payload } : job
+        )
         const updated = jobStore.find((job) => job.id === payload.id)
-        if (!updated) {
-          throw new Error('Job not found')
-        }
+        if (!updated) throw new Error('Job not found')
         return updated
       }
     )
   },
 
+  // deleteJob không cần trả data → giữ nguyên
   async deleteJob(id: number): Promise<void> {
     return withFallback(
       async () => {
-        const userId = typeof window !== 'undefined' ? window.localStorage.getItem('matchcv-userId') : null
-        if (!userId) {
-          throw new Error('User ID not found')
-        }
+        const userIdStr = typeof window !== 'undefined' ? window.localStorage.getItem('matchcv-userId') : null
+        if (!userIdStr) throw new Error('User ID not found')
+        const userId = parseInt(userIdStr, 10)
+
         await apiClient.delete(`/job/${id}`, {
-          params: { userId: parseInt(userId, 10) },
+          params: { userId },
         })
       },
       async () => {
@@ -211,20 +250,24 @@ export const jobService = {
     )
   },
 
+  // FIXED: uploadJob
   async uploadJob(file: File): Promise<Job> {
     return withFallback(
       async () => {
-        const userId = typeof window !== 'undefined' ? window.localStorage.getItem('matchcv-userId') : null
-        if (!userId) {
-          throw new Error('User ID not found')
-        }
+        const userIdStr = typeof window !== 'undefined' ? window.localStorage.getItem('matchcv-userId') : null
+        if (!userIdStr) throw new Error('User ID not found')
+        const userId = parseInt(userIdStr, 10)
+
         const formData = new FormData()
         formData.append('file', file)
 
-        const response = await apiClient.post<JobDto>(`/job/upload`, formData, {
-          params: { userId: parseInt(userId, 10) },
+        const response = await apiClient.post<JobDto | BaseResponseDto<JobDto>>('/job/upload', formData, {
+          params: { userId },
         })
-        return mapJobDtoToJob(response.data)
+
+        const job = unwrapJob(response.data)
+        if (!job) throw new Error('Invalid upload job response')
+        return mapJobDtoToJob(job)
       },
       async () => {
         await delay(600)
@@ -245,4 +288,3 @@ export const jobService = {
     )
   },
 }
-

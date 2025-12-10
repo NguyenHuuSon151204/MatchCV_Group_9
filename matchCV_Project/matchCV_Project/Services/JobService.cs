@@ -59,7 +59,7 @@ public class JobService : IJobService
         if (job == null)
             throw new ArgumentException($"Job with ID {id} not found");
 
-        // Allow access if user owns the job or if it's public (Active status)
+        // Chỉ cho phép truy cập nếu: là chủ job HOẶC job đang Active (public)
         if (job.UserId != userId && job.Status != "Active")
             throw new UnauthorizedAccessException("You are not allowed to access this job");
 
@@ -72,17 +72,28 @@ public class JobService : IJobService
         return jobs.Select(MapToDto).ToList();
     }
 
+    // ĐÃ SỬA HOÀN CHỈNH - ĐÂY LÀ CHÌA KHÓA!
     public async Task<IEnumerable<JobDto>> SearchJobsAsync(string? searchTerm, string? status = null, int? userId = null)
     {
+        // Lấy danh sách job từ repository (có thể đã filter theo searchTerm)
         var jobs = await _jobRepository.SearchJobsAsync(searchTerm, status);
-        
-        // Filter by userId if provided
-        if (userId.HasValue)
+
+        // QUY TẮC MỚI - RÕ RÀNG, CHUẨN XÁC:
+        // 1. Nếu KHÔNG truyền userId → Là Candidate → Chỉ hiện job Active
+        // 2. Nếu CÓ truyền userId → Là Recruiter → Chỉ hiện job của mình (kể cả Inactive)
+        if (!userId.HasValue)
+        {
+            jobs = jobs.Where(j => j.Status == "Active");
+        }
+        else
         {
             jobs = jobs.Where(j => j.UserId == userId.Value);
         }
 
-        return jobs.Select(MapToDto).ToList();
+        return jobs
+            .OrderByDescending(j => j.CreatedAt)
+            .Select(MapToDto)
+            .ToList();
     }
 
     public async Task<JobDto> UpdateJobAsync(int id, UpdateJobDto dto, int userId)
@@ -136,14 +147,12 @@ public class JobService : IJobService
 
         try
         {
-            // Save file temporarily
             var tempPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString() + Path.GetExtension(file.FileName));
             using (var stream = new FileStream(tempPath, FileMode.Create))
             {
                 await file.CopyToAsync(stream);
             }
 
-            // Extract text from PDF
             string extractedText = string.Empty;
             if (file.ContentType == "application/pdf" || Path.GetExtension(file.FileName).ToLower() == ".pdf")
             {
@@ -154,16 +163,14 @@ public class JobService : IJobService
                 extractedText = await File.ReadAllTextAsync(tempPath);
             }
 
-            // Clean up temp file
             if (File.Exists(tempPath))
                 File.Delete(tempPath);
 
-            // Create job from extracted text
             var job = new Job
             {
                 UserId = userId,
-                Title = ExtractJobTitle(extractedText) ?? file.FileName,
-                Company = ExtractCompany(extractedText) ?? "Unknown",
+                Title = ExtractJobTitle(extractedText) ?? "Job from file upload",
+                Company = ExtractCompany(extractedText) ?? "Unknown Company",
                 RawText = extractedText,
                 JobDescription = extractedText,
                 Status = "Active",
@@ -186,12 +193,11 @@ public class JobService : IJobService
 
     private string? ExtractJobTitle(string text)
     {
-        // Simple extraction - look for common patterns
         var lines = text.Split('\n', StringSplitOptions.RemoveEmptyEntries);
         if (lines.Length > 0)
         {
             var firstLine = lines[0].Trim();
-            if (firstLine.Length > 0 && firstLine.Length < 100)
+            if (firstLine.Length > 0 && firstLine.Length < 150)
                 return firstLine;
         }
         return null;
@@ -199,8 +205,7 @@ public class JobService : IJobService
 
     private string? ExtractCompany(string text)
     {
-        // Look for company patterns
-        var companyPatterns = new[] { "Company:", "Employer:", "Organization:" };
+        var companyPatterns = new[] { "Company:", "Employer:", "Organization:", "Công ty:", "Nhà tuyển dụng:" };
         foreach (var pattern in companyPatterns)
         {
             var index = text.IndexOf(pattern, StringComparison.OrdinalIgnoreCase);
@@ -233,4 +238,3 @@ public class JobService : IJobService
         };
     }
 }
-

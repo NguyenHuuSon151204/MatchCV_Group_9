@@ -10,6 +10,9 @@ import { ExportPage } from '@/features/candidate/export/export-page'
 import { SettingsPage } from '@/features/candidate/settings/settings-page'
 import { JobSearchPage } from '@/features/candidate/jobs/job-search-page'
 import { JobDetailsPage } from '@/features/candidate/jobs/job-details-page'
+import { SavedJDsPage } from '@/features/candidate/saved-jds/saved-jds-page'
+import { AppliedJobsPage } from '@/features/candidate/jobs/applied-jobs-page'
+import { JobsHubPage } from '@/features/candidate/jobs/jobs-hub-page'
 import { PostJobPage } from '@/features/admin/jobs/post-job-page'
 import LiveCVBuilder from '@/src/components/LiveCV/LiveCVBuilder'
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
@@ -37,8 +40,11 @@ export function appRouter() {
               { path: 'ai-rewrite', element: <AIRewritePage /> },
               { path: 'export', element: <ExportPage /> },
               { path: 'settings', element: <SettingsPage /> },
+              { path: 'jobs-hub', element: <JobsHubPage /> },
               { path: 'jobs', element: <JobSearchPage /> },
               { path: 'jobs/:jobId', element: <JobDetailsPage /> },
+              { path: 'saved-jds', element: <SavedJDsPage /> },
+              { path: 'applied-jobs', element: <AppliedJobsPage /> },
               { path: 'post-job', element: <PostJobPage /> },
             ]
           },

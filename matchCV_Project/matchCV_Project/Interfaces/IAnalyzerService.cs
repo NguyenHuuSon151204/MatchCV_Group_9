@@ -8,5 +8,5 @@ public interface IAnalyzerService
     Task<AnalysisResultDto> AnalyzeDocumentAsync(int documentId);
     Task<float> CalculateJobMatchScoreAsync(int documentId, int jobId);
     Task<ScoringResult> ScoreCvVsJobAsync(string cvText, string jobDescription, string industry = "IT", string level = "Mid");
+    Task<ScoringResult> ScoreDocumentVsJobAsync(int documentId, int jobId, string industry = "IT", string level = "Mid");
 }
-

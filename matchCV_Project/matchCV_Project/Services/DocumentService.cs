@@ -41,6 +41,11 @@ public class DocumentService : IDocumentService
     {
         try
         {
+            // Normalize name: prefer Title, then OriginalName, fallback to generated
+            var name = !string.IsNullOrWhiteSpace(dto.Title) ? dto.Title.Trim()
+                      : !string.IsNullOrWhiteSpace(dto.OriginalName) ? dto.OriginalName.Trim()
+                      : $"CV_{DateTime.UtcNow:yyyyMMdd_HHmmss}";
+
             // Resolve TemplateId from TemplateType if provided
             int? templateId = dto.TemplateId;
             if (!templateId.HasValue && !string.IsNullOrEmpty(dto.TemplateType))
@@ -56,7 +61,7 @@ public class DocumentService : IDocumentService
             var document = new Document
             {
                 UserId = userId,
-                OriginalName = dto.Title ?? dto.OriginalName ?? "Untitled CV",
+                OriginalName = name,
                 CvTemplateId = templateId,
                 CvData = dto.CvData != null ? JsonSerializer.Serialize(dto.CvData) : null,
                 DocType = "CV",
@@ -102,12 +107,19 @@ public class DocumentService : IDocumentService
 
     private DocumentDto MapToDto(Document document)
     {
+        string ResolveName()
+        {
+            if (!string.IsNullOrWhiteSpace(document.OriginalName)) return document.OriginalName;
+            if (!string.IsNullOrWhiteSpace(document.FileName)) return document.FileName;
+            return $"CV_{document.Id}";
+        }
+
         return new DocumentDto
         {
             Id = document.Id,
             UserId = document.UserId ?? 0,
-            OriginalName = document.OriginalName,
-            Title = document.OriginalName, // Map Title from OriginalName
+            OriginalName = ResolveName(),
+            Title = ResolveName(), // Map Title from OriginalName
             TemplateType = document.CvTemplate?.Key ?? "professional", // Map TemplateType
             DocType = document.DocType,
             FileName = document.FileName,
@@ -270,6 +282,7 @@ public class DocumentService : IDocumentService
                         }
 
                         document.CvData = JsonSerializer.Serialize(parsedData);
+                        document.Content = extractedText; // cache raw text for analyzer/scoring
                     }
                 }
                 catch (Exception ex)

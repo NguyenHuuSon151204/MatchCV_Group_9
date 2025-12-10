@@ -1,7 +1,6 @@
 'use client'
 
-import { FileText, MoreHorizontal } from 'lucide-react'
-import { ScoreCircle } from '@/components/common/score-circle'
+import { Bot, Download, Eye, FileText, MoreHorizontal, Trash2 } from 'lucide-react'
 import { StatusBadge } from '@/components/common/status-badge'
 import type { CV } from '@/lib/types'
 
@@ -11,10 +10,11 @@ interface CVCardProps {
   onAnalyze: (id: string) => void
   onRewrite: (id: string) => void
   onExport: (id: string, format: 'pdf' | 'docx' | 'json') => void
+  onView: (id: string) => void
   onDelete: (id: string) => void
 }
 
-export function CVCard({ cv, onEdit, onAnalyze, onRewrite, onExport, onDelete }: CVCardProps) {
+export function CVCard({ cv, onEdit, onAnalyze, onRewrite, onExport, onView, onDelete }: CVCardProps) {
   return (
     <div className="rounded-3xl border border-border/40 bg-card/70 p-4 shadow-lg shadow-black/5">
       <div className="flex items-start gap-3">
@@ -33,11 +33,20 @@ export function CVCard({ cv, onEdit, onAnalyze, onRewrite, onExport, onDelete }:
           </div>
           <div className="mt-3 flex items-center justify-between">
             <StatusBadge status={cv.status} />
-            <ScoreCircle score={cv.score} size={48} />
+            <span className="text-[11px] text-muted-foreground">
+              Last updated {new Date(cv.modifiedAt).toLocaleDateString()}
+            </span>
           </div>
         </div>
       </div>
       <div className="mt-4 grid grid-cols-2 gap-2 text-xs font-semibold">
+        <button
+          onClick={() => onView(cv.id)}
+          aria-label="View CV"
+          className="flex items-center justify-center rounded-2xl border border-green-500/40 px-3 py-2 text-green-600 hover:border-green-500/70"
+        >
+          <Eye className="size-4" />
+        </button>
         <button
           onClick={() => onEdit(cv.id)}
           className="col-span-2 rounded-2xl border border-blue-500/30 px-3 py-2 text-blue-500 hover:border-blue-500/60"
@@ -52,21 +61,24 @@ export function CVCard({ cv, onEdit, onAnalyze, onRewrite, onExport, onDelete }:
         </button>
         <button
           onClick={() => onRewrite(cv.id)}
-          className="rounded-2xl border border-border/40 px-3 py-2 text-purple-300 hover:border-purple-500/60"
+          className="flex items-center justify-center rounded-2xl border border-border/40 px-3 py-2 text-purple-300 hover:border-purple-500/60"
         >
+          <Bot className="mr-1 size-4" />
           Rewrite
         </button>
         <button
           onClick={() => onExport(cv.id, 'pdf')}
-          className="rounded-2xl border border-border/40 px-3 py-2 text-muted-foreground hover:border-muted-foreground/50"
+          aria-label="Export CV"
+          className="flex items-center justify-center rounded-2xl border border-border/40 px-3 py-2 text-muted-foreground hover:border-muted-foreground/50"
         >
-          Export
+          <Download className="size-4" />
         </button>
         <button
           onClick={() => onDelete(cv.id)}
-          className="rounded-2xl border border-destructive/30 px-3 py-2 text-destructive hover:border-destructive/60"
+          aria-label="Delete CV"
+          className="flex items-center justify-center rounded-2xl border border-destructive/30 px-3 py-2 text-destructive hover:border-destructive/60"
         >
-          Delete
+          <Trash2 className="size-4" />
         </button>
       </div>
     </div>

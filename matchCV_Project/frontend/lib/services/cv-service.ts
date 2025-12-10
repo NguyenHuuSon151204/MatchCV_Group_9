@@ -80,6 +80,21 @@ interface DocumentDto {
 function mapDocumentDtoToCV(dto: DocumentDto | any): CV {
   // Handle date conversion - backend returns DateTime as ISO string
   let modifiedAt = new Date().toISOString()
+  let cvData: any
+
+  const rawCvData = dto.CvData ?? dto.cvData
+  if (rawCvData) {
+    if (typeof rawCvData === 'string') {
+      try {
+        cvData = JSON.parse(rawCvData)
+      } catch {
+        cvData = rawCvData
+      }
+    } else {
+      cvData = rawCvData
+    }
+  }
+
   if (dto.UpdatedAt) {
     try {
       const date = new Date(dto.UpdatedAt)
@@ -102,13 +117,14 @@ function mapDocumentDtoToCV(dto: DocumentDto | any): CV {
 
   return {
     id: dto.Id?.toString() || dto.id?.toString() || '',
-    name: dto.OriginalName || dto.name || 'Untitled CV',
+    name: dto.OriginalName || dto.Title || dto.name || dto.title || 'Untitled CV',
     position: dto.DocType || dto.position || '',
     description: dto.FileName || dto.description,
     modifiedAt,
     status: mapBackendStatusToFrontend(dto.Status || dto.status || 'draft'),
     score: dto.TotalScore ?? dto.AiConfidence ?? dto.score,
     fileUrl: dto.FileName ? `/uploads/${dto.FileName}` : undefined,
+    cvData,
   }
 }
 
@@ -159,19 +175,17 @@ export const cvService = {
 
     const response = await apiClient.post<CV>('/cv/create', {
       OriginalName: payload.name,
-      originalName: payload.name, // Redundant fallback
       Title: payload.name,
-      title: payload.name, // Redundant fallback
       CvData: payload.cvData ? payload.cvData : {
         personalInfo: {
-          fullName: 'User',
+          fullName: payload.position ? payload.name : 'User',
           position: payload.position,
           summary: payload.description
         }
       },
       cvData: payload.cvData ? payload.cvData : {
         personalInfo: {
-          fullName: 'User',
+          fullName: payload.position ? payload.name : 'User',
           position: payload.position,
           summary: payload.description
         }
@@ -189,9 +203,27 @@ export const cvService = {
   },
 
   async updateCV(payload: UpdateCVInput): Promise<CV> {
-    const response = await apiClient.put<CV>(`/cv/${payload.id}`, {
-      OriginalName: payload.name,
+    const userId = typeof window !== 'undefined' ? window.localStorage.getItem('matchcv-userId') : null
+    if (!userId) throw new Error('User ID not found')
+
+    const body: any = {
       DocType: 'CV',
+    }
+
+    if (payload.name) {
+      body.OriginalName = payload.name
+      body.Title = payload.name
+    }
+    if (payload.position) {
+      body.DocType = payload.position
+    }
+    if (payload.cvData) {
+      body.CvData = payload.cvData
+      body.cvData = payload.cvData
+    }
+
+    const response = await apiClient.put<CV>(`/cv/${payload.id}`, body, {
+      params: { userId: parseInt(userId, 10) },
     })
     return mapDocumentDtoToCV(response.data)
   },
@@ -265,7 +297,25 @@ export const cvService = {
   },
 
   async deleteCV(id: string): Promise<void> {
-    await apiClient.delete(`/cv/${id}`)
+    const params: { userId?: number } = {}
+    let userIdStr = typeof window !== 'undefined' ? window.localStorage.getItem('matchcv-userId') : null
+    if (!userIdStr) userIdStr = '1'
+    params.userId = parseInt(userIdStr, 10)
+
+    await apiClient.delete(`/cv/${id}`, { params })
+  },
+
+  async downloadCV(id: string): Promise<Blob> {
+    const params: { userId?: number } = {}
+    let userIdStr = typeof window !== 'undefined' ? window.localStorage.getItem('matchcv-userId') : null
+    if (!userIdStr) userIdStr = '1'
+    params.userId = parseInt(userIdStr, 10)
+
+    const response = await apiClient.get(`/cv/download/${id}`, {
+      params,
+      responseType: 'blob',
+    })
+    return response.data
   },
 
   async exportCV(id: string, format: 'pdf' | 'docx' | 'json'): Promise<Blob> {

@@ -92,6 +92,24 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
+  const updateProfile = async (payload: { displayName?: string; email?: string }) => {
+    setLoading(true);
+    try {
+      const res = await api.post("/account/update-profile", {
+        DisplayName: payload.displayName,
+        Email: payload.email,
+      });
+      const updatedUser = res.data.user as User;
+      setUser(updatedUser);
+      if (updatedUser?.id) {
+        localStorage.setItem('matchcv-userId', updatedUser.id.toString());
+      }
+      return updatedUser;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const logout = async () => {
     setLoading(true);
     try {
@@ -105,7 +123,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   return (
     <AuthContext.Provider
-      value={{ user, loading, login, ggregister, register, logout }}
+      value={{ user, loading, login, ggregister, register, updateProfile, logout }}
     >
       {children}
     </AuthContext.Provider>
