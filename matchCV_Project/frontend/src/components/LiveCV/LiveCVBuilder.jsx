@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import { useToastContext } from '@/contexts/toast-context';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,6 +11,8 @@ import FormalTemplate from './templates/FormalTemplate';
 import HistorySidebar from './HistorySidebar';
 import './LiveCVBuilder.css';
 
+const DEFAULT_AVATAR_BASE64 = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAxMDAgMTAwJyBmaWxsPSJub25lIj4KICA8Y2lyY2xlIGN4PSI1MCIgY3k9IjUwIiByPSI1MCIgZmlsbD0iI0UwRTdGRiIvPgogIDxwYXRoIGQ9Ik01MCAyNUM0MC4zMzUgMjUgMzIuNSAzMi44MzUgMzIuNSA0Mi41QzMyLjUgNTIuMTY1IDQwLjMzNSA2MCA1MCA2MEM1OS42NjUgNjAgNjcuNSA1Mi4xNjUgNjcuNSA0Mi41QzY3LjUgMzIuODM1IDU5LjY2NSAyNSA1MCAyNVoiIGZpbGw9IiM0RjQ2RTUiLz4KICA8cGF0aCBkPSJNNTAgNjVDMzEuNSA2NSAxNy41IDc1IDE3LjUgODcuNVYxMDBIODIuNVY4Ny41QzgyLjUgNzUgNjguNSA2NSA1MCA2NVoiIGZpbGw9IiM0RjQ2RTUiLz4KPC9zdmc+";
+
 function LiveCVBuilder() {
     const [templates, setTemplates] = useState([]);
     const [isLoadingTemplates, setIsLoadingTemplates] = useState(true);
@@ -18,11 +20,14 @@ function LiveCVBuilder() {
     const [isExporting, setIsExporting] = useState(false);
     const [showSaveDialog, setShowSaveDialog] = useState(false);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const [showConfirmNewCV, setShowConfirmNewCV] = useState(false); // New state for confirm dialog
+    const [isExitAfterSave, setIsExitAfterSave] = useState(false);
     const [cvTitle, setCvTitle] = useState('');
     const [currentCvId, setCurrentCvId] = useState(0);
     const fileInputRef = useRef(null);
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
+    const location = useLocation();
     const toast = useToastContext();
 
     const initialCvData = {
@@ -34,7 +39,7 @@ function LiveCVBuilder() {
             phone: '0987 654 321',
             address: '123 Đường ABC, Quận 1, TP.HCM',
             summary: 'Tôi là một quản lý nhà hàng có kinh nghiệm với hơn 5 năm làm việc trong ngành F&B. Tôi có khả năng quản lý đội ngũ nhân viên, kiểm soát chi phí và nâng cao trải nghiệm khách hàng.',
-            avatarBase64: null,
+            avatarBase64: DEFAULT_AVATAR_BASE64,
             website: ''
         },
         experiences: [
@@ -77,6 +82,16 @@ function LiveCVBuilder() {
                 const cvId = searchParams.get('id');
                 if (cvId) {
                     await loadCVFromHistory(cvId);
+                } else if (location.state?.initialData) {
+                    const { initialData } = location.state;
+                    setCvTitle(initialData.title || '');
+                    setCvData(prev => ({
+                        ...prev,
+                        personalInfo: {
+                            ...prev.personalInfo,
+                            ...(initialData.personalInfo || {})
+                        }
+                    }));
                 } else if (typeof window !== 'undefined') {
                     const savedCvData = localStorage.getItem('liveCvData');
                     if (savedCvData) {
@@ -92,7 +107,7 @@ function LiveCVBuilder() {
         };
 
         fetchTemplates();
-    }, [searchParams]);
+    }, [searchParams, location.state]);
 
     const loadCVFromHistory = async (id) => {
         try {
@@ -124,7 +139,7 @@ function LiveCVBuilder() {
                 setCvData(initialCvData);
                 setCvTitle('');
                 setCurrentCvId(0);
-                navigate('/cv-builder', { replace: true });
+                navigate('/app/cv-builder', { replace: true });
             } else {
                 toast.error('Không thể tải CV từ lịch sử.');
             }
@@ -199,14 +214,17 @@ function LiveCVBuilder() {
         console.log('Saving CV Data:', formattedCvData);
 
         return await saveCV({
-            id: currentCvId,
+            id: parseInt(currentCvId) || 0,
             title: titleToUse,
             templateType: cvData.templateType,
             cvData: formattedCvData
         });
     };
 
-    const handleSaveCV = async () => {
+    const handleSaveCV = async (forceExit = false) => {
+        // If called from event handler, forceExit will be the event object, so check type
+        const shouldExit = (typeof forceExit === 'boolean' && forceExit) || isExitAfterSave;
+
         if (!cvTitle.trim()) {
             toast.warning('Vui lòng nhập tên cho CV của bạn');
             return;
@@ -224,9 +242,13 @@ function LiveCVBuilder() {
                 toast.success('CV đã được lưu thành công!');
                 setShowSaveDialog(false);
 
-                // Update URL without reloading
-                if (currentCvId === 0) {
-                    navigate(`/cv-builder?id=${savedId}`, { replace: true });
+                if (shouldExit) {
+                    navigate('/app/my-cvs');
+                } else {
+                    // Update URL without reloading if the ID changed or if it was new
+                    if (currentCvId !== savedId) {
+                        navigate(`/app/cv-builder?id=${savedId}`, { replace: true });
+                    }
                 }
             } else {
                 console.error('Saved CV but no ID returned:', result);
@@ -257,13 +279,18 @@ function LiveCVBuilder() {
                 const titleToSave = cvTitle || `CV ${cvData.personalInfo.fullName}`;
                 const result = await saveCvToBackend(titleToSave);
 
-                // Update state if it was a new CV
-                if (currentCvId === 0 && result) {
+                // Update state regardless of whether it was new or existing, to ensure sync
+                if (result) {
                     const savedId = result.id || result.Id;
                     if (savedId) {
+                        const prevId = currentCvId;
                         setCurrentCvId(savedId);
-                        setCvTitle(titleToSave);
-                        navigate(`/cv-builder?id=${savedId}`, { replace: true });
+
+                        // If it was a new CV (ID 0) or ID changed, update URL
+                        if (prevId === 0 || prevId !== savedId) {
+                            setCvTitle(titleToSave);
+                            navigate(`/app/cv-builder?id=${savedId}`, { replace: true });
+                        }
                     }
                 }
             } catch (saveError) {
@@ -344,12 +371,15 @@ function LiveCVBuilder() {
     };
 
     const handleCreateNewCV = () => {
-        if (window.confirm('Bạn có chắc chắn muốn tạo CV mới? Các thay đổi chưa lưu sẽ bị mất.')) {
-            setCvData(initialCvData);
-            setCvTitle('');
-            setCurrentCvId(0);
-            navigate('/cv-builder'); // Clear ID from URL
-        }
+        setShowConfirmNewCV(true);
+    };
+
+    const confirmCreateNewCV = () => {
+        setCvData(initialCvData);
+        setCvTitle('');
+        setCurrentCvId(0);
+        navigate('/app/cv-builder'); // Clear ID from URL
+        setShowConfirmNewCV(false);
     };
 
     const handleCvDeleted = (deletedId) => {
@@ -357,7 +387,7 @@ function LiveCVBuilder() {
             setCvData(initialCvData);
             setCvTitle('');
             setCurrentCvId(0);
-            navigate('/cv-builder');
+            navigate('/app/cv-builder');
         }
     };
 
@@ -424,7 +454,7 @@ function LiveCVBuilder() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                         <button
                             className="btn btn-outline"
-                            onClick={() => navigate('/my-cvs')}
+                            onClick={() => navigate('/app/my-cvs')}
                             title="Quay về trang chủ"
                         >
                             <span className="material-icons">arrow_back</span>
@@ -483,6 +513,20 @@ function LiveCVBuilder() {
                         Lưu CV
                     </button>
                     <button
+                        className="btn btn-success"
+                        style={{ backgroundColor: '#10b981', color: 'white', borderColor: '#10b981' }}
+                        onClick={() => {
+                            if (!cvTitle) {
+                                setCvTitle(`CV ${cvData.personalInfo.fullName}`);
+                            }
+                            setShowSaveDialog(true);
+                        }}
+                        title="Lưu và quay về danh sách"
+                    >
+                        <span className="material-icons">check_circle</span>
+                        Hoàn tất
+                    </button>
+                    <button
                         className="btn btn-primary"
                         onClick={handleExportPdf}
                         disabled={isExporting}
@@ -499,18 +543,21 @@ function LiveCVBuilder() {
                         <ProfessionalTemplate
                             cvData={cvData}
                             onUpdate={handleUpdate}
+                            onImageClick={() => fileInputRef.current?.click()}
                         />
                     )}
                     {cvData.templateType === 'modern' && (
                         <ModernTemplate
                             cvData={cvData}
                             onUpdate={handleUpdate}
+                            onImageClick={() => fileInputRef.current?.click()}
                         />
                     )}
                     {cvData.templateType === 'formal' && (
                         <FormalTemplate
                             cvData={cvData}
                             onUpdate={handleUpdate}
+                            onImageClick={() => fileInputRef.current?.click()}
                         />
                     )}
                 </div>
@@ -518,7 +565,10 @@ function LiveCVBuilder() {
 
             {/* Save Dialog */}
             {showSaveDialog && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setShowSaveDialog(false)}>
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => {
+                    setShowSaveDialog(false);
+                    setIsExitAfterSave(false);
+                }}>
                     <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-2xl ring-1 ring-gray-200" onClick={(e) => e.stopPropagation()}>
                         <div className="mb-4 flex items-center gap-2 text-xl font-bold text-gray-800">
                             <span className="material-icons text-primary">save</span>
@@ -535,17 +585,48 @@ function LiveCVBuilder() {
                                     className="w-full"
                                     autoFocus
                                     onKeyDown={(e) => {
-                                        if (e.key === 'Enter') handleSaveCV();
+                                        if (e.key === 'Enter') handleSaveCV(true);
                                     }}
                                 />
                             </div>
                         </div>
                         <div className="flex justify-end gap-3">
-                            <Button variant="outline" onClick={() => setShowSaveDialog(false)}>
+                            <Button variant="outline" onClick={() => {
+                                setShowSaveDialog(false);
+                                setIsExitAfterSave(false);
+                            }}>
                                 Hủy
                             </Button>
-                            <Button onClick={handleSaveCV}>
-                                Lưu CV
+                            <Button variant="secondary" onClick={() => handleSaveCV(false)}>
+                                Lưu lại
+                            </Button>
+                            <Button onClick={() => handleSaveCV(true)}>
+                                Lưu & Thoát
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Confirm Create New CV Dialog */}
+            {showConfirmNewCV && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setShowConfirmNewCV(false)}>
+                    <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-2xl ring-1 ring-gray-200" onClick={(e) => e.stopPropagation()}>
+                        <div className="mb-4 flex items-center gap-2 text-xl font-bold text-gray-800">
+                            <span className="material-icons text-warning" style={{ color: '#f59e0b' }}>warning</span>
+                            <h3>Tạo CV mới</h3>
+                        </div>
+                        <div className="mb-6">
+                            <p className="text-gray-600">
+                                Bạn có chắc chắn muốn tạo CV mới? Các thay đổi chưa lưu sẽ bị mất.
+                            </p>
+                        </div>
+                        <div className="flex justify-end gap-3">
+                            <Button variant="outline" onClick={() => setShowConfirmNewCV(false)}>
+                                Hủy
+                            </Button>
+                            <Button onClick={confirmCreateNewCV} className="bg-red-600 hover:bg-red-700 text-white">
+                                Tạo mới
                             </Button>
                         </div>
                     </div>

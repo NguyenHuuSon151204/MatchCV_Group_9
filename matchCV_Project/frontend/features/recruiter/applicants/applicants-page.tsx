@@ -82,7 +82,7 @@ export function ApplicantsPage() {
       if (filters.jobId) {
         const params: any = {}
         if (filters.status) params.status = filters.status
-        if (filters.minScore) params.minScore = filters.minScore
+        if (filters.minScore) params.minScore = parseInt(filters.minScore)
 
         const data = await recruiterService.getApplications(parseInt(filters.jobId), params)
         const job = jobs.find((j) => j.id === parseInt(filters.jobId))
@@ -95,7 +95,7 @@ export function ApplicantsPage() {
       } else {
         const allJobs = await recruiterService.getJobs()
         const jobList = Array.isArray(allJobs) ? allJobs : []
-        const promises = jobList.map((job) =>
+        const promises = jobList.map((job: any) =>
           recruiterService
             .getApplications(job.id)
             .then((apps: any) =>
@@ -106,7 +106,10 @@ export function ApplicantsPage() {
                 jobId: job.id,
               }))
             )
-            .catch(() => [])
+            .catch((err) => {
+              console.warn(`Failed to load applications for job ${job.id}:`, err)
+              return []
+            })
         )
         const results = await Promise.all(promises)
         allApplicants = results.flat()
@@ -201,11 +204,14 @@ export function ApplicantsPage() {
     }
 
     try {
-      // Note: API endpoint might need adjustment based on actual backend
       await Promise.all(
-        selectedItems.map((id) =>
-          recruiterService.deleteApplication(0, id) // jobId might be needed
-        )
+        selectedItems.map((id) => {
+          const applicant = applicants.find((a) => a.id === id)
+          if (applicant?.jobId) {
+            return recruiterService.deleteApplication(applicant.jobId, id)
+          }
+          return Promise.resolve()
+        })
       )
       setSelectedItems([])
       loadApplicants()
@@ -238,11 +244,22 @@ export function ApplicantsPage() {
     try {
       const applicant = applicants.find((a) => a.id === appId)
       if (applicant) {
-        setSelectedApplicant(applicant)
-        setEditForm({
-          status: applicant.status || 'Pending',
-          summary: '', // Summary might need to be fetched separately
-        })
+        // Try to fetch full details from API
+        try {
+          const fullDetails = await recruiterService.getApplication(appId)
+          setSelectedApplicant({ ...applicant, ...fullDetails })
+          setEditForm({
+            status: fullDetails.status || applicant.status || 'Pending',
+            summary: fullDetails.summary || '',
+          })
+        } catch (err) {
+          // Fallback to existing data if API fails
+          setSelectedApplicant(applicant)
+          setEditForm({
+            status: applicant.status || 'Pending',
+            summary: '',
+          })
+        }
         setShowApplicantModal(true)
       }
     } catch (error) {

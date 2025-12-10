@@ -15,7 +15,7 @@ namespace matchCV_Project.Services;
 
 public class RecruiterVerificationService : IRecruiterVerificationService
 {
-    private readonly AppDbContext _db;
+    private readonly MatchCvContext _db;
     private readonly IConfiguration _configuration;
     private readonly ILogger<RecruiterVerificationService> _logger;
 
@@ -24,7 +24,7 @@ public class RecruiterVerificationService : IRecruiterVerificationService
     private const long MaxFileSize = 10 * 1024 * 1024; // 10 MB
 
     public RecruiterVerificationService(
-        AppDbContext db,
+        MatchCvContext db,
         IConfiguration configuration,
         ILogger<RecruiterVerificationService> logger)
     {
@@ -73,8 +73,8 @@ public class RecruiterVerificationService : IRecruiterVerificationService
                 ContentType = file.ContentType,
                 StoragePath = relativePath,
                 FileHash = fileHash,
-                SizeBytes = (int)file.Length,
-                UploadedAt = DateTime.UtcNow,
+                FileSize = file.Length,
+                CreatedAt = DateTime.UtcNow,
                 IsDeleted = false
             };
 

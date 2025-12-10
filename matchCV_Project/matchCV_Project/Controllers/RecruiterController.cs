@@ -13,7 +13,7 @@ namespace matchCV_Project.Controllers;
 [Route("api/recruiter")]
 public class RecruiterController : ControllerBase
 {
-    private readonly AppDbContext _db;
+    private readonly MatchCvContext _db;
     private readonly IAiService _ai;
     private readonly IEmailService _email;
     private readonly ILogger<RecruiterController> _logger;
@@ -27,7 +27,7 @@ public class RecruiterController : ControllerBase
     );
 
 
-    public RecruiterController(AppDbContext db, IAiService ai, IEmailService email, ILogger<RecruiterController> logger)
+    public RecruiterController(MatchCvContext db, IAiService ai, IEmailService email, ILogger<RecruiterController> logger)
     {
         _db = db;
         _ai = ai;
@@ -35,166 +35,355 @@ public class RecruiterController : ControllerBase
         _logger = logger;
     }
 
-    // GET: /api/recruiter/jobs
-    [HttpGet("jobs")]
-    public async Task<IActionResult> GetJobs([FromQuery] string? q, [FromQuery] string? company)
-    {
-        var query = _db.Jobs.AsNoTracking().AsQueryable();
-
-        if (!string.IsNullOrWhiteSpace(q))
-            query = query.Where(j => j.Title.Contains(q) || (j.RawText ?? string.Empty).Contains(q));
-
-        if (!string.IsNullOrWhiteSpace(company))
-            query = query.Where(j => j.Company == company);
-
-        var jobs = await query
-            .OrderByDescending(j => j.CreatedAt)
-            .ToListAsync();
-
-        // Tính toán avgScore và topSkill cho mỗi job
-        var list = jobs.Select(j =>
-        {
-            var applications = _db.Applications
-                .Where(a => a.JobId == j.Id && a.ScoreSnapshot.HasValue)
-                .ToList();
-
-            // Tính avgScore
-            double? avgScore = applications.Count > 0
-                ? applications.Average(a => a.ScoreSnapshot!.Value)
-                : null;
-
-            // Tìm topSkill (skill xuất hiện nhiều nhất trong RequiredSkills)
-            var topSkill = _db.RequiredSkills
-                .Where(r => r.JobId == j.Id)
-                .Join(_db.Skills, r => r.SkillId, s => s.Id, (r, s) => s.NormName)
-                .GroupBy(s => s)
-                .OrderByDescending(g => g.Count())
-                .Select(g => g.Key)
-                .FirstOrDefault();
-
-            return new
-            {
-                j.Id,
-                j.Title,
-                j.Company,
-                j.CreatedAt,
-                Applications = applications.Count + _db.Applications.Count(a => a.JobId == j.Id && !a.ScoreSnapshot.HasValue),
-                AvgScore = avgScore.HasValue ? Math.Round(avgScore.Value, 1) : (double?)null,
-                TopSkill = topSkill
-            };
-        }).ToList();
-
-        return Ok(list);
-    }
-
     // GET: /api/recruiter/dashboard
     [HttpGet("dashboard")]
     public async Task<IActionResult> GetDashboard()
     {
-        var scoresQuery = _db.Applications
-            .Where(a => a.ScoreSnapshot.HasValue)
-            .Select(a => a.ScoreSnapshot!.Value);
-
-        double? averageScore = null;
-        if (await scoresQuery.AnyAsync())
+        try
         {
-            var avgValue = await scoresQuery.AverageAsync();
-            averageScore = Math.Round(avgValue, 1);
-        }
+            _logger.LogInformation("GetDashboard called");
+            
+            var scoresQuery = _db.Applications
+                .Where(a => a.ScoreSnapshot.HasValue)
+                .Select(a => a.ScoreSnapshot!.Value);
 
-        var sevenDaysAgo = DateTime.UtcNow.AddDays(-7);
-
-        var summary = new
-        {
-            totalJobs = await _db.Jobs.CountAsync(),
-            activeJobs = await _db.Jobs.CountAsync(j => j.Applications.Any()),
-            totalApplicants = await _db.Applications.CountAsync(),
-            averageScore,
-            newApplications = await _db.Applications.CountAsync(a => a.CreatedAt >= sevenDaysAgo)
-        };
-
-        var jobCards = await _db.Jobs
-            .AsNoTracking()
-            .Include(j => j.Applications)
-                .ThenInclude(a => a.Candidate)
-            .Include(j => j.RequiredSkills)
-                .ThenInclude(rs => rs.Skill)
-            .OrderByDescending(j => j.CreatedAt)
-            .Take(10)
-            .ToListAsync();
-
-        var jobs = jobCards.Select(j =>
-        {
-            var topSkill = j.RequiredSkills
-                .Where(rs => rs.Skill != null)
-                .GroupBy(rs => rs.Skill!.NormName)
-                .OrderByDescending(g => g.Count())
-                .Select(g => g.Key)
-                .FirstOrDefault();
-
-            return new
+            double? averageScore = null;
+            if (await scoresQuery.AnyAsync())
             {
-                id = j.Id,
-                title = j.Title,
-                company = j.Company,
-                createdAt = j.CreatedAt,
-                applicants = j.Applications.Count,
-                avgScore = CalculateAverageScore(j.Applications),
-                topSkill,
-                topCandidates = j.Applications
-                    .OrderByDescending(a => a.ScoreSnapshot)
-                    .ThenByDescending(a => a.CreatedAt)
-                    .Take(3)
-                    .Select(a => new
-                    {
-                        id = a.Id,
-                        name = a.Candidate.DisplayName,
-                        email = a.Candidate.Email,
-                        score = a.ScoreSnapshot,
-                        status = a.Status
-                    })
-                    .ToList()
+                var avgValue = await scoresQuery.AverageAsync();
+                averageScore = Math.Round(avgValue, 1);
+            }
+
+            var sevenDaysAgo = DateTime.UtcNow.AddDays(-7);
+
+            // Calculate summary safely
+            var totalJobs = await _db.Jobs.CountAsync();
+            var totalApplicants = await _db.Applications.CountAsync();
+            var newApplications = await _db.Applications.CountAsync(a => a.CreatedAt >= sevenDaysAgo);
+            
+            // Count active jobs - jobs that have at least one application
+            // Use a simpler query to avoid Include issues
+            var allJobsWithApps = await _db.Jobs
+                .Where(j => _db.Applications.Any(a => a.JobId == j.Id))
+                .CountAsync();
+
+            var summary = new
+            {
+                totalJobs,
+                activeJobs = allJobsWithApps,
+                totalApplicants,
+                averageScore,
+                newApplications
             };
-        }).ToList();
 
-        var recentApplicants = await _db.Applications
-            .AsNoTracking()
-            .OrderByDescending(a => a.CreatedAt)
-            .Take(8)
-            .Select(a => new
+            // Load jobs - simplified approach
+            var jobCards = await _db.Jobs
+                .OrderByDescending(j => j.CreatedAt)
+                .Take(10)
+                .AsNoTracking()
+                .ToListAsync();
+
+            // Load related data separately to avoid Include issues
+            var jobIds = jobCards.Select(j => j.Id).ToList();
+            
+            if (jobIds.Count == 0)
             {
-                id = a.Id,
-                candidateName = a.Candidate.DisplayName,
-                candidateEmail = a.Candidate.Email,
-                jobTitle = a.Job.Title,
-                jobId = a.Job.Id,
-                status = a.Status,
-                score = a.ScoreSnapshot,
-                createdAt = a.CreatedAt
-            })
-            .ToListAsync();
+                // No jobs, return empty data
+                return Ok(new
+                {
+                    summary,
+                    jobs = new List<object>(),
+                    recentApplicants = new List<object>(),
+                    topSkills = new List<object>()
+                });
+            }
+            
+            var allApplications = await _db.Applications
+                .Where(a => jobIds.Contains(a.JobId))
+                .AsNoTracking()
+                .ToListAsync();
 
-        // Get top required skills across all jobs
-        var topSkills = await _db.RequiredSkills
-            .AsNoTracking()
-            .Join(_db.Skills, rs => rs.SkillId, s => s.Id, (rs, s) => new { rs.JobId, SkillName = s.NormName })
-            .GroupBy(x => x.SkillName)
-            .Select(g => new
+            var candidateIds = allApplications.Select(a => a.CandidateId).Distinct().ToList();
+            var candidates = candidateIds.Count > 0 
+                ? await _db.Users.Where(u => candidateIds.Contains(u.Id)).AsNoTracking().ToDictionaryAsync(u => u.Id, u => u)
+                : new Dictionary<int, User>();
+
+            var allRequiredSkills = await _db.RequiredSkills
+                .Where(rs => jobIds.Contains(rs.JobId))
+                .AsNoTracking()
+                .ToListAsync();
+
+            var skillIds = allRequiredSkills.Select(rs => rs.SkillId).Distinct().ToList();
+            var skills = skillIds.Count > 0
+                ? await _db.Skills.Where(s => skillIds.Contains(s.Id)).AsNoTracking().ToDictionaryAsync(s => s.Id, s => s)
+                : new Dictionary<int, Skill>();
+
+            // Group by job for easier access
+            var applicationsByJob = allApplications
+                .GroupBy(a => a.JobId)
+                .ToDictionary(g => g.Key, g => g.ToList());
+            var skillsByJob = allRequiredSkills
+                .GroupBy(rs => rs.JobId)
+                .ToDictionary(g => g.Key, g => g.ToList());
+
+            var jobs = new List<object>();
+            foreach (var j in jobCards)
             {
-                name = g.Key,
-                count = g.Count()
-            })
-            .OrderByDescending(x => x.count)
-            .Take(8)
-            .ToListAsync();
+                try
+                {
+                    // Get applications for this job
+                    var applications = applicationsByJob.ContainsKey(j.Id) ? applicationsByJob[j.Id] : new List<Application>();
+                    
+                    // Get required skills for this job
+                    var requiredSkills = skillsByJob.ContainsKey(j.Id) ? skillsByJob[j.Id] : new List<RequiredSkill>();
+                    
+                    // Calculate top skill
+                    var topSkill = requiredSkills
+                        .Where(rs => skills.ContainsKey(rs.SkillId))
+                        .Select(rs => skills[rs.SkillId].NormName)
+                        .GroupBy(name => name)
+                        .OrderByDescending(g => g.Count())
+                        .Select(g => g.Key)
+                        .FirstOrDefault();
 
-        return Ok(new
+                    // Calculate average score
+                    var scores = applications
+                        .Where(a => a.ScoreSnapshot.HasValue)
+                        .Select(a => a.ScoreSnapshot!.Value)
+                        .ToList();
+                    double? avgScore = scores.Count > 0 ? Math.Round(scores.Average(), 1) : null;
+
+                    // Get top candidates
+                    var topCandidates = applications
+                        .Where(a => candidates.ContainsKey(a.CandidateId))
+                        .OrderByDescending(a => a.ScoreSnapshot)
+                        .ThenByDescending(a => a.CreatedAt)
+                        .Take(3)
+                        .Select(a =>
+                        {
+                            var candidate = candidates[a.CandidateId];
+                            return new
+                            {
+                                id = a.Id,
+                                name = candidate?.DisplayName ?? "Unknown",
+                                email = candidate?.Email ?? "",
+                                score = a.ScoreSnapshot,
+                                status = a.Status ?? "Pending"
+                            };
+                        })
+                        .ToList();
+
+                    jobs.Add(new
+                    {
+                        id = j.Id,
+                        title = j.Title ?? "",
+                        company = j.Company,
+                        createdAt = j.CreatedAt,
+                        applicants = applications.Count,
+                        avgScore,
+                        topSkill,
+                        topCandidates
+                    });
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Error processing job {JobId} in dashboard", j.Id);
+                    // Continue with next job instead of failing entire request
+                }
+            }
+
+            // Load recent applicants separately to avoid Include issues
+            var recentApplicantsList = await _db.Applications
+                .OrderByDescending(a => a.CreatedAt)
+                .Take(8)
+                .AsNoTracking()
+                .ToListAsync();
+
+            List<object> recentApplicants;
+            if (recentApplicantsList.Count > 0)
+            {
+                var recentCandidateIds = recentApplicantsList.Select(a => a.CandidateId).Distinct().ToList();
+                var recentJobIds = recentApplicantsList.Select(a => a.JobId).Distinct().ToList();
+                
+                var candidatesDict = recentCandidateIds.Count > 0
+                    ? await _db.Users.Where(u => recentCandidateIds.Contains(u.Id)).AsNoTracking().ToDictionaryAsync(u => u.Id, u => u)
+                    : new Dictionary<int, User>();
+                
+                var jobsDict = recentJobIds.Count > 0
+                    ? await _db.Jobs.Where(j => recentJobIds.Contains(j.Id)).AsNoTracking().ToDictionaryAsync(j => j.Id, j => j)
+                    : new Dictionary<int, Job>();
+
+                recentApplicants = recentApplicantsList.Select(a => new
+                {
+                    id = a.Id,
+                    candidateName = candidatesDict.ContainsKey(a.CandidateId) 
+                        ? candidatesDict[a.CandidateId].DisplayName ?? "Unknown"
+                        : "Unknown",
+                    candidateEmail = candidatesDict.ContainsKey(a.CandidateId)
+                        ? candidatesDict[a.CandidateId].Email ?? ""
+                        : "",
+                    jobTitle = jobsDict.ContainsKey(a.JobId)
+                        ? jobsDict[a.JobId].Title ?? "Unknown"
+                        : "Unknown",
+                    jobId = a.JobId,
+                    status = a.Status ?? "Pending",
+                    score = a.ScoreSnapshot,
+                    createdAt = a.CreatedAt
+                }).Cast<object>().ToList();
+            }
+            else
+            {
+                recentApplicants = new List<object>();
+            }
+
+            // Get top required skills across all jobs - simplified approach
+            var topSkillsList = await _db.RequiredSkills
+                .AsNoTracking()
+                .ToListAsync();
+
+            var topSkillIds = topSkillsList.Select(rs => rs.SkillId).Distinct().ToList();
+            var skillsForTop = topSkillIds.Count > 0
+                ? await _db.Skills.Where(s => topSkillIds.Contains(s.Id)).AsNoTracking().ToDictionaryAsync(s => s.Id, s => s)
+                : new Dictionary<int, Skill>();
+
+            var topSkills = topSkillsList
+                .Where(rs => skillsForTop.ContainsKey(rs.SkillId))
+                .GroupBy(rs => skillsForTop[rs.SkillId].NormName)
+                .Select(g => new
+                {
+                    name = g.Key,
+                    count = g.Count()
+                })
+                .OrderByDescending(x => x.count)
+                .Take(8)
+                .ToList();
+
+            return Ok(new
+            {
+                summary,
+                jobs,
+                recentApplicants,
+                topSkills
+            });
+        }
+        catch (Exception ex)
         {
-            summary,
-            jobs,
-            recentApplicants,
-            topSkills
-        });
+            _logger.LogError(ex, "Error in GetDashboard: {Message}\n{StackTrace}", ex.Message, ex.StackTrace);
+            return StatusCode(500, new { message = "An error occurred while loading dashboard data.", error = ex.Message, stackTrace = ex.StackTrace });
+        }
+    }
+
+    // GET: /api/recruiter/jobs
+    [HttpGet("jobs")]
+    public async Task<IActionResult> GetJobs([FromQuery] string? q, [FromQuery] string? company)
+    {
+        try
+        {
+            var query = _db.Jobs.AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(q))
+            {
+                var searchTerm = q.Trim().ToLower();
+                query = query.Where(j => 
+                    j.Title.ToLower().Contains(searchTerm) ||
+                    (j.Company != null && j.Company.ToLower().Contains(searchTerm)) ||
+                    (j.RawText != null && j.RawText.ToLower().Contains(searchTerm))
+                );
+            }
+
+            if (!string.IsNullOrWhiteSpace(company))
+            {
+                query = query.Where(j => j.Company != null && j.Company.ToLower().Contains(company.Trim().ToLower()));
+            }
+
+            var jobList = await query
+                .OrderByDescending(j => j.CreatedAt)
+                .AsNoTracking()
+                .ToListAsync();
+
+            if (jobList.Count == 0)
+            {
+                return Ok(new List<object>());
+            }
+
+            // Load related data separately
+            var jobIds = jobList.Select(j => j.Id).ToList();
+            
+            var allApplications = await _db.Applications
+                .Where(a => jobIds.Contains(a.JobId))
+                .AsNoTracking()
+                .ToListAsync();
+
+            var allRequiredSkills = await _db.RequiredSkills
+                .Where(rs => jobIds.Contains(rs.JobId))
+                .AsNoTracking()
+                .ToListAsync();
+
+            var jobSkillIds = allRequiredSkills.Select(rs => rs.SkillId).Distinct().ToList();
+            var skills = jobSkillIds.Count > 0
+                ? await _db.Skills.Where(s => jobSkillIds.Contains(s.Id)).AsNoTracking().ToDictionaryAsync(s => s.Id, s => s)
+                : new Dictionary<int, Skill>();
+
+            // Group by job
+            var applicationsByJob = allApplications
+                .GroupBy(a => a.JobId)
+                .ToDictionary(g => g.Key, g => g.ToList());
+            var skillsByJob = allRequiredSkills
+                .GroupBy(rs => rs.JobId)
+                .ToDictionary(g => g.Key, g => g.ToList());
+
+            var jobs = new List<object>();
+            foreach (var j in jobList)
+            {
+                try
+                {
+                    // Get applications for this job
+                    var applications = applicationsByJob.ContainsKey(j.Id) ? applicationsByJob[j.Id] : new List<Application>();
+                    
+                    // Calculate average score
+                    var scores = applications
+                        .Where(a => a.ScoreSnapshot.HasValue)
+                        .Select(a => a.ScoreSnapshot!.Value)
+                        .ToList();
+                    double? avgScore = scores.Count > 0 ? Math.Round(scores.Average(), 1) : null;
+
+                    // Get required skills for this job
+                    var requiredSkills = skillsByJob.ContainsKey(j.Id) ? skillsByJob[j.Id] : new List<RequiredSkill>();
+                    
+                    // Calculate top skill
+                    var topSkill = requiredSkills
+                        .Where(rs => skills.ContainsKey(rs.SkillId))
+                        .Select(rs => skills[rs.SkillId].NormName)
+                        .GroupBy(name => name)
+                        .OrderByDescending(g => g.Count())
+                        .Select(g => g.Key)
+                        .FirstOrDefault();
+
+                    jobs.Add(new
+                    {
+                        id = j.Id,
+                        title = j.Title ?? "",
+                        company = j.Company,
+                        createdAt = j.CreatedAt,
+                        applicants = applications.Count,
+                        avgScore,
+                        topSkill
+                    });
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Error processing job {JobId} in GetJobs", j.Id);
+                    // Continue with next job instead of failing entire request
+                }
+            }
+
+            return Ok(jobs);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error in GetJobs");
+            return StatusCode(500, new { message = "An error occurred while loading jobs.", error = ex.Message });
+        }
     }
 
     // GET: /api/recruiter/jobs/{id}

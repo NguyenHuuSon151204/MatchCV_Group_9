@@ -40,7 +40,7 @@ function CVHistory() {
     };
 
     const handleEditCV = (cvId) => {
-        navigate(`/cv-builder?id=${cvId}`);
+        navigate(`/app/cv-builder?id=${cvId}`);
     };
 
     const handleDeleteClick = (cv) => {

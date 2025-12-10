@@ -1,93 +1,58 @@
-using System.Net;
-using System.Net.Mail;
+﻿using MailKit.Net.Smtp;
+using MimeKit;
 using matchCV_Project.Interfaces;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
 
-namespace matchCV_Project.Services;
-
-public class EmailService : IEmailService
+namespace matchCV_Project.Services
 {
-    private readonly IConfiguration _configuration;
-    private readonly ILogger<EmailService> _logger;
-
-    public EmailService(IConfiguration configuration, ILogger<EmailService> logger)
+    public class EmailService : IEmailService
     {
-        _configuration = configuration;
-        _logger = logger;
-    }
+        private readonly IConfiguration _config;
 
-    public async Task SendNewApplicationAsync(string toEmail, string recruiterName, string jobTitle, string candidateName, double? score)
-    {
-        if (string.IsNullOrWhiteSpace(toEmail))
+        public EmailService(IConfiguration config)
         {
-            _logger.LogInformation("Skip sending email because recruiter email is empty.");
-            return;
+            _config = config;
         }
 
-        var emailSection = _configuration.GetSection("Email");
-        var enabled = emailSection.GetValue<bool?>("Enabled") ?? false;
-        if (!enabled)
+        public async Task SendEmailAsync(string to, string subject, string html)
         {
-            _logger.LogDebug("Email notifications disabled via configuration.");
-            return;
+            var email = new MimeMessage();
+            email.From.Add(MailboxAddress.Parse(_config["Email:SenderEmail"]));
+            email.To.Add(MailboxAddress.Parse(to));
+            email.Subject = subject;
+
+            email.Body = new TextPart("html") { Text = html };
+
+            using var smtp = new SmtpClient();
+            await smtp.ConnectAsync(_config["Email:SmtpServer"], 587, false);
+            await smtp.AuthenticateAsync(
+                _config["Email:SenderEmail"],
+                _config["Email:AppPassword"]
+            );
+
+            await smtp.SendAsync(email);
+            await smtp.DisconnectAsync(true);
         }
 
-        var fromAddress = emailSection["From"];
-        var smtpHost = emailSection["SmtpHost"];
-        var smtpPort = emailSection.GetValue<int?>("SmtpPort") ?? 25;
-        var username = emailSection["Username"];
-        var password = emailSection["Password"];
-        var useSsl = emailSection.GetValue<bool?>("UseSsl") ?? false;
+        public async Task SendNewApplicationAsync(string toEmail, string recruiterName, string jobTitle, string candidateName, double? score)
+        {
+            var scoreText = score.HasValue ? $"{score.Value:F1}" : "N/A";
+            var html = $@"
+                <html>
+                <body>
+                    <h2>New Application Received</h2>
+                    <p>Dear {recruiterName},</p>
+                    <p>A new candidate has applied for your job posting:</p>
+                    <ul>
+                        <li><strong>Job:</strong> {jobTitle}</li>
+                        <li><strong>Candidate:</strong> {candidateName}</li>
+                        <li><strong>Match Score:</strong> {scoreText}</li>
+                    </ul>
+                    <p>Please review the application in your dashboard.</p>
+                </body>
+                </html>
+            ";
 
-        if (string.IsNullOrWhiteSpace(fromAddress) || string.IsNullOrWhiteSpace(smtpHost))
-        {
-            _logger.LogWarning("Email settings are incomplete. Please configure Email:From and Email:SmtpHost.");
-            return;
-        }
-
-        using var client = new SmtpClient(smtpHost, smtpPort)
-        {
-            EnableSsl = useSsl
-        };
-
-        if (!string.IsNullOrWhiteSpace(username) && !string.IsNullOrWhiteSpace(password))
-        {
-            client.Credentials = new NetworkCredential(username, password);
-        }
-        else
-        {
-            client.UseDefaultCredentials = true;
-        }
-
-        var bodyLines = new List<string>
-        {
-            $"Hello {recruiterName ?? "Recruiter"},",
-            "",
-            $"You have received a new CV for JD \"{jobTitle}\".",
-            $"Candidate: {candidateName}",
-            score.HasValue ? $"AI Score: {Math.Round(score.Value, 1)}%" : "AI Score: N/A",
-            "",
-            "Please log in to MatchCV to view details."
-        };
-
-        var mail = new MailMessage(fromAddress, toEmail)
-        {
-            Subject = $"[MatchCV] New CV for JD {jobTitle}",
-            Body = string.Join(Environment.NewLine, bodyLines),
-            IsBodyHtml = false
-        };
-
-        try
-        {
-            await client.SendMailAsync(mail);
-            _logger.LogInformation("Sent new application notification email to {Email}", toEmail);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to send email to {Email}", toEmail);
+            await SendEmailAsync(toEmail, $"New Application: {jobTitle}", html);
         }
     }
 }
-
-

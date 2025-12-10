@@ -40,7 +40,7 @@ export const dashboardService = {
       const response = await apiClient.get<DashboardMetrics>('/candidate/dashboard')
       return response.data
     } catch (error) {
-      console.warn('[dashboardService] fallback to mock metrics', error)
+      // console.warn('[dashboardService] fallback to mock metrics', error)
       return mockMetrics
     }
   },

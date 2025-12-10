@@ -11,8 +11,8 @@ namespace matchCV_Project.Controllers;
 [Route("api/license")]
 public class LicenseController : ControllerBase
 {
-    private readonly AppDbContext _db;
-    public LicenseController(AppDbContext db) => _db = db;
+    private readonly MatchCvContext _db;
+    public LicenseController(MatchCvContext db) => _db = db;
 
     private static string Sha256(string value)
     {

@@ -1,10 +1,11 @@
-using matchCV_Project.Data;
+﻿using matchCV_Project.Data;
 using matchCV_Project.Interfaces;
 using matchCV_Project.Models;
 using matchCV_Project.Models.Dtos;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Hosting;
 using System.Text.Json;
+using ApiRestFul.DTOs;
 
 namespace matchCV_Project.Services;
 
@@ -44,7 +45,7 @@ public class DocumentService : IDocumentService
             int? templateId = dto.TemplateId;
             if (!templateId.HasValue && !string.IsNullOrEmpty(dto.TemplateType))
             {
-                var template = await _context.CvTemplates
+                var template = await _context.Cvtemplates
                     .FirstOrDefaultAsync(t => t.Key == dto.TemplateType);
                 if (template != null)
                 {
@@ -56,7 +57,7 @@ public class DocumentService : IDocumentService
             {
                 UserId = userId,
                 OriginalName = dto.Title ?? dto.OriginalName ?? "Untitled CV",
-                TemplateId = templateId,
+                CvTemplateId = templateId,
                 CvData = dto.CvData != null ? JsonSerializer.Serialize(dto.CvData) : null,
                 DocType = "CV",
                 Status = "Draft",
@@ -109,14 +110,14 @@ public class DocumentService : IDocumentService
             Title = document.OriginalName, // Map Title from OriginalName
             TemplateType = document.CvTemplate?.Key ?? "professional", // Map TemplateType
             DocType = document.DocType,
-            FileName = document.FileName ?? string.Empty,
-            ContentType = document.ContentType ?? string.Empty,
+            FileName = document.FileName,
+            ContentType = document.ContentType,
             FileSize = document.FileSize,
-            AiConfidence = document.AiConfidence,
-            TotalScore = document.TotalScore,
-            Status = document.Status ?? "Draft",
+            AiConfidence = (float)(document.AiConfidence ?? 0),
+            TotalScore = (float?)document.TotalScore,
+            Status = document.Status,
             CreatedAt = document.CreatedAt,
-            UpdatedAt = document.UpdatedAt ?? document.CreatedAt,
+            UpdatedAt = document.UpdatedAt,
             SkillsCount = document.DocumentSkills?.Count ?? 0,
             ExperiencesCount = document.Experiences?.Count ?? 0,
             EducationsCount = document.Educations?.Count ?? 0,
@@ -140,16 +141,16 @@ public class DocumentService : IDocumentService
         // Update TemplateId if TemplateType is provided
         if (!string.IsNullOrEmpty(dto.TemplateType))
         {
-            var template = await _context.CvTemplates
+            var template = await _context.Cvtemplates
                 .FirstOrDefaultAsync(t => t.Key == dto.TemplateType);
             if (template != null)
             {
-                document.TemplateId = template.Id;
+                document.CvTemplateId = template.Id;
             }
         }
         else if (dto.TemplateId.HasValue)
         {
-            document.TemplateId = dto.TemplateId;
+            document.CvTemplateId = dto.TemplateId;
         }
 
         if (dto.CvData != null)
@@ -157,6 +158,7 @@ public class DocumentService : IDocumentService
             document.CvData = JsonSerializer.Serialize(dto.CvData);
         }
 
+        document.Status = "Draft";
         document.UpdatedAt = DateTime.UtcNow;
 
         await _documentRepository.UpdateAsync(document);
@@ -199,34 +201,89 @@ public class DocumentService : IDocumentService
             document.StoragePath = storagePath;
             document.FileName = file.FileName;
             document.ContentType = file.ContentType;
-            document.FileSize = (int)file.Length;
+            document.FileSize = file.Length;
             document.DocType = Path.GetExtension(file.FileName).ToUpper();
             document.Status = "Uploaded";
             document.UpdatedAt = DateTime.UtcNow;
+            
+            // Do NOT wipe CvData blindly. We might have just created it with user inputs.
+            CVDataDto existingData = null;
+            if (!string.IsNullOrEmpty(document.CvData))
+            {
+                try 
+                {
+                    existingData = JsonSerializer.Deserialize<CVDataDto>(document.CvData);
+                }
+                catch {}
+            }
 
             // Extract text from PDF if it's a PDF file
             if (file.ContentType == "application/pdf" || Path.GetExtension(file.FileName).ToLower() == ".pdf")
             {
                 try
                 {
-                    var fullPath = Path.Combine(_environment.WebRootPath, storagePath);
+                    var webRoot = _environment.WebRootPath ?? "wwwroot";
+                    var fullPath = Path.Combine(webRoot, storagePath);
                     if (File.Exists(fullPath))
                     {
                         var extractedText = await _pdfExtractionService.ExtractTextFromPdfAsync(fullPath);
                         var structuredData = await _pdfExtractionService.ExtractStructuredDataAsync(fullPath);
                         
-                        // Store extracted text in a field if available, or log it
                         _logger.LogInformation($"Extracted {extractedText.Length} characters from PDF for document {documentId}");
+
+                        // Use existing data or create new
+                        var parsedData = existingData ?? new CVDataDto();
+                        if (parsedData.PersonalInfo == null) parsedData.PersonalInfo = new PersonalInfoDto();
+
+                        // Helper to safely get string from dict
+                        string GetVal(string key) => structuredData.ContainsKey(key) ? structuredData[key]?.ToString() : "";
+
+                        // Only overwrite if currently empty
+                        if (string.IsNullOrEmpty(parsedData.PersonalInfo.FullName)) 
+                            parsedData.PersonalInfo.FullName = GetVal("fullName");
                         
-                        // You can store this in a separate table or add a RawText field to Document model
-                        // For now, we'll use it during analysis
+                        if (string.IsNullOrEmpty(parsedData.PersonalInfo.Email)) 
+                            parsedData.PersonalInfo.Email = GetVal("email");
+
+                        if (string.IsNullOrEmpty(parsedData.PersonalInfo.Phone)) 
+                            parsedData.PersonalInfo.Phone = GetVal("phone");
+
+                        if (string.IsNullOrEmpty(parsedData.PersonalInfo.Summary))
+                            parsedData.PersonalInfo.Summary = "Extracted from uploaded PDF";
+
+                        // Ensure lists are init
+                        if (parsedData.Experiences == null) parsedData.Experiences = new List<ExperienceDto>();
+                        if (parsedData.Educations == null) parsedData.Educations = new List<EducationDto>();
+                        if (parsedData.Skills == null) parsedData.Skills = new List<SkillDto>();
+
+                         // Update Document Name ONLY if it's currently generic
+                        bool isGenericName = string.IsNullOrWhiteSpace(document.OriginalName) || 
+                                           document.OriginalName.Contains("Untitled CV", StringComparison.OrdinalIgnoreCase);
+
+                        if (isGenericName)
+                        {
+                            var newName = !string.IsNullOrEmpty(parsedData.PersonalInfo.FullName) 
+                                ? parsedData.PersonalInfo.FullName 
+                                : Path.GetFileNameWithoutExtension(file.FileName);
+                                
+                             document.OriginalName = newName;
+                        }
+
+                        document.CvData = JsonSerializer.Serialize(parsedData);
                     }
                 }
                 catch (Exception ex)
                 {
                     _logger.LogWarning($"Failed to extract PDF content for document {documentId}: {ex.Message}");
-                    // Don't fail the upload if extraction fails
                 }
+            }
+            else 
+            {
+                 // Not a PDF, but we still shouldn't wipe CvData if we have it?
+                 // But ExportService checks: if Status=Uploaded, use File. 
+                 // If we leave CvData, does Export prioritize File?
+                 // Yes, ExportService checks: if (Status == "Uploaded") return File.
+                 // So keeping CvData is safe.
             }
 
             await _documentRepository.UpdateAsync(document);
@@ -264,5 +321,29 @@ public class DocumentService : IDocumentService
         return await _analyzerService.AnalyzeDocumentAsync(documentId);
     }
 
+
+    public async Task<(byte[] FileContents, string ContentType, string FileName)> GetDocumentFileAsync(int id, int userId)
+    {
+        var document = await _documentRepository.GetByIdAsync(id);
+        if (document == null)
+            throw new ArgumentException($"Document with ID {id} not found");
+
+        if (document.UserId != userId)
+            throw new UnauthorizedAccessException("You are not allowed to access this CV");
+
+        if (string.IsNullOrEmpty(document.StoragePath))
+            throw new FileNotFoundException("This CV does not have an uploaded file.");
+
+        var fileBytes = await _fileService.GetFileAsync(document.StoragePath);
+        if (fileBytes == null || fileBytes.Length == 0)
+             throw new FileNotFoundException("File not found on server.");
+
+        // Fallback for filename if null
+        var fileName = !string.IsNullOrEmpty(document.FileName) 
+            ? document.FileName 
+            : $"cv_{id}{Path.GetExtension(document.StoragePath) ?? ".pdf"}";
+
+        return (fileBytes, document.ContentType ?? "application/octet-stream", fileName);
+    }
 
 }

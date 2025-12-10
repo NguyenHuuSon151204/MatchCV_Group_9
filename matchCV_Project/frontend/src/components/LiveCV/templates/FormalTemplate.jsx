@@ -1,7 +1,32 @@
 import EditableField from '../EditableField';
 import './FormalTemplate.css';
 
-function FormalTemplate({ cvData, onUpdate }) {
+function FormalTemplate({ cvData, onUpdate, onImageClick }) {
+    // Helper to format date for month picker (YYYY-MM) and display
+    const toMonthString = (dateString) => {
+        if (!dateString) return '';
+        // If it's already YYYY-MM, return it
+        if (/^\d{4}-\d{2}$/.test(dateString)) return dateString;
+        try {
+            const date = new Date(dateString);
+            if (!isNaN(date.getTime())) {
+                return date.toISOString().slice(0, 7); // Returns YYYY-MM
+            }
+        } catch (e) {
+            return dateString;
+        }
+        return dateString;
+    };
+
+    const formatDisplayDate = (dateString) => {
+        if (!dateString) return '';
+        if (/^\d{4}-\d{2}$/.test(dateString)) {
+            const [year, month] = dateString.split('-');
+            return `${month}/${year}`;
+        }
+        return dateString;
+    };
+
     const updatePersonalInfo = (field, value) => {
         onUpdate({
             ...cvData,
@@ -124,9 +149,14 @@ function FormalTemplate({ cvData, onUpdate }) {
                 </div>
                 {cvData.personalInfo?.avatarBase64 && (
                     <img
-                        src={`data:image/png;base64,${cvData.personalInfo.avatarBase64}`}
+                        src={cvData.personalInfo.avatarBase64.startsWith('data:')
+                            ? cvData.personalInfo.avatarBase64
+                            : `data:image/png;base64,${cvData.personalInfo.avatarBase64}`}
                         alt="Profile"
                         className="profile-img"
+                        onClick={onImageClick}
+                        style={{ cursor: 'pointer' }}
+                        title="Click để thay đổi ảnh"
                     />
                 )}
             </header>
@@ -213,16 +243,20 @@ function FormalTemplate({ cvData, onUpdate }) {
                                 </div>
                                 <div className="item-date">
                                     <EditableField
-                                        value={exp.startDate}
+                                        value={toMonthString(exp.startDate)}
                                         onChange={(val) => updateExperience(exp.id, 'startDate', val)}
                                         placeholder="MM/YYYY"
+                                        formatDisplay={formatDisplayDate}
+                                        type="month"
                                         tag="span"
                                     />
                                     {' - '}
                                     <EditableField
-                                        value={exp.endDate || 'Hiện tại'}
+                                        value={exp.endDate ? toMonthString(exp.endDate) : 'Hiện tại'}
                                         onChange={(val) => updateExperience(exp.id, 'endDate', val)}
                                         placeholder="MM/YYYY"
+                                        formatDisplay={formatDisplayDate}
+                                        type="month"
                                         tag="span"
                                     />
                                 </div>
@@ -277,16 +311,20 @@ function FormalTemplate({ cvData, onUpdate }) {
                                 </div>
                                 <div className="item-date">
                                     <EditableField
-                                        value={edu.startYear}
+                                        value={toMonthString(edu.startYear)}
                                         onChange={(val) => updateEducation(edu.id, 'startYear', val)}
                                         placeholder="YYYY"
+                                        formatDisplay={formatDisplayDate}
+                                        type="month"
                                         tag="span"
                                     />
                                     {' - '}
                                     <EditableField
-                                        value={edu.endYear || 'Nay'}
+                                        value={edu.endYear ? toMonthString(edu.endYear) : 'Nay'}
                                         onChange={(val) => updateEducation(edu.id, 'endYear', val)}
                                         placeholder="YYYY"
+                                        formatDisplay={formatDisplayDate}
+                                        type="month"
                                         tag="span"
                                     />
                                 </div>

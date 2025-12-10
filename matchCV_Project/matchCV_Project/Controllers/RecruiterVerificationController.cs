@@ -15,12 +15,12 @@ namespace matchCV_Project.Controllers;
 [Route("api/recruiter-verification")]
 public class RecruiterVerificationController : ControllerBase
 {
-    private readonly AppDbContext _db;
+    private readonly MatchCvContext _db;
     private readonly IRecruiterVerificationService _verificationService;
     private readonly ILogger<RecruiterVerificationController> _logger;
 
     public RecruiterVerificationController(
-        AppDbContext db,
+        MatchCvContext db,
         IRecruiterVerificationService verificationService,
         ILogger<RecruiterVerificationController> logger)
     {
@@ -373,14 +373,14 @@ public class RecruiterVerificationController : ControllerBase
                 verification.BusinessLicenseDocument.Id,
                 verification.BusinessLicenseDocument.OriginalName,
                 verification.BusinessLicenseDocument.StoragePath,
-                verification.BusinessLicenseDocument.SizeBytes
+                verification.BusinessLicenseDocument.FileSize
             } : null,
             CompanyProof = verification.CompanyProofDocument != null ? new
             {
                 verification.CompanyProofDocument.Id,
                 verification.CompanyProofDocument.OriginalName,
                 verification.CompanyProofDocument.StoragePath,
-                verification.CompanyProofDocument.SizeBytes
+                verification.CompanyProofDocument.FileSize
             } : null,
             ReviewedBy = verification.ReviewedByAdmin != null ? new
             {

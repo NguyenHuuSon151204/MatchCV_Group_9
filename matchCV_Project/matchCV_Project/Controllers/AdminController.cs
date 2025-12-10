@@ -9,8 +9,8 @@ namespace matchCV_Project.Controllers;
 [Route("api/admin")]
 public class AdminController : ControllerBase
 {
-    private readonly AppDbContext _db;
-    public AdminController(AppDbContext db) => _db = db;
+    private readonly MatchCvContext _db;
+    public AdminController(MatchCvContext db) => _db = db;
 
     [HttpGet("summary")]
     public async Task<IActionResult> Summary([FromQuery] DateTime? from, [FromQuery] DateTime? to)
@@ -120,8 +120,8 @@ public class AdminController : ControllerBase
 
             var lastActive = _db.Documents
                 .Where(d => d.UserId == u.Id)
-                .OrderByDescending(d => d.UploadedAt)
-                .Select(d => d.UploadedAt)
+                .OrderByDescending(d => d.CreatedAt)
+                .Select(d => d.CreatedAt)
                 .FirstOrDefault();
 
             return new

@@ -1,5 +1,5 @@
 using ApiRestFul.DTOs;
-using matchCV_Project.Interfaces;
+using ApiRestFul.Services;
 using matchCV_Project.Data;
 using matchCV_Project.Models;
 using Microsoft.EntityFrameworkCore;
@@ -23,7 +23,7 @@ namespace matchCV_Project.Services
             if (request.Id > 0)
             {
                 // Update existing CV
-                savedCv = await _context.SavedCVs.FindAsync(request.Id);
+                savedCv = await _context.SavedCvs.FindAsync(request.Id);
                 if (savedCv == null)
                 {
                     throw new KeyNotFoundException($"CV with ID {request.Id} not found");
@@ -46,7 +46,7 @@ namespace matchCV_Project.Services
                     UpdatedAt = DateTime.Now
                 };
 
-                _context.SavedCVs.Add(savedCv);
+                _context.SavedCvs.Add(savedCv);
             }
 
             await _context.SaveChangesAsync();
@@ -64,7 +64,7 @@ namespace matchCV_Project.Services
 
         public async Task<List<CVHistoryItemDto>> GetCVHistoryAsync()
         {
-            var cvs = await _context.SavedCVs
+            var cvs = await _context.SavedCvs
                 .OrderByDescending(cv => cv.UpdatedAt)
                 .Select(cv => new CVHistoryItemDto
                 {
@@ -81,7 +81,7 @@ namespace matchCV_Project.Services
 
         public async Task<SavedCVDto?> GetCVByIdAsync(int id)
         {
-            var savedCv = await _context.SavedCVs.FindAsync(id);
+            var savedCv = await _context.SavedCvs.FindAsync(id);
             
             if (savedCv == null)
             {
@@ -101,14 +101,14 @@ namespace matchCV_Project.Services
 
         public async Task<bool> DeleteCVAsync(int id)
         {
-            var savedCv = await _context.SavedCVs.FindAsync(id);
+            var savedCv = await _context.SavedCvs.FindAsync(id);
             
             if (savedCv == null)
             {
                 return false;
             }
 
-            _context.SavedCVs.Remove(savedCv);
+            _context.SavedCvs.Remove(savedCv);
             await _context.SaveChangesAsync();
             
             return true;

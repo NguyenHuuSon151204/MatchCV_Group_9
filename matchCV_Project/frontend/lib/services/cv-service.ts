@@ -3,6 +3,7 @@ import {
   AnalyzeResult,
   CreateCVInput,
   CV,
+  CVStatus,
   UpdateCVInput,
   UploadResult,
 } from '@/lib/types'
@@ -98,7 +99,7 @@ function mapDocumentDtoToCV(dto: DocumentDto | any): CV {
       // Keep default if parsing fails
     }
   }
-  
+
   return {
     id: dto.Id?.toString() || dto.id?.toString() || '',
     name: dto.OriginalName || dto.name || 'Untitled CV',
@@ -114,7 +115,7 @@ function mapDocumentDtoToCV(dto: DocumentDto | any): CV {
 // Map backend status to frontend CVStatus (case-insensitive)
 function mapBackendStatusToFrontend(status: string): CVStatus {
   if (!status) return 'draft'
-  
+
   const statusLower = status.toLowerCase()
   const statusMap: Record<string, CVStatus> = {
     draft: 'draft',
@@ -137,156 +138,104 @@ async function withFallback<T>(request: () => Promise<T>, fallback: () => Promis
 
 export const cvService = {
   async getCVs(): Promise<CV[]> {
-    return withFallback(
-      async () => {
-        // Backend: GET /api/cv/user/{userId}
-        const userId = typeof window !== 'undefined' ? window.localStorage.getItem('matchcv-userId') : null
-        if (!userId) {
-          throw new Error('User ID not found')
-        }
-        const response = await apiClient.get<CV[]>(`/cv/user/${userId}`)
-        // Backend returns array of DocumentDto, need to map to CV
-        return Array.isArray(response.data) ? response.data.map(mapDocumentDtoToCV) : []
-      },
-      async () => {
-        await delay(300)
-        return cvStore
-      }
-    )
+    // Backend: GET /api/cv/user/{userId}
+    let userId = typeof window !== 'undefined' ? window.localStorage.getItem('matchcv-userId') : null
+    if (!userId) userId = '1'
+
+    const response = await apiClient.get<CV[]>(`/cv/user/${userId}`)
+    // Backend returns array of DocumentDto
+    const data = response.data as unknown as any[]
+    return Array.isArray(data) ? data.map(mapDocumentDtoToCV) : []
   },
 
   async getCV(id: string): Promise<CV | null> {
-    return withFallback(
-      async () => {
-        // Backend: GET /api/cv/{id}?userId={userId}
-        const response = await apiClient.get<CV>(`/cv/${id}`)
-        return mapDocumentDtoToCV(response.data)
-      },
-      async () => {
-        await delay(200)
-        return cvStore.find((cv) => cv.id === id) || null
-      }
-    )
+    const response = await apiClient.get<CV>(`/cv/${id}`)
+    return mapDocumentDtoToCV(response.data)
   },
 
   async createCV(payload: CreateCVInput): Promise<CV> {
-    return withFallback(
-      async () => {
-        // Backend: POST /api/cv/create?userId={userId}
-        // Backend expects: { OriginalName, TemplateId? }
-        const response = await apiClient.post<CV>('/cv/create', {
-          OriginalName: payload.name || `${payload.position} Resume`,
-        })
-        const created = mapDocumentDtoToCV(response.data)
-        // Update with additional frontend fields
-        return {
-          ...created,
+    const userId = typeof window !== 'undefined' ? window.localStorage.getItem('matchcv-userId') : null
+    if (!userId) throw new Error('User ID not found')
+
+    const response = await apiClient.post<CV>('/cv/create', {
+      OriginalName: payload.name,
+      originalName: payload.name, // Redundant fallback
+      Title: payload.name,
+      title: payload.name, // Redundant fallback
+      CvData: payload.cvData ? payload.cvData : {
+        personalInfo: {
+          fullName: 'User',
           position: payload.position,
-          description: payload.description,
+          summary: payload.description
         }
       },
-      async () => {
-        await delay(250)
-        const newCV: CV = {
-          id: Date.now().toString(),
-          name: payload.name,
+      cvData: payload.cvData ? payload.cvData : {
+        personalInfo: {
+          fullName: 'User',
           position: payload.position,
-          description: payload.description,
-          modifiedAt: new Date().toISOString(),
-          status: 'draft',
+          summary: payload.description
         }
-        cvStore = [newCV, ...cvStore]
-        return newCV
       }
-    )
+    }, {
+      params: { userId: parseInt(userId, 10) }
+    })
+
+    const created = mapDocumentDtoToCV(response.data)
+    return {
+      ...created,
+      position: payload.position,
+      description: payload.description,
+    }
   },
 
   async updateCV(payload: UpdateCVInput): Promise<CV> {
-    return withFallback(
-      async () => {
-        // Backend: PUT /api/cv/{id}?userId={userId}
-        const response = await apiClient.put<CV>(`/cv/${payload.id}`, {
-          OriginalName: payload.name,
-          DocType: 'CV',
-        })
-        return mapDocumentDtoToCV(response.data)
-      },
-      async () => {
-        await delay(200)
-        cvStore = cvStore.map((cv) => (cv.id === payload.id ? { ...cv, ...payload } : cv))
-        const updated = cvStore.find((cv) => cv.id === payload.id)
-        if (!updated) {
-          throw new Error('CV not found')
-        }
-        return updated
-      }
-    )
+    const response = await apiClient.put<CV>(`/cv/${payload.id}`, {
+      OriginalName: payload.name,
+      DocType: 'CV',
+    })
+    return mapDocumentDtoToCV(response.data)
   },
 
   async uploadCV(id: string | null, file: File): Promise<UploadResult> {
-    return withFallback(
-      async () => {
-        // Backend: POST /api/cv/upload?userId={userId}&id={id}
-        // If id is null or empty, backend will create new CV
-        const formData = new FormData()
-        formData.append('file', file)
-        
-        const params: { id?: number } = {}
-        if (id) {
-          const idNum = parseInt(id, 10)
-          if (!isNaN(idNum) && idNum > 0) {
-            params.id = idNum
-          }
-        }
-        
-        // Don't set Content-Type header - axios will set it automatically with boundary for FormData
-        const response = await apiClient.post<any>(`/cv/upload`, formData, {
-          params,
-        })
-        
-        // Backend returns DocumentDto wrapped in BaseResponseDto
-        const doc = response.data
-        return {
-          fileName: doc.FileName || file.name,
-          fileSize: doc.FileSize || file.size,
-          uploadedAt: doc.UpdatedAt || new Date().toISOString(),
-        }
-      },
-      async () => {
-        await delay(600)
-        if (id) {
-          cvStore = cvStore.map((cv) =>
-            cv.id === id ? { ...cv, status: 'uploaded', modifiedAt: new Date().toISOString() } : cv
-          )
-        }
-        return {
-          fileName: file.name,
-          fileSize: file.size,
-          uploadedAt: new Date().toISOString(),
-        }
+    const formData = new FormData()
+    formData.append('file', file)
+
+    const params: { id?: number; userId?: number } = {}
+
+    let userIdStr = typeof window !== 'undefined' ? window.localStorage.getItem('matchcv-userId') : null
+    if (!userIdStr) userIdStr = '1'
+    params.userId = parseInt(userIdStr, 10)
+
+    if (id) {
+      const idNum = parseInt(id, 10)
+      if (!isNaN(idNum) && idNum > 0) {
+        params.id = idNum
       }
-    )
+    }
+
+    const response = await apiClient.post<any>(`/cv/upload`, formData, { params })
+    const doc = response.data
+    return {
+      fileName: doc.FileName || file.name,
+      fileSize: doc.FileSize || file.size,
+      uploadedAt: doc.UpdatedAt || new Date().toISOString(),
+    }
   },
 
   async analyzeCV(id: string): Promise<AnalyzeResult> {
     return withFallback(
       async () => {
-        // Backend: POST /api/cv/analyze/{id}?userId={userId}
         const response = await apiClient.post<any>(`/cv/analyze/${id}`)
-        // Backend returns AnalysisResultDto: { DocumentId, Score, Confidence, Evidence (string), Skills, Experiences, Educations }
         const data = response.data
-        
-        // Handle Evidence - could be string, array, or JSON string
+
         let evidence: string[] = []
         if (data.Evidence) {
           if (typeof data.Evidence === 'string') {
             try {
-              // Try parsing as JSON array first
               const parsed = JSON.parse(data.Evidence)
               evidence = Array.isArray(parsed) ? parsed : [data.Evidence]
             } catch {
-              // If not JSON, check if it's comma-separated
-              evidence = data.Evidence.includes(',') 
+              evidence = data.Evidence.includes(',')
                 ? data.Evidence.split(',').map((e: string) => e.trim()).filter(Boolean)
                 : [data.Evidence]
             }
@@ -296,7 +245,7 @@ export const cvService = {
         } else if (data.EvidenceList && Array.isArray(data.EvidenceList)) {
           evidence = data.EvidenceList
         }
-        
+
         return {
           score: Math.round(data.Score || data.TotalScore || 0),
           evidence,
@@ -306,61 +255,26 @@ export const cvService = {
       async () => {
         await delay(1000)
         const score = Math.floor(Math.random() * 25) + 70
-        cvStore = cvStore.map((cv) =>
-          cv.id === id
-            ? {
-                ...cv,
-                status: 'analyzed',
-                score,
-                evidence: ['Strong quantifiable impact', 'Clear growth trajectory', 'Relevant keyword density'],
-                modifiedAt: new Date().toISOString(),
-              }
-            : cv
-        )
         return {
           score,
-          evidence: ['Strong quantifiable impact', 'Clear growth trajectory', 'Relevant keyword density'],
-          suggestions: [
-            'Highlight leadership achievements',
-            'Refine summary for role-specific keywords',
-            'Add metrics for recent projects',
-          ],
+          evidence: ['Strong quantifiable impact', 'Clear growth trajectory'],
+          suggestions: ['Highlight leadership achievements', 'Add metrics'],
         }
       }
     )
   },
 
   async deleteCV(id: string): Promise<void> {
-    return withFallback(
-      async () => {
-        // Backend: DELETE /api/cv/{id}?userId={userId}
-        await apiClient.delete(`/cv/${id}`)
-      },
-      async () => {
-        await delay(150)
-        cvStore = cvStore.filter((cv) => cv.id !== id)
-      }
-    )
+    await apiClient.delete(`/cv/${id}`)
   },
 
   async exportCV(id: string, format: 'pdf' | 'docx' | 'json'): Promise<Blob> {
-    return withFallback(
-      async () => {
-        const response = await apiClient.get(`/cv/${id}/export`, {
-          params: { format },
-          responseType: 'blob',
-        })
-        return response.data
-      },
-      async () => {
-        await delay(200)
-        const cv = cvStore.find((item) => item.id === id)
-        if (!cv) throw new Error('CV not found')
-        const content = `CV: ${cv.name}\nPosition: ${cv.position}\nStatus: ${cv.status}\nScore: ${
-          cv.score ?? 'N/A'
-        }\nGenerated: ${new Date().toISOString()}`
-        return new Blob([content], { type: 'text/plain' })
-      }
-    )
+    const response = await apiClient.post(`/export/cv`, {
+      cvId: parseInt(id),
+      format: format
+    }, {
+      responseType: 'blob',
+    })
+    return response.data
   },
 }

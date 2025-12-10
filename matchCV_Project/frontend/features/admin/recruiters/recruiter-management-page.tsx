@@ -15,11 +15,6 @@ interface Recruiter {
   accountType?: string
 }
 
-interface Job {
-  id: number
-  title: string
-}
-
 export function RecruiterManagementPage() {
   const [recruiters, setRecruiters] = useState<Recruiter[]>([])
   const [loading, setLoading] = useState(true)
@@ -28,7 +23,6 @@ export function RecruiterManagementPage() {
   const [showEditModal, setShowEditModal] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
   const [selectedRecruiter, setSelectedRecruiter] = useState<Recruiter | null>(null)
-  const [recruiterJobs, setRecruiterJobs] = useState<Record<number, Job[]>>({})
   const [filters, setFilters] = useState({
     search: '',
     plan: '',
@@ -71,29 +65,8 @@ export function RecruiterManagementPage() {
         filtered = filtered.filter((r) => r.plan === filters.plan)
       }
 
-      // Load jobs for each recruiter
-      try {
-        const jobsPromises = filtered.map(async (recruiter) => {
-          try {
-            // Note: This endpoint might need to be added to adminService
-            const recruiterJobs = await adminService.getRecruiters({ recruiterId: recruiter.id })
-            const jobsList = Array.isArray(recruiterJobs) ? recruiterJobs : []
-            return { recruiterId: recruiter.id, jobs: jobsList || [] }
-          } catch (error) {
-            return { recruiterId: recruiter.id, jobs: [] }
-          }
-        })
-
-        const jobsResults = await Promise.all(jobsPromises)
-        const jobsMap: Record<number, Job[]> = {}
-        jobsResults.forEach(({ recruiterId, jobs }) => {
-          jobsMap[recruiterId] = jobs
-        })
-        setRecruiterJobs(jobsMap)
-      } catch (error) {
-        console.error('Failed to load jobs:', error)
-        setRecruiterJobs({})
-      }
+      // Note: Jobs loading removed - backend doesn't provide this endpoint via adminService
+      // If needed, add a separate endpoint to get recruiter jobs
 
       filtered.sort((a, b) => {
         let aVal: any = a[sortBy as keyof Recruiter]
@@ -119,7 +92,6 @@ export function RecruiterManagementPage() {
       console.error('Failed to load recruiters:', err)
       setError(err.message || 'Failed to load recruiters. Please try again.')
       setRecruiters([])
-      setRecruiterJobs({})
     } finally {
       setLoading(false)
     }
@@ -156,8 +128,7 @@ export function RecruiterManagementPage() {
     if (!selectedRecruiter) return
 
     try {
-      // Note: This endpoint might need to be added to adminService
-      await adminService.getRecruiters({ update: true, id: selectedRecruiter.id, ...editForm })
+      await adminService.updateRecruiter(selectedRecruiter.id, editForm)
       alert('Recruiter information updated successfully!')
       setShowEditModal(false)
       setSelectedRecruiter(null)

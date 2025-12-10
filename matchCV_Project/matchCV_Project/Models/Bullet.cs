@@ -1,14 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
-using Microsoft.EntityFrameworkCore;
 
 namespace matchCV_Project.Models;
 
 public partial class Bullet
 {
-    [Key]
     public int Id { get; set; }
 
     public int SectionId { get; set; }
@@ -17,7 +13,7 @@ public partial class Bullet
 
     public string Text { get; set; } = null!;
 
-    [ForeignKey("SectionId")]
-    [InverseProperty("Bullets")]
+    public virtual ICollection<RewriteSuggestion> RewriteSuggestions { get; set; } = new List<RewriteSuggestion>();
+
     public virtual Section Section { get; set; } = null!;
 }

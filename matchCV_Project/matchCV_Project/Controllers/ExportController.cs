@@ -25,10 +25,8 @@ namespace ApiRestFul.Controllers
         {
             try
             {
-                var fileBytes = await _exportService.ExportCvAsync(request);
-                var fileName = $"CV_{DateTime.Now:yyyyMMddHHmmss}.{request.Format}";
-
-                return File(fileBytes, "application/pdf", fileName);
+                var (fileBytes, fileName, contentType) = await _exportService.ExportCvAsync(request);
+                return File(fileBytes, contentType, fileName);
             }
             catch (FileNotFoundException ex)
             {
@@ -38,7 +36,7 @@ namespace ApiRestFul.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Lỗi khi xuất CV");
-                return BadRequest(new { message = "Có lỗi xảy ra khi xuất CV" });
+                return BadRequest(new { message = $"Lỗi: {ex.Message} | {ex.InnerException?.Message}" });
             }
         }
     }

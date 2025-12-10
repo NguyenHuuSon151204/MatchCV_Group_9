@@ -229,7 +229,7 @@ public class JobService : IJobService
             JobDescription = job.JobDescription,
             Status = job.Status,
             CreatedAt = job.CreatedAt,
-            UpdatedAt = job.UpdatedAt ?? job.CreatedAt
+            UpdatedAt = job.UpdatedAt
         };
     }
 }

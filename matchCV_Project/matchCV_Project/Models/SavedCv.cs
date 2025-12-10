@@ -1,33 +1,23 @@
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
+﻿using System;
+using System.Collections.Generic;
 
 namespace matchCV_Project.Models;
-    [Table("SavedCVs")]
-    public class SavedCv
-    {
-        [Key]
-        public int Id { get; set; }
 
-        [Required]
-        [MaxLength(200)]
-        public string Title { get; set; } = string.Empty;
+public partial class SavedCv
+{
+    public int Id { get; set; }
 
-        [Required]
-        [MaxLength(50)]
-        public string TemplateType { get; set; } = string.Empty;
+    public string Title { get; set; } = null!;
 
-        [Required]
-        [Column(TypeName = "nvarchar(max)")]
-        public string CvdataJson { get; set; } = string.Empty;
+    public string TemplateType { get; set; } = null!;
 
-        [Required]
-        public DateTime CreatedAt { get; set; } = DateTime.Now;
+    public string CvdataJson { get; set; } = null!;
 
-        [Required]
-        public DateTime UpdatedAt { get; set; } = DateTime.Now;
+    public DateTime CreatedAt { get; set; }
 
-        public int? UserId { get; set; }
+    public DateTime UpdatedAt { get; set; }
 
-        [ForeignKey("UserId")]
-        public virtual User? User { get; set; }
-    }
+    public int? UserId { get; set; }
+
+    public virtual User? User { get; set; }
+}

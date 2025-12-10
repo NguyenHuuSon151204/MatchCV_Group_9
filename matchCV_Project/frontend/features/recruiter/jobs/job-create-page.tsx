@@ -27,25 +27,37 @@ export function JobCreatePage() {
     setError(null)
 
     try {
+      // Get recruiter ID from localStorage if available
+      const recruiterId = typeof window !== 'undefined' 
+        ? parseInt(localStorage.getItem('matchcv-userId') || localStorage.getItem('userId') || '0')
+        : 0
+
       const payload = {
-        title: form.title.trim(),
-        company: form.company.trim(),
-        description: form.description.trim(),
-        skills: form.skills,
+        Title: form.title.trim(),
+        Company: form.company.trim() || undefined,
+        Description: form.description.trim(),
+        Skills: form.skills || [],
+        RecruiterId: recruiterId > 0 ? recruiterId : undefined,
       }
 
-      if (!payload.title || !payload.description) {
+      if (!payload.Title || !payload.Description) {
         setError('Title and description cannot be empty.')
         setSaving(false)
         return
       }
 
       const job = await recruiterService.createJob(payload)
-      alert('JD created successfully!')
-      router.push(`/recruiter/jobs/${job.id}`)
+      // Backend returns with camelCase or PascalCase
+      const jobId = job.id || job.Id
+      if (jobId) {
+        alert('JD created successfully!')
+        router.push(`/recruiter/jobs/${jobId}`)
+      } else {
+        setError('Job created but could not get job ID.')
+      }
     } catch (err: any) {
       console.error('Failed to create job:', err)
-      setError(err.message || 'Failed to create job.')
+      setError(err.message || err.response?.data?.message || 'Failed to create job.')
     } finally {
       setSaving(false)
     }

@@ -7,8 +7,8 @@ namespace matchCV_Project.Services;
 
 public class AiService : IAiService
 {
-    private readonly AppDbContext _db;
-    public AiService(AppDbContext db) => _db = db;
+    private readonly MatchCvContext _db;
+    public AiService(MatchCvContext db) => _db = db;
 
     public int ScoreMatch(Job job, Document cv)
     {

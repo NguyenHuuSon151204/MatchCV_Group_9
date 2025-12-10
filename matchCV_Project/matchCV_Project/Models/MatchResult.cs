@@ -1,4 +1,4 @@
-namespace matchCV_Project.Models;
+﻿namespace matchCV_Project.Models;
 
 public class MatchResult
 {

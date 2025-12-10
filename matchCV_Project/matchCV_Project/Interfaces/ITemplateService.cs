@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using ApiRestFul.DTOs;
 
-namespace matchCV_Project.Interfaces
+namespace ApiRestFul.Services
 {
     public interface ITemplateService
     {

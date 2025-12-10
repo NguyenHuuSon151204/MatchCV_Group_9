@@ -1,5 +1,6 @@
 'use client'
 
+import { useContext } from 'react'
 import {
   LayoutDashboard,
   FileText,
@@ -9,19 +10,27 @@ import {
   Settings,
   Briefcase,
   Plus,
+  Users
 } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 import { cn } from '@/lib/utils'
+import { AuthContext } from '@/contexts/AuthContext'
 
-const navigation = [
-  { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-  { label: 'My CVs', path: '/my-cvs', icon: FileText },
-  { label: 'JD Analyzer', path: '/jd-analyzer', icon: BarChart3 },
-  { label: 'AI Rewrite', path: '/ai-rewrite', icon: Sparkles },
-  { label: 'Export', path: '/export', icon: Download },
-  { label: 'Find Jobs', path: '/jobs', icon: Briefcase },
-  { label: 'Post Job', path: '/post-job', icon: Plus },
-  { label: 'Settings', path: '/settings', icon: Settings },
+const candidateNav = [
+  { label: 'Dashboard', path: '/app/dashboard', icon: LayoutDashboard },
+  { label: 'My CVs', path: '/app/my-cvs', icon: FileText },
+  { label: 'JD Analyzer', path: '/app/jd-analyzer', icon: BarChart3 },
+  { label: 'AI Rewrite', path: '/app/ai-rewrite', icon: Sparkles },
+  { label: 'Export', path: '/app/export', icon: Download },
+  { label: 'Find Jobs', path: '/app/jobs', icon: Briefcase },
+  { label: 'Settings', path: '/app/settings', icon: Settings },
+]
+
+const recruiterNav = [
+  { label: 'Dashboard', path: '/app/dashboard', icon: LayoutDashboard },
+  { label: 'Post Job', path: '/app/post-job', icon: Plus },
+  { label: 'Find Candidates', path: '/app/candidates', icon: Users },
+  { label: 'Settings', path: '/app/settings', icon: Settings },
 ]
 
 interface SidebarProps {
@@ -30,6 +39,10 @@ interface SidebarProps {
 }
 
 export function Sidebar({ isMobileOpen, onClose }: SidebarProps) {
+  const { user } = useContext(AuthContext) || {}
+  const role = user?.role || 'Candidate'
+  const navItems = role === 'Recruiter' ? recruiterNav : candidateNav
+
   return (
     <>
       <div
@@ -51,7 +64,7 @@ export function Sidebar({ isMobileOpen, onClose }: SidebarProps) {
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sidebar-foreground/60">
                 MatchCV
               </p>
-              <h1 className="text-2xl font-bold text-sidebar-foreground">Candidate</h1>
+              <h1 className="text-2xl font-bold text-sidebar-foreground">{role}</h1>
             </div>
             <div className="rounded-full bg-primary/20 px-3 py-1 text-xs font-medium text-primary-foreground/80">
               AI
@@ -59,7 +72,7 @@ export function Sidebar({ isMobileOpen, onClose }: SidebarProps) {
           </div>
 
           <nav className="flex-1 space-y-1 px-4 py-6">
-            {navigation.map((item) => {
+            {navItems.map((item) => {
               const Icon = item.icon
               return (
                 <NavLink
@@ -86,11 +99,15 @@ export function Sidebar({ isMobileOpen, onClose }: SidebarProps) {
             <div className="rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 p-4 text-sm text-sidebar-foreground/80">
               <p className="font-semibold">AI Copilot</p>
               <p className="text-xs text-sidebar-foreground/60">
-                Upload a new CV and let the AI analyze it instantly.
+                {role === 'Recruiter'
+                  ? 'Optimize your job posts with AI analysis.'
+                  : 'Upload a new CV and let the AI analyze it instantly.'}
               </p>
-              <button className="mt-3 w-full rounded-xl bg-primary/20 py-2 text-xs font-semibold text-primary-foreground">
-                Upload CV
-              </button>
+              {role !== 'Recruiter' && (
+                <button className="mt-3 w-full rounded-xl bg-primary/20 py-2 text-xs font-semibold text-primary-foreground">
+                  Upload CV
+                </button>
+              )}
             </div>
           </div>
         </div>

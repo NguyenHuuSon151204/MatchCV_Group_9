@@ -106,18 +106,25 @@ export function JobDetailPage() {
     try {
       setSaving(true)
       const payload = {
-        title: editForm.title.trim(),
-        company: editForm.company.trim(),
-        description: editForm.rawText.trim(),
-        skills: editForm.skills,
+        Title: editForm.title.trim(),
+        Company: editForm.company.trim(),
+        Description: editForm.rawText.trim(),
+        Skills: editForm.skills || [],
       }
       const updated = await recruiterService.updateJob(parseInt(id), payload)
-      setJob(updated)
+      // Backend returns with camelCase properties
+      setJob({
+        ...job!,
+        title: updated.title || updated.Title || editForm.title,
+        company: updated.company || updated.Company || editForm.company,
+        rawText: updated.rawText || updated.RawText || updated.description || updated.Description || editForm.rawText,
+        skills: updated.skills || updated.Skills || editForm.skills,
+      })
       setEditForm({
-        title: updated.title || '',
-        company: updated.company || '',
-        rawText: updated.rawText || updated.description || '',
-        skills: updated.skills || [],
+        title: updated.title || updated.Title || editForm.title,
+        company: updated.company || updated.Company || editForm.company,
+        rawText: updated.rawText || updated.RawText || updated.description || updated.Description || editForm.rawText,
+        skills: updated.skills || updated.Skills || editForm.skills,
       })
       setIsEditing(false)
       alert('Job updated successfully!')

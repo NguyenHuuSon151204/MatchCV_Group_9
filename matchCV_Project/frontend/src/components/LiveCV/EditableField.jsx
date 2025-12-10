@@ -18,7 +18,8 @@ function EditableField({
     className = '',
     tag = 'p',
     multiline = false,
-    disabled = false
+    disabled = false,
+    formatDisplay
 }) {
     const [isEditing, setIsEditing] = useState(false);
     const [localValue, setLocalValue] = useState(value);
@@ -116,7 +117,7 @@ function EditableField({
         return (
             <input
                 ref={inputRef}
-                type="text"
+                type={type}
                 className={`editable-field-input ${className}`}
                 value={localValue}
                 onChange={handleChange}
@@ -129,9 +130,11 @@ function EditableField({
 
     // Display mode
     const Tag = tag;
-    const displayValue = localValue || (disabled ? '' : placeholder);
+    const displayValue = formatDisplay
+        ? formatDisplay(localValue)
+        : (localValue || (disabled ? '' : placeholder));
 
-    if (disabled && !displayValue) return null;
+    if (disabled && !localValue && !placeholder) return null;
 
     return (
         <Tag

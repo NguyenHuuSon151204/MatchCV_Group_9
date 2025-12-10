@@ -47,7 +47,6 @@ interface DashboardData {
 
 export function RecruiterDashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null)
-  const [filteredJobs, setFilteredJobs] = useState<Job[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
@@ -63,24 +62,21 @@ export function RecruiterDashboardPage() {
     loadDashboard()
   }, [])
 
-  useEffect(() => {
-    filterAndSortJobs()
-  }, [jobs, searchQuery, sortBy, sortOrder])
-
   const loadDashboard = async () => {
     try {
       setLoading(true)
       setError(null)
       const response = await recruiterService.getDashboard()
+      // Backend returns { summary, jobs, recentApplicants, topSkills } directly
       setData({
-        summary: response.summary || {},
-        jobs: response.jobs || [],
-        recentApplicants: response.recentApplicants || [],
-        topSkills: response.topSkills || [],
+        summary: response?.summary || {},
+        jobs: response?.jobs || [],
+        recentApplicants: response?.recentApplicants || [],
+        topSkills: response?.topSkills || [],
       })
     } catch (err: any) {
       console.error('Failed to load recruiter dashboard:', err)
-      setError(err.message || 'Failed to load dashboard.')
+      setError(err.message || err.response?.data?.message || 'Failed to load dashboard.')
     } finally {
       setLoading(false)
     }
@@ -122,7 +118,7 @@ export function RecruiterDashboardPage() {
     return 'text-red-600'
   }
 
-  const filterAndSortJobs = () => {
+  const filteredJobs = useMemo(() => {
     let filtered = [...jobs]
 
     if (searchQuery.trim()) {
@@ -157,8 +153,8 @@ export function RecruiterDashboardPage() {
       }
     })
 
-    setFilteredJobs(filtered)
-  }
+    return filtered
+  }, [jobs, searchQuery, sortBy, sortOrder])
 
   const handleExportCSV = () => {
     try {
@@ -391,6 +387,50 @@ export function RecruiterDashboardPage() {
             </div>
 
             <div className="space-y-6">
+              {/* AI Insights Card */}
+              <div className="bg-card p-6 rounded-lg border">
+                <div className="mb-4">
+                  <h2 className="text-lg font-semibold mb-1">AI Insights</h2>
+                  <p className="text-sm text-muted-foreground">Key metrics and performance indicators</p>
+                </div>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="p-4 bg-muted/50 rounded-lg">
+                      <div className="text-sm text-muted-foreground mb-1">Average Match Score</div>
+                      <div className="text-2xl font-bold text-primary">
+                        {summary.averageScore != null ? `${Math.round(summary.averageScore)}%` : 'N/A'}
+                      </div>
+                    </div>
+                    <div className="p-4 bg-muted/50 rounded-lg">
+                      <div className="text-sm text-muted-foreground mb-1">Top Performing JD</div>
+                      <div className="text-lg font-semibold">
+                        {highlightJob ? highlightJob.title : 'N/A'}
+                      </div>
+                      {highlightJob?.avgScore != null && (
+                        <div className="text-sm text-muted-foreground">
+                          Score: {Math.round(highlightJob.avgScore)}%
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  {topSkills.length > 0 && (
+                    <div>
+                      <div className="text-sm font-medium mb-2">Most Required Skills</div>
+                      <div className="flex flex-wrap gap-2">
+                        {topSkills.slice(0, 5).map((skill, idx) => (
+                          <span
+                            key={idx}
+                            className="px-3 py-1 bg-primary/10 text-primary rounded-full text-sm"
+                          >
+                            {skill.name || skill.skill || skill}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
               <div className="bg-card p-6 rounded-lg border">
                 <div className="flex justify-between items-start mb-4">
                   <div>

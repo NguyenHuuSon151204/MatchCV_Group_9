@@ -65,16 +65,16 @@ export function JobEditPage() {
 
     try {
       await recruiterService.updateJob(parseInt(id), {
-        title: job.title.trim(),
-        company: job.company?.trim() || '',
-        description: job.rawText.trim(),
-        skills: job.skills,
+        Title: job.title.trim(),
+        Company: job.company?.trim() || '',
+        Description: job.rawText.trim(),
+        Skills: job.skills || [],
       })
       alert('Job updated successfully!')
       router.push(`/recruiter/jobs/${id}`)
     } catch (err: any) {
       console.error('Failed to update job:', err)
-      setError('Failed to update job. Please try again.')
+      setError(err.message || 'Failed to update job. Please try again.')
     } finally {
       setSaving(false)
     }

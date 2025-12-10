@@ -12,7 +12,7 @@ namespace matchCV_Project.Data
         {
             var context = services.GetRequiredService<MatchCvContext>();
 
-            if (await context.CvTemplates.AnyAsync())
+            if (await context.Cvtemplates.AnyAsync())
             {
                 return;
             }
@@ -24,7 +24,9 @@ namespace matchCV_Project.Data
                     Key = "professional",
                     Name = "Chuyên nghiệp",
                     Description = "Mẫu CV chuyên nghiệp, phù hợp với môi trường doanh nghiệp",
+                    ThumbnailUrl = "/images/templates/professional.png",
                     CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
                     IsActive = true
                 },
                 new Cvtemplate
@@ -32,7 +34,9 @@ namespace matchCV_Project.Data
                     Key = "modern",
                     Name = "Hiện đại",
                     Description = "Thiết kế hiện đại, sáng tạo và nổi bật",
+                    ThumbnailUrl = "/images/templates/modern.png",
                     CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
                     IsActive = true
                 },
                 new Cvtemplate
@@ -40,12 +44,14 @@ namespace matchCV_Project.Data
                     Key = "formal",
                     Name = "Trang trọng",
                     Description = "Phong cách trang trọng, lịch sự",
+                    ThumbnailUrl = "/images/templates/formal.png",
                     CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
                     IsActive = true
                 }
             };
 
-            await context.CvTemplates.AddRangeAsync(templates);
+            await context.Cvtemplates.AddRangeAsync(templates);
             await context.SaveChangesAsync();
         }
     }

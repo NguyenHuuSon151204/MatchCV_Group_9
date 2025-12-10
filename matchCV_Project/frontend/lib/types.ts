@@ -16,6 +16,7 @@ export interface CreateCVInput {
   name: string
   position: string
   description?: string
+  cvData?: any
 }
 
 export interface UpdateCVInput extends Partial<CreateCVInput> {
@@ -95,5 +96,26 @@ export interface UpdateJobInput {
   jobDescription?: string
   rawText?: string
   status?: string
+}
+
+export interface User {
+  id: number
+  displayName: string
+  email: string
+  role: string
+  verified?: boolean
+  createdAt?: string
+  updatedAt?: string
+  isActive?: boolean
+  isDeleted?: boolean
+}
+
+export interface AuthContextType {
+  user: User | null
+  loading: boolean
+  login: (email: string, password: string) => Promise<any>
+  ggregister: (email: string, name: string, role: string) => Promise<any>
+  register: (displayName: string, email: string, password: string, role: string) => Promise<any>
+  logout: () => Promise<void>
 }
 

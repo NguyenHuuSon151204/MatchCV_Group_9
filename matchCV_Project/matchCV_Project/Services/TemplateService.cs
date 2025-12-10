@@ -1,5 +1,5 @@
-using ApiRestFul.DTOs;
-using matchCV_Project.Interfaces;
+﻿using ApiRestFul.DTOs;
+using ApiRestFul.Services;
 using matchCV_Project.Models;
 using iText.Html2pdf;
 using System.Text;
@@ -19,7 +19,7 @@ namespace matchCV_Project.Services
 
         public async Task<List<CVTemplateDto>> GetAvailableTemplatesAsync()
         {
-            var templates = await _context.CvTemplates
+            var templates = await _context.Cvtemplates
                 .Where(t => t.IsActive)
                 .OrderBy(t => t.CreatedAt)
                 .ToListAsync();
@@ -30,7 +30,7 @@ namespace matchCV_Project.Services
                 Key = t.Key,
                 Name = t.Name,
                 Description = t.Description,
-                ThumbnailUrl = "/images/templates/default.png", // Default thumbnail
+                ThumbnailUrl = t.ThumbnailUrl,
                 TemplateType = t.Key
             }).ToList();
         }

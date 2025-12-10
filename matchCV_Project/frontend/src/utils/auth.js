@@ -3,7 +3,7 @@
 
 export const getUserId = () => {
     if (typeof window !== 'undefined') {
-        const storedId = localStorage.getItem('userId');
+        const storedId = localStorage.getItem('matchcv-userId');
         if (storedId) {
             return parseInt(storedId);
         }
@@ -14,12 +14,12 @@ export const getUserId = () => {
 
 export const setUserId = (id) => {
     if (typeof window !== 'undefined') {
-        localStorage.setItem('userId', id.toString());
+        localStorage.setItem('matchcv-userId', id.toString());
     }
 };
 
 export const logout = () => {
     if (typeof window !== 'undefined') {
-        localStorage.removeItem('userId');
+        localStorage.removeItem('matchcv-userId');
     }
 };

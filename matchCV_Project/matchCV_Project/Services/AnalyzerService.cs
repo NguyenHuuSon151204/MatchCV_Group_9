@@ -1,7 +1,8 @@
-using matchCV_Project.Data;
+﻿using matchCV_Project.Data;
 using matchCV_Project.Interfaces;
 using matchCV_Project.Models;
 using matchCV_Project.Models.Dtos;
+using matchCV_Project.Services.Scoring;
 using Microsoft.EntityFrameworkCore;
 
 namespace matchCV_Project.Services;
@@ -10,11 +11,13 @@ public class AnalyzerService : IAnalyzerService
 {
     private readonly MatchCvContext _context;
     private readonly ILogger<AnalyzerService> _logger;
+    private readonly ScoringEngine _scoringEngine;
 
-    public AnalyzerService(MatchCvContext context, ILogger<AnalyzerService> logger)
+    public AnalyzerService(MatchCvContext context, ILogger<AnalyzerService> logger, ScoringEngine scoringEngine)
     {
         _context = context;
         _logger = logger;
+        _scoringEngine = scoringEngine;
     }
 
     public async Task<AnalysisResultDto> AnalyzeDocumentAsync(int documentId)
@@ -42,8 +45,8 @@ public class AnalyzerService : IAnalyzerService
                 Skills = document.DocumentSkills.Select(ds => new SkillAnalysisDto
                 {
                     Name = ds.Skill.Name,
-                    Proficiency = CalculateProficiency(ds.Years ?? 0, ds.Confidence ?? 0),
-                    Confidence = (float)(ds.Confidence ?? 0.8)
+                    Proficiency = ds.Proficiency,
+                    Confidence = (float)(ds.Confidence ?? 0.8f)
                 }).ToList(),
                 Experiences = document.Experiences.Count,
                 Educations = document.Educations.Count
@@ -139,11 +142,41 @@ public class AnalyzerService : IAnalyzerService
         return 75;
     }
 
-    private string CalculateProficiency(double years, double confidence)
+    /// <summary>
+    /// Score a CV against a Job Description using AI
+    /// </summary>
+    public async Task<ScoringResult> ScoreCvVsJobAsync(string cvText, string jobDescription, string industry = "IT", string level = "Mid")
     {
-        if (years >= 5) return "Expert";
-        if (years >= 3) return "Advanced";
-        if (years >= 1) return "Intermediate";
-        return "Beginner";
+        try
+        {
+            var candidateInput = new CandidateScoringInput
+            {
+                CvText = cvText,
+                PortfolioUrl = "",
+                ExpectedSalary = null,
+                GithubUsername = null
+            };
+
+            var jobInput = new JobScoringInput
+            {
+                JdText = jobDescription,
+                Industry = industry,
+                Level = level,
+                BudgetMin = null,
+                BudgetMax = null
+            };
+
+            var result = await _scoringEngine.CalculateAsync(candidateInput, jobInput);
+            
+            _logger.LogInformation($"CV scored successfully against JD. Score: {result.TotalScore}");
+            
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error scoring CV against JD");
+            throw;
+        }
     }
 }
+

@@ -1,4 +1,4 @@
-using matchCV_Project.Interfaces;
+﻿using matchCV_Project.Interfaces;
 using matchCV_Project.Models.Dtos;
 using Microsoft.AspNetCore.Mvc;
 using System.Linq;
@@ -309,6 +309,43 @@ public class CvController : ControllerBase
                 StatusCodes.Status500InternalServerError,
                 BaseResponseDto<DocumentDto>.FailureResponse("An error occurred while uploading the file. Please try again later.")
             );
+        }
+    }
+
+    /// <summary>
+    /// Download the uploaded CV file
+    /// </summary>
+    [HttpGet("download/{id}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> DownloadCv(int id, [FromQuery] int userId)
+    {
+        try
+        {
+            var (fileContents, contentType, fileName) = await _documentService.GetDocumentFileAsync(id, userId);
+            return File(fileContents, contentType, fileName);
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "CV {CvId} not found for download by user {UserId}", id, userId);
+            return NotFound(BaseResponseDto<object>.FailureResponse(ex.Message));
+        }
+        catch (FileNotFoundException ex)
+        {
+             _logger.LogWarning(ex, "File not found for CV {CvId} user {UserId}", id, userId);
+            return NotFound(BaseResponseDto<object>.FailureResponse(ex.Message));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            _logger.LogWarning(ex, "Unauthorized download attempt to CV {CvId} by user {UserId}", id, userId);
+            return StatusCode(StatusCodes.Status403Forbidden, BaseResponseDto<object>.FailureResponse("You are not allowed to access this CV"));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error downloading CV {CvId} for user {UserId}", id, userId);
+            return StatusCode(StatusCodes.Status500InternalServerError, BaseResponseDto<object>.FailureResponse("An error occurred while downloading the file."));
         }
     }
 

@@ -1,49 +1,43 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
-using Microsoft.EntityFrameworkCore;
 
 namespace matchCV_Project.Models;
 
-[Index("Email", Name = "UQ__Users__A9D10534A0824C3B", IsUnique = true)]
 public partial class User
 {
-    [Key]
     public int Id { get; set; }
 
-    [StringLength(180)]
     public string DisplayName { get; set; } = null!;
 
-    [StringLength(250)]
     public string Email { get; set; } = null!;
 
-    [StringLength(100)]
     public string Role { get; set; } = null!;
+
+    public string Password { get; set; } = null!;
+
+    public bool Verified { get; set; }
 
     public DateTime CreatedAt { get; set; }
 
-    [InverseProperty("Candidate")]
+    public DateTime? UpdatedAt { get; set; }
+
+    public bool IsActive { get; set; }
+
+    public bool IsDeleted { get; set; }
+
     public virtual ICollection<Application> Applications { get; set; } = new List<Application>();
 
-    [InverseProperty("User")]
     public virtual ICollection<Document> Documents { get; set; } = new List<Document>();
 
-    [InverseProperty("User")]
-    public virtual ICollection<Job> Jobs { get; set; } = new List<Job>();
-
-    [InverseProperty("AssignedUser")]
-    public virtual ICollection<LicenseKey> LicenseKeys { get; set; } = new List<LicenseKey>();
-
-    [InverseProperty("Recruiter")]
-    public virtual ICollection<RecruiterVerification> RecruiterVerifications { get; set; } = new List<RecruiterVerification>();
-
-    [InverseProperty("ReviewedByAdmin")]
-    public virtual ICollection<RecruiterVerification> RecruiterVerificationsReviewed { get; set; } = new List<RecruiterVerification>();
-
-    [InverseProperty("User")]
     public virtual ICollection<EmailVerificationToken> EmailVerificationTokens { get; set; } = new List<EmailVerificationToken>();
 
-    [InverseProperty("User")]
-    public virtual ICollection<SavedCv> SavedCVs { get; set; } = new List<SavedCv>();
+    public virtual ICollection<Job> Jobs { get; set; } = new List<Job>();
+
+    public virtual ICollection<LicenseKey> LicenseKeys { get; set; } = new List<LicenseKey>();
+
+    public virtual ICollection<SavedCv> SavedCvs { get; set; } = new List<SavedCv>();
+
+    public virtual ICollection<RecruiterVerification> RecruiterVerifications { get; set; } = new List<RecruiterVerification>();
+
+    public virtual ICollection<RecruiterVerification> RecruiterVerificationsReviewed { get; set; } = new List<RecruiterVerification>();
 }

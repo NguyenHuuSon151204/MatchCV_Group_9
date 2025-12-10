@@ -139,10 +139,12 @@
     font-size: 14px;
 }
 
-.timeline-item {
+.professional-cv-container .timeline-item {
     display: flex;
     margin-bottom: 25px;
     position: relative;
+    flex-direction: row;
+    /* Enforce row layout explicitly */
 }
 
 .timeline-left {
@@ -156,6 +158,8 @@
 .timeline-right {
     width: 75%;
     position: relative;
+    padding-right: 30px;
+    /* Space for remove button */
 }
 
 .timeline-title {

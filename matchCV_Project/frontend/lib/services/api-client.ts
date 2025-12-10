@@ -1,8 +1,9 @@
 import axios from 'axios'
 
 const apiClient = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000/api',
+  baseURL: '/api', // process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000/api',
   timeout: 15000,
+  withCredentials: true,
 })
 
 // Request interceptor: Add auth token and userId
@@ -12,7 +13,7 @@ apiClient.interceptors.request.use((config) => {
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
-    
+
     // Add userId to query params if not already present
     const userId = window.localStorage.getItem('matchcv-userId')
     if (userId && !config.params?.userId) {
@@ -27,25 +28,30 @@ apiClient.interceptors.response.use(
   (response) => {
     // Backend returns BaseResponseDto<T> with structure: { Success, Message, Data, Errors }
     const data = response.data
-    
-    // Check if response follows BaseResponseDto structure
-    if (data && typeof data === 'object' && 'Success' in data && 'Data' in data) {
-      if (data.Success) {
+
+    // Check if response follows BaseResponseDto structure (PascalCase or camelCase)
+    const success = data.Success ?? data.success
+    const responseData = data.Data ?? data.data
+    const message = data.Message ?? data.message
+    const errors = data.Errors ?? data.errors
+
+    if (data && typeof data === 'object' && (success !== undefined || responseData !== undefined)) {
+      if (success) {
         // Return the unwrapped Data
-        return { ...response, data: data.Data }
+        return { ...response, data: responseData }
       } else {
         // Return error with message
-        const error = new Error(data.Message || 'Request failed')
+        const error = new Error(message || 'Request failed')
         return Promise.reject({
           ...error,
           response: {
             ...response,
-            data: { message: data.Message, errors: data.Errors || [] },
+            data: { message: message, errors: errors || [] },
           },
         })
       }
     }
-    
+
     // If not BaseResponseDto structure, return as-is
     return response
   },
@@ -54,12 +60,16 @@ apiClient.interceptors.response.use(
       window.localStorage.removeItem('matchcv-token')
       window.localStorage.removeItem('matchcv-userId')
     }
-    
+
     // Unwrap error response if it's BaseResponseDto
-    if (error.response?.data && typeof error.response.data === 'object' && 'Message' in error.response.data) {
-      error.message = error.response.data.Message || error.message
+    if (error.response?.data && typeof error.response.data === 'object') {
+      const respData = error.response.data
+      const msg = respData.Message ?? respData.message
+      if (msg) {
+        error.message = msg
+      }
     }
-    
+
     return Promise.reject(error)
   }
 )

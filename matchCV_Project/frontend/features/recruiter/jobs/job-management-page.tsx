@@ -48,6 +48,7 @@ export function JobManagementPage() {
       if (filters.company) params.company = filters.company
 
       const response = await recruiterService.getJobs(params)
+      // Handle response - backend returns array directly or wrapped
       let filtered = Array.isArray(response) ? response : (response?.data || response || [])
 
       if (filters.search) {

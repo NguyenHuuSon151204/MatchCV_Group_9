@@ -1,12 +1,12 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using ApiRestFul.DTOs;
-using matchCV_Project.Interfaces;
+using ApiRestFul.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 
-namespace matchCV_Project.Controllers
+namespace ApiRestFul.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]

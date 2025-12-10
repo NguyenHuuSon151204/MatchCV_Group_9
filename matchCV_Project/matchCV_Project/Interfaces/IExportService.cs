@@ -4,6 +4,6 @@ namespace ApiRestFul.Services
 {
     public interface IExportService
     {
-        Task<byte[]> ExportCvAsync(ExportRequest request);
+        Task<(byte[] Data, string FileName, string ContentType)> ExportCvAsync(ExportRequest request);
     }
 }

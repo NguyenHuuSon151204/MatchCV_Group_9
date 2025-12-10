@@ -1,4 +1,4 @@
-using matchCV_Project.Interfaces;
+﻿using matchCV_Project.Interfaces;
 
 namespace matchCV_Project.Services;
 
@@ -28,7 +28,8 @@ public class FileService : IFileService
             if (!IsValidFileType(file.FileName))
                 throw new ArgumentException("File type not allowed. Only PDF and DOCX allowed");
 
-            var uploadsFolder = Path.Combine(_environment.WebRootPath, "uploads", userId);
+            var webRoot = _environment.WebRootPath ?? "wwwroot";
+            var uploadsFolder = Path.Combine(webRoot, "uploads", userId);
             Directory.CreateDirectory(uploadsFolder);
 
             var fileName = Path.GetFileNameWithoutExtension(file.FileName);

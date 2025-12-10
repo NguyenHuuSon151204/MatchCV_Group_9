@@ -1,105 +1,69 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
-using Microsoft.EntityFrameworkCore;
 
 namespace matchCV_Project.Models;
 
-[Index("DocType", Name = "IX_Documents_DocType")]
-[Index("UploadedAt", Name = "IX_Documents_Uploaded")]
-[Index("UserId", Name = "IX_Documents_UserId")]
 public partial class Document
 {
-    [Key]
     public int Id { get; set; }
 
     public int? UserId { get; set; }
 
-    [StringLength(30)]
+    public int? CvTemplateId { get; set; }
+
     public string DocType { get; set; } = null!;
 
-    [StringLength(250)]
     public string OriginalName { get; set; } = null!;
 
-    [StringLength(100)]
-    public string? ContentType { get; set; }
+    public string? FileName { get; set; }
 
-    [StringLength(4000)]
     public string? Content { get; set; }
 
-    [StringLength(400)]
-    public string StoragePath { get; set; } = null!;
+    public string? ContentType { get; set; }
 
-    [StringLength(128)]
+    public string? StoragePath { get; set; }
+
     public string? FileHash { get; set; }
 
-    public int? SizeBytes { get; set; }
+    public long? FileSize { get; set; }
 
     public int? PageCount { get; set; }
 
-    public DateTime UploadedAt { get; set; }
+    public double? AiConfidence { get; set; }
+
+    public double? TotalScore { get; set; }
+
+    public string Status { get; set; } = null!;
 
     public DateTime CreatedAt { get; set; }
 
-    public DateTime? UpdatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
 
-    [StringLength(50)]
-    public string? Status { get; set; }
-
-    public int? TemplateId { get; set; }
-
-    [StringLength(250)]
-    public string? FileName { get; set; }
-
-    public int? FileSize { get; set; }
-
-    [Column(TypeName = "nvarchar(max)")]
     public string? CvData { get; set; }
-
-    public float? TotalScore { get; set; }
-
-    public float? AiConfidence { get; set; }
 
     public bool IsDeleted { get; set; }
 
-    [ForeignKey("TemplateId")]
-    [InverseProperty("Documents")]
-    public virtual Cvtemplate? CvTemplate { get; set; }
-
-    [InverseProperty("Document")]
     public virtual ICollection<Application> Applications { get; set; } = new List<Application>();
 
-    [InverseProperty("Document")]
+    public virtual Cvtemplate? CvTemplate { get; set; }
+
     public virtual ICollection<DocumentSkill> DocumentSkills { get; set; } = new List<DocumentSkill>();
 
-    [InverseProperty("Document")]
     public virtual ICollection<Education> Educations { get; set; } = new List<Education>();
 
-    [InverseProperty("Document")]
     public virtual ICollection<Experience> Experiences { get; set; } = new List<Experience>();
 
-    [InverseProperty("Document")]
     public virtual ICollection<Export> Exports { get; set; } = new List<Export>();
 
-    [InverseProperty("Document")]
     public virtual ICollection<MatchRun> MatchRuns { get; set; } = new List<MatchRun>();
 
-    [InverseProperty("Document")]
     public virtual ICollection<Ocrresult> Ocrresults { get; set; } = new List<Ocrresult>();
 
-    [InverseProperty("Document")]
     public virtual ICollection<Section> Sections { get; set; } = new List<Section>();
 
-    [ForeignKey("UserId")]
-    [InverseProperty("Documents")]
     public virtual User? User { get; set; }
 
-    [InverseProperty("BusinessLicenseDocument")]
     public virtual ICollection<RecruiterVerification> RecruiterVerificationsAsBusinessLicense { get; set; } = new List<RecruiterVerification>();
 
-    [InverseProperty("CompanyProofDocument")]
     public virtual ICollection<RecruiterVerification> RecruiterVerificationsAsCompanyProof { get; set; } = new List<RecruiterVerification>();
-
-    public virtual Ocrresult? Ocrresult { get; set; }
 }

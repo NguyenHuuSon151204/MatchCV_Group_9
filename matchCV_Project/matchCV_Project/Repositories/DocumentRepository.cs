@@ -58,7 +58,7 @@ public class DocumentRepository : BaseRepository<Document>, IDocumentRepository
                 Status = d.Status,
                 CreatedAt = d.CreatedAt,
                 UpdatedAt = d.UpdatedAt,
-                TemplateId = d.TemplateId,
+                CvTemplateId = d.CvTemplateId,
                 CvTemplate = d.CvTemplate, // EF might not project this automatically in Select new Document, but let's try or map manually
                 // CvData is EXCLUDED
             })

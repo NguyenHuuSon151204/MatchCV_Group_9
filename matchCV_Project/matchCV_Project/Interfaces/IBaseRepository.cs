@@ -1,4 +1,4 @@
-namespace matchCV_Project.Interfaces;
+﻿namespace matchCV_Project.Interfaces;
 
 public interface IBaseRepository<T> where T : class
 {
