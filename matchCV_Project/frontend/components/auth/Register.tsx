@@ -11,7 +11,7 @@ export default function Register() {
   if (!authContext) {
     throw new Error("AuthContext must be used within AuthProvider");
   }
-  const { register } = authContext;
+  const { register, loading } = authContext;
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -79,7 +79,7 @@ export default function Register() {
               <p className="text-sm text-destructive">{error}</p>
             )}
             <Button type="submit" className="w-full">
-              Register
+              {loading? "Processing..." : "Register"}
             </Button>
           </form>
         </CardContent>

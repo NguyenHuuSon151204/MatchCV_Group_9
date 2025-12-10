@@ -29,7 +29,7 @@ export default function ChooseRole() {
     try {
       await ggregister(email, name, role);
       // Navigate to profile after successful login
-      router.push("/auth/profile");
+      router.push("/app/dashboard");
     } catch (err: any) {
       console.error(err);
       setError(err.response?.data?.message || "Login failed");

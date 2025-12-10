@@ -12,7 +12,7 @@ export default function Login() {
   if (!authContext) {
     throw new Error("AuthContext must be used within AuthProvider");
   }
-  const { login } = authContext;
+  const { login, loading } = authContext;
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -85,7 +85,7 @@ export default function Login() {
               <p className="text-sm text-destructive">{error}</p>
             )}
             <Button type="submit" className="w-full">
-              Login
+              {loading? "Logging in" : "Login"}
             </Button>
           </form>
 
