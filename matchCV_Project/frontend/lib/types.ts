@@ -117,5 +117,7 @@ export interface AuthContextType {
   ggregister: (email: string, name: string, role: string) => Promise<any>
   register: (displayName: string, email: string, password: string, role: string) => Promise<any>
   logout: () => Promise<void>
+  forgotpass: (email: string) => Promise<any>
+  resetpass: (token: string, newPassword: string) => Promise<any>
+  updateProfile: (payload: { displayName?: string; email?: string }) => Promise<User>
 }
-

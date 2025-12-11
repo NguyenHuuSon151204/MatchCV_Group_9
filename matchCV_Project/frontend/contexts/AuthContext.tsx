@@ -56,6 +56,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         localStorage.setItem('matchcv-userId', res.data.user.id.toString());
       }
       return res;
+    } catch (err: any) {
+      throw err;
     } finally {
       setLoading(false);
     }
@@ -112,13 +114,52 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
+  const forgotpass = async (email: string) => {
+    setLoading(true);
+    try {
+      const res = await api.post("/account/forgot-password", {email});
+      return res;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resetpass = async (token: string, newPassword: string) => {
+    setLoading(true);
+    try {
+      const res = await api.post("/account/reset-password", {
+        token,
+        newPassword,
+      });
+      return res;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateProfile = async (payload: { displayName?: string; email?: string }) => {
+    setLoading(true);
+    try {
+      const res = await api.post("/account/update-profile", {
+        DisplayName: payload.displayName,
+        Email: payload.email,
+      });
+      const updatedUser = res.data.user as User;
+      setUser(updatedUser);
+      if (updatedUser?.id) {
+        localStorage.setItem('matchcv-userId', updatedUser.id.toString());
+      }
+      return updatedUser;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <AuthContext.Provider
-      value={{ user, loading, login, ggregister, register, logout }}
+      value={{ user, loading, login, ggregister, register, logout, forgotpass, resetpass, updateProfile }}
     >
       {children}
     </AuthContext.Provider>
   );
 }
-
-
