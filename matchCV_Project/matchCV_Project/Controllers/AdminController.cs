@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using matchCV_Project.Data;
+using matchCV_Project.Models;
 using System.Text.Json;
 
 namespace matchCV_Project.Controllers;
@@ -243,5 +244,258 @@ public class AdminController : ControllerBase
         });
     }
 
+    // GET: /api/admin/jobs - Get all jobs with recruiter info
+    [HttpGet("jobs")]
+    public async Task<IActionResult> GetAllJobs([FromQuery] string? search)
+    {
+        var query = _db.Jobs
+            .Include(j => j.User)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            query = query.Where(j =>
+                j.Title.Contains(search) ||
+                j.Company.Contains(search) ||
+                (j.JobDescription != null && j.JobDescription.Contains(search)));
+        }
+
+        var jobs = await query
+            .OrderByDescending(j => j.CreatedAt)
+            .ToListAsync();
+
+        var result = jobs.Select(j =>
+        {
+            var applicationsCount = _db.Applications.Count(a => a.JobId == j.Id);
+            var avgScore = _db.Applications
+                .Where(a => a.JobId == j.Id && a.ScoreSnapshot.HasValue)
+                .Average(a => (double?)a.ScoreSnapshot);
+
+            return new
+            {
+                j.Id,
+                j.Title,
+                j.Company,
+                Description = j.JobDescription,
+                j.CreatedAt,
+                j.UserId,
+                RecruiterName = j.User?.DisplayName,
+                RecruiterEmail = j.User?.Email,
+                ApplicationsCount = applicationsCount,
+                AvgScore = avgScore
+            };
+        }).ToList();
+
+        return Ok(result);
+    }
+
+    // DELETE: /api/admin/jobs/{id} - Delete a job with reason logging
+    [HttpDelete("jobs/{id:int}")]
+    public async Task<IActionResult> DeleteJob(int id, [FromQuery] string reason)
+    {
+        if (string.IsNullOrWhiteSpace(reason))
+            return BadRequest("Deletion reason is required.");
+
+        var job = await _db.Jobs.FindAsync(id);
+        if (job == null)
+            return NotFound("Job not found.");
+
+        // Log the deletion
+        _db.AdminLogs.Add(new AdminLog
+        {
+            Actor = "Admin",
+            Action = "DELETE",
+            Entity = "Job",
+            EntityId = id,
+            CreatedAt = DateTime.UtcNow,
+            MetaJson = $"{{\"reason\":\"{reason}\"}}"
+        });
+
+        _db.Jobs.Remove(job);
+        await _db.SaveChangesAsync();
+
+        return Ok(new { Message = "Job deleted successfully." });
+    }
+
+    // GET: /api/admin/applications - Get all applications
+    [HttpGet("applications")]
+    public async Task<IActionResult> GetAllApplications(
+        [FromQuery] string? search,
+        [FromQuery] string? status)
+    {
+        var query = _db.Applications
+            .Include(a => a.Candidate)
+            .Include(a => a.Job)
+                .ThenInclude(j => j.User)
+            .Include(a => a.Document)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            query = query.Where(a =>
+                a.Candidate.DisplayName.Contains(search) ||
+                a.Candidate.Email.Contains(search) ||
+                a.Job.Title.Contains(search) ||
+                a.Job.Company.Contains(search));
+        }
+
+        if (!string.IsNullOrWhiteSpace(status))
+        {
+            query = query.Where(a => a.Status == status);
+        }
+
+        var applications = await query
+            .OrderByDescending(a => a.CreatedAt)
+            .ToListAsync();
+
+        var result = applications.Select(a => new
+        {
+            a.Id,
+            a.JobId,
+            a.CandidateId,
+            a.Status,
+            a.ScoreSnapshot,
+            a.Summary,
+            a.CreatedAt,
+            a.UpdatedAt,
+            CandidateName = a.Candidate.DisplayName,
+            CandidateEmail = a.Candidate.Email,
+            JobTitle = a.Job.Title,
+            JobCompany = a.Job.Company,
+            RecruiterName = a.Job.User?.DisplayName,
+            RecruiterEmail = a.Job.User?.Email,
+            RecruiterId = a.Job.UserId
+        }).ToList();
+
+        return Ok(result);
+    }
+
+    // PUT: /api/admin/applications/{id}/status - Update application status
+    [HttpPut("applications/{id:int}/status")]
+    public async Task<IActionResult> UpdateApplicationStatus(
+        int id,
+        [FromBody] UpdateApplicationStatusDto dto)
+    {
+        var application = await _db.Applications.FindAsync(id);
+        if (application == null)
+            return NotFound("Application not found.");
+
+        var oldStatus = application.Status;
+        application.Status = dto.Status;
+        application.UpdatedAt = DateTime.UtcNow;
+
+        // Log the status change
+        _db.AdminLogs.Add(new AdminLog
+        {
+            Actor = "Admin",
+            Action = "UPDATE",
+            Entity = "Application",
+            EntityId = id,
+            CreatedAt = DateTime.UtcNow,
+            MetaJson = $"{{\"oldStatus\":\"{oldStatus}\",\"newStatus\":\"{dto.Status}\",\"notes\":\"{dto.AdminNotes}\"}}"
+        });
+
+        await _db.SaveChangesAsync();
+
+        return Ok(new
+        {
+            Message = "Application status updated successfully.",
+            Application = new
+            {
+                application.Id,
+                application.Status,
+                application.UpdatedAt
+            }
+        });
+    }
+
+    // GET: /api/admin/ai-status - Get AI system status and statistics
+    [HttpGet("ai-status")]
+    public async Task<IActionResult> GetAIStatus()
+    {
+        var now = DateTime.UtcNow;
+        var last30Days = now.AddDays(-30);
+
+        // Total AI calls
+        var totalCalls = _db.ApicallLogs != null
+            ? await _db.ApicallLogs.CountAsync()
+            : 0;
+
+        // Recent calls (last 30 days)
+        var recentCalls = _db.ApicallLogs != null
+            ? await _db.ApicallLogs
+                .Where(l => l.CreatedAt >= last30Days)
+                .ToListAsync()
+            : new List<ApicallLog>();
+
+        // Success rate
+        var successCount = recentCalls.Count(l => l.Status == "success" || l.Status == "Success");
+        var successRate = recentCalls.Count > 0
+            ? (double)successCount / recentCalls.Count * 100
+            : 0;
+
+        // Average latency
+        var avgLatency = recentCalls.Any(l => l.LatencyMs.HasValue)
+            ? recentCalls.Where(l => l.LatencyMs.HasValue).Average(l => l.LatencyMs!.Value)
+            : 0;
+
+        // Most used model
+        var mostUsedModel = recentCalls
+            .GroupBy(l => l.Model)
+            .OrderByDescending(g => g.Count())
+            .Select(g => g.Key)
+            .FirstOrDefault() ?? "gemini-pro";
+
+        // Most used provider
+        var mostUsedProvider = recentCalls
+            .GroupBy(l => l.Provider)
+            .OrderByDescending(g => g.Count())
+            .Select(g => g.Key)
+            .FirstOrDefault() ?? "Google";
+
+        // Total tokens
+        var totalTokensIn = recentCalls.Sum(l => l.TokensIn ?? 0);
+        var totalTokensOut = recentCalls.Sum(l => l.TokensOut ?? 0);
+
+        // Total cost estimate
+        var totalCost = recentCalls.Sum(l => l.CostEstimate ?? 0);
+
+        // Recent activity (last 10 calls)
+        var recentActivity = _db.ApicallLogs != null
+            ? (await _db.ApicallLogs
+                .OrderByDescending(l => l.CreatedAt)
+                .Take(10)
+                .Select(l => new
+                {
+                    l.Id,
+                    l.Provider,
+                    l.Model,
+                    l.Status,
+                    l.LatencyMs,
+                    l.CreatedAt
+                })
+                .ToListAsync())
+                .Cast<object>()
+                .ToList()
+            : new List<object>();
+
+        return Ok(new
+        {
+            IsOnline = true,
+            Model = mostUsedModel,
+            Provider = mostUsedProvider,
+            TotalCalls = totalCalls,
+            RecentCalls = recentCalls.Count,
+            SuccessRate = Math.Round(successRate, 2),
+            ResponseTime = Math.Round(avgLatency, 0),
+            TotalTokensIn = totalTokensIn,
+            TotalTokensOut = totalTokensOut,
+            TotalCost = Math.Round(totalCost, 4),
+            RecentActivity = recentActivity,
+            LastSync = DateTime.UtcNow
+        });
+    }
+
     public record UpdateUserDto(string? DisplayName, string? Email);
+    public record UpdateApplicationStatusDto(string Status, string? AdminNotes);
 }

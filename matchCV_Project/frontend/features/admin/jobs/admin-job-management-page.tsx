@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { adminService } from '@/lib/services/admin-service'
-import { Settings, Eye, Trash, ArrowUp, ArrowDown, FileText, X, Edit } from 'lucide-react'
+import { Settings, Eye, Trash, ArrowUp, ArrowDown, ArrowUpDown, FileText, X, Edit } from 'lucide-react'
 import Link from 'next/link'
 
 interface Job {
@@ -52,8 +52,8 @@ export function AdminJobManagementPage() {
       const params: any = {}
       if (filters.search) params.search = filters.search
 
-      const data = await adminService.getAllJobs(params)
-      let jobsList = Array.isArray(data) ? data : []
+      const response = await adminService.getAllJobs(params)
+      let jobsList = Array.isArray(response.data) ? response.data : []
 
       let filtered = jobsList.map((j: any) => ({
         id: j.id || j.Id,
@@ -101,6 +101,20 @@ export function AdminJobManagementPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleSort = (column: string) => {
+    if (sortBy === column) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortBy(column)
+      setSortOrder('asc')
+    }
+  }
+
+  const getSortIcon = (column: string) => {
+    if (sortBy !== column) return <ArrowUpDown size={14} />
+    return sortOrder === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />
   }
 
   const handleFilterChange = (field: string, value: string) => {
@@ -256,7 +270,7 @@ export function AdminJobManagementPage() {
             <div>
               <label className="block text-sm font-medium mb-1">Company</label>
               <select
-                className="w-full px-3 py-2 border rounded"
+                className="w-full px-3 py-2 border rounded bg-background text-foreground"
                 value={filters.company}
                 onChange={(e) => handleFilterChange('company', e.target.value)}
               >
@@ -275,30 +289,30 @@ export function AdminJobManagementPage() {
       {error && <div className="mb-4 p-4 bg-destructive/10 text-destructive rounded-lg">{error}</div>}
 
       <div className="bg-card border rounded-lg">
-          <div className="p-4 border-b flex justify-between items-center">
-            <div>
-              <h3 className="font-semibold">All Jobs</h3>
-              <span className="text-sm text-muted-foreground">
-                {jobs.length} job{jobs.length !== 1 ? 's' : ''}
-                {selectedItems.length > 0 && (
-                  <span className="ml-2 text-primary">
-                    ({selectedItems.length} selected)
-                  </span>
-                )}
-              </span>
-            </div>
-            {selectedItems.length > 0 && (
-              <button
-                className="px-4 py-2 bg-destructive text-destructive-foreground rounded hover:bg-destructive/90 text-sm"
-                onClick={handleBulkDelete}
-              >
-                Delete Selected ({selectedItems.length})
-              </button>
-            )}
+        <div className="p-4 border-b flex justify-between items-center">
+          <div>
+            <h3 className="font-semibold">All Jobs</h3>
+            <span className="text-sm text-muted-foreground">
+              {jobs.length} job{jobs.length !== 1 ? 's' : ''}
+              {selectedItems.length > 0 && (
+                <span className="ml-2 text-primary">
+                  ({selectedItems.length} selected)
+                </span>
+              )}
+            </span>
+          </div>
+          {selectedItems.length > 0 && (
+            <button
+              className="px-4 py-2 bg-destructive text-destructive-foreground rounded hover:bg-destructive/90 text-sm"
+              onClick={handleBulkDelete}
+            >
+              Delete Selected ({selectedItems.length})
+            </button>
+          )}
           <div className="flex items-center gap-2">
             <label className="text-sm">Sort by:</label>
             <select
-              className="px-3 py-1 border rounded text-sm"
+              className="px-3 py-1 border rounded text-sm bg-background text-foreground"
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
             >
@@ -329,12 +343,47 @@ export function AdminJobManagementPage() {
                       onChange={handleSelectAll}
                     />
                   </th>
-                  <th className="p-3 text-left text-sm font-medium">ID</th>
-                  <th className="p-3 text-left text-sm font-medium">TITLE</th>
-                  <th className="p-3 text-left text-sm font-medium">COMPANY</th>
+                  <th
+                    className="p-3 text-left text-sm font-medium cursor-pointer"
+                    onClick={() => handleSort('id')}
+                  >
+                    <div className="flex items-center gap-2">
+                      ID {getSortIcon('id')}
+                    </div>
+                  </th>
+                  <th
+                    className="p-3 text-left text-sm font-medium cursor-pointer"
+                    onClick={() => handleSort('title')}
+                  >
+                    <div className="flex items-center gap-2">
+                      TITLE {getSortIcon('title')}
+                    </div>
+                  </th>
+                  <th
+                    className="p-3 text-left text-sm font-medium cursor-pointer"
+                    onClick={() => handleSort('company')}
+                  >
+                    <div className="flex items-center gap-2">
+                      COMPANY {getSortIcon('company')}
+                    </div>
+                  </th>
                   <th className="p-3 text-left text-sm font-medium">RECRUITER</th>
-                  <th className="p-3 text-left text-sm font-medium">APPLICATIONS</th>
-                  <th className="p-3 text-left text-sm font-medium">CREATED</th>
+                  <th
+                    className="p-3 text-left text-sm font-medium cursor-pointer"
+                    onClick={() => handleSort('applicationsCount')}
+                  >
+                    <div className="flex items-center gap-2">
+                      APPLICATIONS {getSortIcon('applicationsCount')}
+                    </div>
+                  </th>
+                  <th
+                    className="p-3 text-left text-sm font-medium cursor-pointer"
+                    onClick={() => handleSort('createdAt')}
+                  >
+                    <div className="flex items-center gap-2">
+                      CREATED {getSortIcon('createdAt')}
+                    </div>
+                  </th>
                   <th className="p-3 text-left text-sm font-medium">ACTIONS</th>
                 </tr>
               </thead>

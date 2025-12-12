@@ -295,7 +295,7 @@ export function RecruiterDashboardPage() {
                   <div className="flex items-center gap-2">
                     <label className="text-sm">Sort by:</label>
                     <select
-                      className="px-3 py-2 border rounded"
+                      className="px-3 py-2 border rounded bg-background text-foreground"
                       value={sortBy}
                       onChange={(e) => setSortBy(e.target.value)}
                     >
@@ -422,7 +422,7 @@ export function RecruiterDashboardPage() {
                             key={idx}
                             className="px-3 py-1 bg-primary/10 text-primary rounded-full text-sm"
                           >
-                            {skill.name || skill.skill || skill}
+                            {skill.name || skill.skill || 'Unknown'}
                           </span>
                         ))}
                       </div>
@@ -493,7 +493,7 @@ export function RecruiterDashboardPage() {
                       return (
                         <div key={idx}>
                           <div className="flex justify-between items-center mb-1">
-                            <span className="text-sm font-medium">{skill.name || skill.skill || skill}</span>
+                            <span className="text-sm font-medium">{skill.name || skill.skill || 'Unknown'}</span>
                             <span className="text-xs text-muted-foreground">
                               {count} JD{count !== 1 ? 's' : ''}
                             </span>

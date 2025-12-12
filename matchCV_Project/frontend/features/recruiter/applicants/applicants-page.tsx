@@ -418,7 +418,7 @@ export function ApplicantsPage() {
             <div>
               <label className="block text-sm font-medium mb-1">Job</label>
               <select
-                className="w-full px-3 py-2 border rounded"
+                className="w-full px-3 py-2 border rounded bg-background text-foreground"
                 value={filters.jobId}
                 onChange={(e) => handleFilterChange('jobId', e.target.value)}
               >
@@ -433,7 +433,7 @@ export function ApplicantsPage() {
             <div>
               <label className="block text-sm font-medium mb-1">Company</label>
               <select
-                className="w-full px-3 py-2 border rounded"
+                className="w-full px-3 py-2 border rounded bg-background text-foreground"
                 value={filters.company}
                 onChange={(e) => handleFilterChange('company', e.target.value)}
               >
@@ -448,7 +448,7 @@ export function ApplicantsPage() {
             <div>
               <label className="block text-sm font-medium mb-1">Status</label>
               <select
-                className="w-full px-3 py-2 border rounded"
+                className="w-full px-3 py-2 border rounded bg-background text-foreground"
                 value={filters.status}
                 onChange={(e) => handleFilterChange('status', e.target.value)}
               >
@@ -462,7 +462,7 @@ export function ApplicantsPage() {
             <div>
               <label className="block text-sm font-medium mb-1">Plan</label>
               <select
-                className="w-full px-3 py-2 border rounded"
+                className="w-full px-3 py-2 border rounded bg-background text-foreground"
                 value={filters.plan}
                 onChange={(e) => handleFilterChange('plan', e.target.value)}
               >
@@ -535,7 +535,7 @@ export function ApplicantsPage() {
           <div className="flex items-center gap-2">
             <label className="text-sm">Sort by:</label>
             <select
-              className="px-3 py-1 border rounded text-sm"
+              className="px-3 py-1 border rounded text-sm bg-background text-foreground"
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
             >
@@ -646,13 +646,12 @@ export function ApplicantsPage() {
                         </td>
                         <td className="p-3">
                           <span
-                            className={`px-2 py-1 rounded text-xs ${
-                              app.candidate?.plan?.toLowerCase() === 'pro'
+                            className={`px-2 py-1 rounded text-xs ${app.candidate?.plan?.toLowerCase() === 'pro'
                                 ? 'bg-blue-100 text-blue-800'
                                 : app.candidate?.plan?.toLowerCase() === 'enterprise'
                                   ? 'bg-purple-100 text-purple-800'
                                   : 'bg-gray-100 text-gray-800'
-                            }`}
+                              }`}
                           >
                             {app.candidate?.plan || 'Free'}
                           </span>
@@ -752,13 +751,12 @@ export function ApplicantsPage() {
                   <div>
                     <div className="text-sm text-muted-foreground mb-1">Plan:</div>
                     <span
-                      className={`px-2 py-1 rounded text-xs ${
-                        selectedApplicant.candidate?.plan?.toLowerCase() === 'pro'
+                      className={`px-2 py-1 rounded text-xs ${selectedApplicant.candidate?.plan?.toLowerCase() === 'pro'
                           ? 'bg-blue-100 text-blue-800'
                           : selectedApplicant.candidate?.plan?.toLowerCase() === 'enterprise'
                             ? 'bg-purple-100 text-purple-800'
                             : 'bg-gray-100 text-gray-800'
-                      }`}
+                        }`}
                     >
                       {selectedApplicant.candidate?.plan || 'Free'}
                     </span>
@@ -796,7 +794,7 @@ export function ApplicantsPage() {
                   <div>
                     <div className="text-sm text-muted-foreground mb-1">Status:</div>
                     <select
-                      className="px-3 py-2 border rounded"
+                      className="px-3 py-2 border rounded bg-background text-foreground"
                       value={editForm.status}
                       onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
                       disabled={saving}

@@ -288,7 +288,7 @@ export function JobManagementPage() {
             <div>
               <label className="block text-sm font-medium mb-1">Company</label>
               <select
-                className="w-full px-3 py-2 border rounded"
+                className="w-full px-3 py-2 border rounded bg-background text-foreground"
                 value={filters.company}
                 onChange={(e) => handleFilterChange('company', e.target.value)}
               >
@@ -303,7 +303,7 @@ export function JobManagementPage() {
             <div>
               <label className="block text-sm font-medium mb-1">Status</label>
               <select
-                className="w-full px-3 py-2 border rounded"
+                className="w-full px-3 py-2 border rounded bg-background text-foreground"
                 value={filters.status}
                 onChange={(e) => handleFilterChange('status', e.target.value)}
               >
@@ -363,7 +363,7 @@ export function JobManagementPage() {
           <div className="flex items-center gap-2">
             <label className="text-sm">Sort by:</label>
             <select
-              className="px-3 py-1 border rounded text-sm"
+              className="px-3 py-1 border rounded text-sm bg-background text-foreground"
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
             >

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { adminService } from '@/lib/services/admin-service'
-import { Key, X, Plus } from 'lucide-react'
+import { Key, X, Plus, Eye, EyeOff, Edit } from 'lucide-react'
 
 interface License {
   id: number
@@ -40,6 +40,13 @@ export function LicenseManagementPage() {
     plan: 'Pro',
     expiryDays: 365,
   })
+  const [visibleKeys, setVisibleKeys] = useState<number[]>([])
+  const [showEditPlanModal, setShowEditPlanModal] = useState(false)
+  const [selectedLicense, setSelectedLicense] = useState<License | null>(null)
+  const [editPlanForm, setEditPlanForm] = useState({
+    plan: 'Pro',
+    expiryDays: 365,
+  })
 
   useEffect(() => {
     loadLicenses()
@@ -53,9 +60,9 @@ export function LicenseManagementPage() {
       const params: any = {}
       if (filters.search) params.search = filters.search
 
-      // Note: This endpoint might need to be added to adminService
       const response = await adminService.getLicenses(params)
-      let licensesList = Array.isArray(response) ? response : []
+      const responseData = response.data
+      let licensesList = Array.isArray(responseData) ? responseData : (Array.isArray(responseData?.data) ? responseData.data : (Array.isArray(responseData?.licenses) ? responseData.licenses : []))
 
       let filteredData = licensesList.map((license: any) => ({
         id: license.id || license.Id,
@@ -70,14 +77,14 @@ export function LicenseManagementPage() {
       }))
 
       if (filters.plan) {
-        filteredData = filteredData.filter((license) => license.plan === filters.plan)
+        filteredData = filteredData.filter((license: License) => license.plan === filters.plan)
       }
 
       if (filters.status) {
-        filteredData = filteredData.filter((license) => license.status === filters.status)
+        filteredData = filteredData.filter((license: License) => license.status === filters.status)
       }
 
-      filteredData.sort((a, b) => {
+      filteredData.sort((a: License, b: License) => {
         let aVal: any = a[sortBy as keyof License]
         let bVal: any = b[sortBy as keyof License]
 
@@ -111,14 +118,12 @@ export function LicenseManagementPage() {
 
   const handleGenerateLicense = async () => {
     try {
-      // Note: This endpoint might need to be added to adminService
-      const response = await adminService.getLicenses({
-        generate: true,
+      const response = await adminService.generateLicense({
         plan: generateForm.plan,
-        expiryDays: generateForm.expiryDays || null,
+        expiryDays: generateForm.expiryDays,
       })
-
-      setGeneratedKey(response.key || response)
+      const responseData = response.data
+      setGeneratedKey(responseData?.key || responseData?.licenseKey || responseData || '')
       setShowGenerateModal(false)
       setGenerateForm({ plan: 'Pro', expiryDays: 365 })
       loadLicenses()
@@ -134,12 +139,35 @@ export function LicenseManagementPage() {
     }
 
     try {
-      // Note: This endpoint might need to be added to adminService
-      await adminService.getLicenses({ deactivate: true, id })
+      await adminService.deactivateLicense(id)
       loadLicenses()
     } catch (error) {
       console.error('Failed to deactivate license:', error)
       alert('Failed to deactivate license. Please try again.')
+    }
+  }
+
+  const handleEditPlan = async () => {
+    if (!selectedLicense || !selectedLicense.assignedUser) {
+      alert('No user assigned to this license')
+      return
+    }
+
+    try {
+      // Update user plan via backend
+      await adminService.updateUserPlan(selectedLicense.assignedUser.id, {
+        plan: editPlanForm.plan,
+        expiryDays: editPlanForm.expiryDays,
+      })
+
+      alert('User plan updated successfully!')
+      setShowEditPlanModal(false)
+      setSelectedLicense(null)
+      setEditPlanForm({ plan: 'Pro', expiryDays: 365 })
+      loadLicenses()
+    } catch (error: any) {
+      console.error('Failed to update plan:', error)
+      alert(error.message || 'Failed to update plan. Please try again.')
     }
   }
 
@@ -244,6 +272,7 @@ export function LicenseManagementPage() {
                   <th className="p-3 text-left text-sm font-medium">ID</th>
                   <th className="p-3 text-left text-sm font-medium">PLAN</th>
                   <th className="p-3 text-left text-sm font-medium">ASSIGNED TO</th>
+                  <th className="p-3 text-left text-sm font-medium">LICENSE KEY</th>
                   <th className="p-3 text-left text-sm font-medium">EXPIRY</th>
                   <th className="p-3 text-left text-sm font-medium">DAYS REMAINING</th>
                   <th className="p-3 text-left text-sm font-medium">STATUS</th>
@@ -254,7 +283,7 @@ export function LicenseManagementPage() {
               <tbody>
                 {licenses.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="p-8 text-center text-muted-foreground">
+                    <td colSpan={9} className="p-8 text-center text-muted-foreground">
                       No licenses found.
                     </td>
                   </tr>
@@ -264,11 +293,10 @@ export function LicenseManagementPage() {
                       <td className="p-3 text-sm">#{license.id}</td>
                       <td className="p-3">
                         <span
-                          className={`px-2 py-1 rounded text-xs ${
-                            license.plan === 'Enterprise'
-                              ? 'bg-purple-100 text-purple-800'
-                              : 'bg-blue-100 text-blue-800'
-                          }`}
+                          className={`px-2 py-1 rounded text-xs ${license.plan === 'Enterprise'
+                            ? 'bg-purple-100 text-purple-800'
+                            : 'bg-blue-100 text-blue-800'
+                            }`}
                         >
                           {license.plan}
                         </span>
@@ -283,6 +311,36 @@ export function LicenseManagementPage() {
                           </div>
                         ) : (
                           <span className="text-muted-foreground">Unassigned</span>
+                        )}
+                      </td>
+                      <td className="p-3 text-sm">
+                        {license.originalKey ? (
+                          <div className="flex items-center gap-2">
+                            <code className="px-2 py-1 bg-muted rounded text-xs font-mono">
+                              {visibleKeys.includes(license.id)
+                                ? license.originalKey
+                                : '••••••••••••••••'}
+                            </code>
+                            <button
+                              className="p-1 hover:bg-accent rounded"
+                              onClick={() => {
+                                setVisibleKeys(prev =>
+                                  prev.includes(license.id)
+                                    ? prev.filter(id => id !== license.id)
+                                    : [...prev, license.id]
+                                )
+                              }}
+                              title={visibleKeys.includes(license.id) ? 'Hide' : 'Show'}
+                            >
+                              {visibleKeys.includes(license.id) ? (
+                                <EyeOff size={14} />
+                              ) : (
+                                <Eye size={14} />
+                              )}
+                            </button>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">N/A</span>
                         )}
                       </td>
                       <td className="p-3 text-sm">{formatDate(license.expiry)}</td>
@@ -305,27 +363,44 @@ export function LicenseManagementPage() {
                       </td>
                       <td className="p-3">
                         <span
-                          className={`px-2 py-1 rounded text-xs ${
-                            license.status === 'Active' || license.isActive
-                              ? 'bg-green-100 text-green-800'
-                              : license.status === 'Expired'
-                                ? 'bg-red-100 text-red-800'
-                                : 'bg-gray-100 text-gray-800'
-                          }`}
+                          className={`px-2 py-1 rounded text-xs ${license.status === 'Active' || license.isActive
+                            ? 'bg-green-100 text-green-800'
+                            : license.status === 'Expired'
+                              ? 'bg-red-100 text-red-800'
+                              : 'bg-gray-100 text-gray-800'
+                            }`}
                         >
                           {license.status || (license.isActive ? 'Active' : 'Inactive')}
                         </span>
                       </td>
                       <td className="p-3 text-sm">{formatDate(license.createdAt)}</td>
                       <td className="p-3">
-                        {license.isActive && (
-                          <button
-                            className="px-2 py-1 text-xs border rounded hover:bg-accent text-destructive"
-                            onClick={() => handleDeactivateLicense(license.id)}
-                          >
-                            Deactivate
-                          </button>
-                        )}
+                        <div className="flex gap-1">
+                          {license.assignedUser && (
+                            <button
+                              className="p-1 hover:bg-accent rounded"
+                              onClick={() => {
+                                setSelectedLicense(license)
+                                setEditPlanForm({
+                                  plan: license.plan || 'Pro',
+                                  expiryDays: 365,
+                                })
+                                setShowEditPlanModal(true)
+                              }}
+                              title="Edit Plan"
+                            >
+                              <Edit size={14} />
+                            </button>
+                          )}
+                          {license.isActive && (
+                            <button
+                              className="px-2 py-1 text-xs border rounded hover:bg-accent text-destructive"
+                              onClick={() => handleDeactivateLicense(license.id)}
+                            >
+                              Deactivate
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -428,6 +503,78 @@ export function LicenseManagementPage() {
                 }}
               >
                 Copy to Clipboard
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Plan Modal */}
+      {showEditPlanModal && selectedLicense && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+          onClick={() => setShowEditPlanModal(false)}
+        >
+          <div
+            className="bg-card border rounded-lg max-w-md w-full mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-6 border-b flex justify-between items-center">
+              <h3 className="text-lg font-semibold">Edit User Plan</h3>
+              <button
+                className="text-muted-foreground hover:text-foreground"
+                onClick={() => setShowEditPlanModal(false)}
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="p-3 bg-muted/50 rounded">
+                <p className="text-sm text-muted-foreground">User</p>
+                <p className="font-semibold">{selectedLicense.assignedUser?.displayName}</p>
+                <p className="text-sm text-muted-foreground">{selectedLicense.assignedUser?.email}</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">New Plan</label>
+                <select
+                  className="w-full px-3 py-2 border rounded bg-background"
+                  value={editPlanForm.plan}
+                  onChange={(e) => setEditPlanForm({ ...editPlanForm, plan: e.target.value })}
+                >
+                  <option value="Free">Free</option>
+                  <option value="Pro">Pro</option>
+                  <option value="Enterprise">Enterprise</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Extend Expiry (Days)</label>
+                <input
+                  type="number"
+                  className="w-full px-3 py-2 border rounded bg-background"
+                  value={editPlanForm.expiryDays}
+                  onChange={(e) =>
+                    setEditPlanForm({ ...editPlanForm, expiryDays: parseInt(e.target.value) })
+                  }
+                  min="1"
+                  placeholder="365"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Number of days to extend the license from today
+                </p>
+              </div>
+            </div>
+            <div className="p-6 border-t flex justify-end gap-2">
+              <button
+                className="px-4 py-2 border rounded hover:bg-accent"
+                onClick={() => setShowEditPlanModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90"
+                onClick={handleEditPlan}
+              >
+                Update Plan
               </button>
             </div>
           </div>

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { adminService } from '@/lib/services/admin-service'
-import { Settings, ArrowUp, ArrowDown, Eye, X } from 'lucide-react'
+import { Settings, ArrowUp, ArrowDown, ArrowUpDown, Eye, X, Ban, Trash } from 'lucide-react'
 
 interface Recruiter {
   id: number
@@ -34,6 +34,10 @@ export function RecruiterManagementPage() {
     displayName: '',
     email: '',
   })
+  const [showBanModal, setShowBanModal] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [banReason, setBanReason] = useState('')
+  const [deleteReason, setDeleteReason] = useState('')
 
   useEffect(() => {
     loadRecruiters()
@@ -47,8 +51,8 @@ export function RecruiterManagementPage() {
       if (filters.search) params.search = filters.search
       if (filters.accountType) params.accountType = filters.accountType
 
-      const data = await adminService.getRecruiters(params)
-      let recruitersList = Array.isArray(data) ? data : []
+      const response = await adminService.getRecruiters(params)
+      let recruitersList = Array.isArray(response.data) ? response.data : []
 
       let filtered = recruitersList.map((r: any) => ({
         id: r.id || r.Id,
@@ -172,6 +176,58 @@ export function RecruiterManagementPage() {
     })
   }
 
+  const handleSort = (column: string) => {
+    if (sortBy === column) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortBy(column)
+      setSortOrder('asc')
+    }
+  }
+
+  const getSortIcon = (column: string) => {
+    if (sortBy !== column) return <ArrowUpDown size={14} />
+    return sortOrder === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />
+  }
+
+  const handleBanRecruiter = async () => {
+    if (!selectedRecruiter || !banReason.trim()) {
+      alert('Please provide a reason for banning')
+      return
+    }
+
+    try {
+      // Implement ban API call when backend is ready
+      alert(`Ban recruiter ${selectedRecruiter.displayName}: ${banReason}`)
+      setShowBanModal(false)
+      setBanReason('')
+      setSelectedRecruiter(null)
+      loadRecruiters()
+    } catch (error: any) {
+      console.error('Failed to ban recruiter:', error)
+      alert(error.message || 'Failed to ban recruiter')
+    }
+  }
+
+  const handleDeleteRecruiter = async () => {
+    if (!selectedRecruiter || !deleteReason.trim()) {
+      alert('Please provide a reason for deletion')
+      return
+    }
+
+    try {
+      // Implement delete API call when backend is ready
+      alert(`Delete recruiter ${selectedRecruiter.displayName}: ${deleteReason}`)
+      setShowDeleteModal(false)
+      setDeleteReason('')
+      setSelectedRecruiter(null)
+      loadRecruiters()
+    } catch (error: any) {
+      console.error('Failed to delete recruiter:', error)
+      alert(error.message || 'Failed to delete recruiter')
+    }
+  }
+
   return (
     <div className="p-6">
       <div className="mb-6 flex justify-between items-start">
@@ -215,7 +271,7 @@ export function RecruiterManagementPage() {
             <div>
               <label className="block text-sm font-medium mb-1">Plan</label>
               <select
-                className="w-full px-3 py-2 border rounded"
+                className="w-full px-3 py-2 border rounded bg-background text-foreground"
                 value={filters.plan}
                 onChange={(e) => handleFilterChange('plan', e.target.value)}
               >
@@ -228,7 +284,7 @@ export function RecruiterManagementPage() {
             <div>
               <label className="block text-sm font-medium mb-1">Account Type</label>
               <select
-                className="w-full px-3 py-2 border rounded"
+                className="w-full px-3 py-2 border rounded bg-background text-foreground"
                 value={filters.accountType}
                 onChange={(e) => handleFilterChange('accountType', e.target.value)}
               >
@@ -253,7 +309,7 @@ export function RecruiterManagementPage() {
           <div className="flex items-center gap-2">
             <label className="text-sm">Sort by:</label>
             <select
-              className="px-3 py-1 border rounded text-sm"
+              className="px-3 py-1 border rounded text-sm bg-background text-foreground"
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
             >
@@ -285,13 +341,48 @@ export function RecruiterManagementPage() {
                       onChange={handleSelectAll}
                     />
                   </th>
-                  <th className="p-3 text-left text-sm font-medium">ID</th>
-                  <th className="p-3 text-left text-sm font-medium">NAME</th>
-                  <th className="p-3 text-left text-sm font-medium">EMAIL</th>
-                  <th className="p-3 text-left text-sm font-medium">OPEN JOBS</th>
+                  <th
+                    className="p-3 text-left text-sm font-medium cursor-pointer"
+                    onClick={() => handleSort('id')}
+                  >
+                    <div className="flex items-center gap-2">
+                      ID {getSortIcon('id')}
+                    </div>
+                  </th>
+                  <th
+                    className="p-3 text-left text-sm font-medium cursor-pointer"
+                    onClick={() => handleSort('displayName')}
+                  >
+                    <div className="flex items-center gap-2">
+                      NAME {getSortIcon('displayName')}
+                    </div>
+                  </th>
+                  <th
+                    className="p-3 text-left text-sm font-medium cursor-pointer"
+                    onClick={() => handleSort('email')}
+                  >
+                    <div className="flex items-center gap-2">
+                      EMAIL {getSortIcon('email')}
+                    </div>
+                  </th>
+                  <th
+                    className="p-3 text-left text-sm font-medium cursor-pointer"
+                    onClick={() => handleSort('openJobsCount')}
+                  >
+                    <div className="flex items-center gap-2">
+                      OPEN JOBS {getSortIcon('openJobsCount')}
+                    </div>
+                  </th>
                   <th className="p-3 text-left text-sm font-medium">PLAN</th>
                   <th className="p-3 text-left text-sm font-medium">LICENSE EXPIRY</th>
-                  <th className="p-3 text-left text-sm font-medium">JOINED</th>
+                  <th
+                    className="p-3 text-left text-sm font-medium cursor-pointer"
+                    onClick={() => handleSort('createdAt')}
+                  >
+                    <div className="flex items-center gap-2">
+                      JOINED {getSortIcon('createdAt')}
+                    </div>
+                  </th>
                   <th className="p-3 text-left text-sm font-medium">ACTIONS</th>
                 </tr>
               </thead>
@@ -323,13 +414,12 @@ export function RecruiterManagementPage() {
                         <td className="p-3 text-sm">{recruiter.openJobsCount || 0}</td>
                         <td className="p-3">
                           <span
-                            className={`px-2 py-1 rounded text-xs ${
-                              recruiter.plan === 'Pro'
-                                ? 'bg-blue-100 text-blue-800'
-                                : recruiter.plan === 'Enterprise'
-                                  ? 'bg-purple-100 text-purple-800'
-                                  : 'bg-gray-100 text-gray-800'
-                            }`}
+                            className={`px-2 py-1 rounded text-xs ${recruiter.plan === 'Pro'
+                              ? 'bg-blue-100 text-blue-800'
+                              : recruiter.plan === 'Enterprise'
+                                ? 'bg-purple-100 text-purple-800'
+                                : 'bg-gray-100 text-gray-800'
+                              }`}
                           >
                             {recruiter.plan || 'Free'}
                           </span>
@@ -337,13 +427,35 @@ export function RecruiterManagementPage() {
                         <td className="p-3 text-sm">{formatDate(recruiter.licenseExpiry)}</td>
                         <td className="p-3 text-sm">{formatDate(recruiter.createdAt)}</td>
                         <td className="p-3">
-                          <button
-                            className="p-1 hover:bg-accent rounded"
-                            onClick={() => handleEditRecruiter(recruiter)}
-                            title="Edit"
-                          >
-                            <Settings size={16} />
-                          </button>
+                          <div className="flex gap-1">
+                            <button
+                              className="p-1 hover:bg-accent rounded"
+                              onClick={() => handleEditRecruiter(recruiter)}
+                              title="Edit"
+                            >
+                              <Settings size={16} />
+                            </button>
+                            <button
+                              className="p-1 hover:bg-orange-100 rounded text-orange-600"
+                              onClick={() => {
+                                setSelectedRecruiter(recruiter)
+                                setShowBanModal(true)
+                              }}
+                              title="Ban"
+                            >
+                              <Ban size={16} />
+                            </button>
+                            <button
+                              className="p-1 hover:bg-destructive/10 rounded text-destructive"
+                              onClick={() => {
+                                setSelectedRecruiter(recruiter)
+                                setShowDeleteModal(true)
+                              }}
+                              title="Delete"
+                            >
+                              <Trash size={16} />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     )
@@ -406,6 +518,121 @@ export function RecruiterManagementPage() {
                 onClick={handleUpdateRecruiter}
               >
                 Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Ban Modal */}
+      {showBanModal && selectedRecruiter && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+          onClick={() => setShowBanModal(false)}
+        >
+          <div
+            className="bg-card border rounded-lg max-w-md w-full mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-6 border-b flex justify-between items-center">
+              <h3 className="text-lg font-semibold text-destructive">Ban Recruiter</h3>
+              <button
+                className="text-muted-foreground hover:text-foreground"
+                onClick={() => setShowBanModal(false)}
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="p-3 bg-destructive/10 rounded">
+                <p className="text-sm font-medium">Recruiter</p>
+                <p className="font-semibold">{selectedRecruiter.displayName}</p>
+                <p className="text-sm text-muted-foreground">{selectedRecruiter.email}</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Reason for Banning *</label>
+                <textarea
+                  className="w-full px-3 py-2 border rounded bg-background min-h-[100px]"
+                  value={banReason}
+                  onChange={(e) => setBanReason(e.target.value)}
+                  placeholder="Enter the reason for banning this recruiter..."
+                />
+              </div>
+              <div className="text-xs text-muted-foreground">
+                This action will prevent the recruiter from accessing the platform.
+              </div>
+            </div>
+            <div className="p-6 border-t flex justify-end gap-2">
+              <button
+                className="px-4 py-2 border rounded hover:bg-accent"
+                onClick={() => setShowBanModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-4 py-2 bg-destructive text-destructive-foreground rounded hover:bg-destructive/90"
+                onClick={handleBanRecruiter}
+              >
+                Ban Recruiter
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Modal */}
+      {showDeleteModal && selectedRecruiter && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+          onClick={() => setShowDeleteModal(false)}
+        >
+          <div
+            className="bg-card border rounded-lg max-w-md w-full mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-6 border-b flex justify-between items-center">
+              <h3 className="text-lg font-semibold text-destructive">Delete Recruiter</h3>
+              <button
+                className="text-muted-foreground hover:text-foreground"
+                onClick={() => setShowDeleteModal(false)}
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="p-3 bg-destructive/10 rounded">
+                <p className="text-sm font-medium">Recruiter</p>
+                <p className="font-semibold">{selectedRecruiter.displayName}</p>
+                <p className="text-sm text-muted-foreground">{selectedRecruiter.email}</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Reason for Deletion *</label>
+                <textarea
+                  className="w-full px-3 py-2 border rounded bg-background min-h-[100px]"
+                  value={deleteReason}
+                  onChange={(e) => setDeleteReason(e.target.value)}
+                  placeholder="Enter the reason for deleting this recruiter..."
+                />
+              </div>
+              <div className="p-3 bg-destructive/20 border border-destructive/30 rounded">
+                <p className="text-sm font-semibold text-destructive">⚠️ Warning</p>
+                <p className="text-xs text-destructive mt-1">
+                  This action cannot be undone. All data associated with this recruiter will be permanently removed.
+                </p>
+              </div>
+            </div>
+            <div className="p-6 border-t flex justify-end gap-2">
+              <button
+                className="px-4 py-2 border rounded hover:bg-accent"
+                onClick={() => setShowDeleteModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-4 py-2 bg-destructive text-destructive-foreground rounded hover:bg-destructive/90"
+                onClick={handleDeleteRecruiter}
+              >
+                Delete Permanently
               </button>
             </div>
           </div>

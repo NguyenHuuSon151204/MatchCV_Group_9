@@ -65,6 +65,16 @@ public class JobController : ControllerBase
     {
         try
         {
+            // If user is a Recruiter, enforce filtering by their ID
+            if (User.Identity?.IsAuthenticated == true && User.IsInRole("Recruiter"))
+            {
+                var idClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+                if (idClaim != null && int.TryParse(idClaim.Value, out int currentUserId))
+                {
+                    userId = currentUserId;
+                }
+            }
+
             var jobs = await _jobService.SearchJobsAsync(searchTerm, status, userId);
             return Ok(BaseResponseDto<IEnumerable<JobDto>>.SuccessResponse(
                 jobs,

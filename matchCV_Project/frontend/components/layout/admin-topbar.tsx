@@ -2,6 +2,7 @@
 
 import { Bell, Menu, Moon, Search, Sun } from 'lucide-react'
 import { useTheme } from '@/components/providers/theme-provider'
+import { AccountDropdown } from './account-dropdown'
 
 interface AdminTopbarProps {
   onToggleSidebar: () => void
@@ -41,13 +42,7 @@ export function AdminTopbar({ onToggleSidebar }: AdminTopbarProps) {
         <button className="rounded-full border border-border p-2 text-muted-foreground transition hover:bg-muted/30">
           <Bell className="size-4" />
         </button>
-        <div className="flex items-center gap-2 rounded-full border border-border bg-muted/30 px-3 py-1">
-          <div className="size-8 rounded-full bg-gradient-to-br from-primary to-primary/60" />
-          <div>
-            <p className="text-xs font-semibold leading-tight">Admin</p>
-            <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Administrator</p>
-          </div>
-        </div>
+        <AccountDropdown />
       </div>
     </header>
   )

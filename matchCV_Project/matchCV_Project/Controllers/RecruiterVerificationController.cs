@@ -38,121 +38,129 @@ public class RecruiterVerificationController : ControllerBase
         [FromForm] IFormFile? companyProofFile,
         [FromQuery] int recruiterId)
     {
-        // Validate recruiter exists and is a recruiter
-        var recruiter = await _db.Users
-            .FirstOrDefaultAsync(u => u.Id == recruiterId && u.Role == "Recruiter");
-        
-        if (recruiter == null)
-            return BadRequest("Invalid recruiter ID or user is not a recruiter.");
-
-        // Check if there's already a pending or approved verification
-        var existingVerification = await _db.RecruiterVerifications
-            .Where(v => v.RecruiterId == recruiterId && (v.Status == "Pending" || v.Status == "Approved"))
-            .FirstOrDefaultAsync();
-
-        if (existingVerification != null)
+        try
         {
-            return BadRequest($"You already have a {existingVerification.Status.ToLower()} verification request.");
-        }
+            // Validate recruiter exists and is a recruiter
+            var recruiter = await _db.Users
+                .FirstOrDefaultAsync(u => u.Id == recruiterId && u.Role == "Recruiter");
+            
+            if (recruiter == null)
+                return BadRequest("Invalid recruiter ID or user is not a recruiter.");
 
-        // Validate email format and company domain
-        var emailValid = await _verificationService.ValidateCompanyEmailAsync(request.CompanyEmail, request.CompanyName);
-        if (!emailValid)
-        {
-            _logger.LogWarning("Company email validation failed for {Email} and company {CompanyName}", 
-                request.CompanyEmail, request.CompanyName);
-            // Note: We still allow submission but log a warning
-        }
+            // Check if there's already a pending or approved verification
+            var existingVerification = await _db.RecruiterVerifications
+                .Where(v => v.RecruiterId == recruiterId && (v.Status == "Pending" || v.Status == "Approved"))
+                .FirstOrDefaultAsync();
 
-        // Validate phone if provided
-        if (!string.IsNullOrWhiteSpace(request.CompanyPhone))
-        {
-            var phoneValid = await _verificationService.ValidateCompanyPhoneAsync(request.CompanyPhone);
-            if (!phoneValid)
+            if (existingVerification != null)
             {
-                return BadRequest("Invalid phone number format.");
+                return BadRequest($"You already have a {existingVerification.Status.ToLower()} verification request.");
             }
-        }
 
-        // Validate and save documents
-        Document? businessLicenseDoc = null;
-        Document? companyProofDoc = null;
-
-        if (businessLicenseFile != null)
-        {
-            if (!_verificationService.IsValidDocumentType(businessLicenseFile))
-                return BadRequest("Invalid business license file type. Allowed: PDF, JPG, PNG, DOC, DOCX");
-
-            if (!_verificationService.IsValidDocumentSize(businessLicenseFile))
-                return BadRequest("Business license file size exceeds 10MB limit.");
-
-            businessLicenseDoc = await _verificationService.SaveVerificationDocumentAsync(
-                businessLicenseFile, recruiterId, "BusinessLicense");
-            
-            if (businessLicenseDoc == null)
-                return StatusCode(500, "Failed to save business license document.");
-        }
-
-        if (companyProofFile != null)
-        {
-            if (!_verificationService.IsValidDocumentType(companyProofFile))
-                return BadRequest("Invalid company proof file type. Allowed: PDF, JPG, PNG, DOC, DOCX");
-
-            if (!_verificationService.IsValidDocumentSize(companyProofFile))
-                return BadRequest("Company proof file size exceeds 10MB limit.");
-
-            companyProofDoc = await _verificationService.SaveVerificationDocumentAsync(
-                companyProofFile, recruiterId, "CompanyProof");
-            
-            if (companyProofDoc == null)
-                return StatusCode(500, "Failed to save company proof document.");
-        }
-
-        // Require at least one document
-        if (businessLicenseDoc == null && companyProofDoc == null)
-        {
-            return BadRequest("At least one document (business license or company proof) is required.");
-        }
-
-        // Create verification record
-        var verification = new RecruiterVerification
-        {
-            RecruiterId = recruiterId,
-            CompanyName = request.CompanyName.Trim(),
-            CompanyEmail = request.CompanyEmail.Trim(),
-            CompanyPhone = request.CompanyPhone?.Trim(),
-            CompanyAddress = request.CompanyAddress?.Trim(),
-            TaxCode = request.TaxCode?.Trim(),
-            BusinessLicenseDocumentId = businessLicenseDoc?.Id,
-            CompanyProofDocumentId = companyProofDoc?.Id,
-            Status = "Pending",
-            CreatedAt = DateTime.UtcNow
-        };
-
-        _db.RecruiterVerifications.Add(verification);
-        
-        // Log action
-        _db.AdminLogs.Add(new AdminLog
-        {
-            Actor = recruiter.Email,
-            Action = "SubmitVerification",
-            Entity = "RecruiterVerification",
-            EntityId = verification.Id,
-            MetaJson = System.Text.Json.JsonSerializer.Serialize(new
+            // Validate email format and company domain
+            var emailValid = await _verificationService.ValidateCompanyEmailAsync(request.CompanyEmail, request.CompanyName);
+            if (!emailValid)
             {
-                CompanyName = verification.CompanyName,
-                CompanyEmail = verification.CompanyEmail
-            }),
-            CreatedAt = DateTime.UtcNow
-        });
+                _logger.LogWarning("Company email validation failed for {Email} and company {CompanyName}", 
+                    request.CompanyEmail, request.CompanyName);
+                // Note: We still allow submission but log a warning
+            }
 
-        await _db.SaveChangesAsync();
+            // Validate phone if provided
+            if (!string.IsNullOrWhiteSpace(request.CompanyPhone))
+            {
+                var phoneValid = await _verificationService.ValidateCompanyPhoneAsync(request.CompanyPhone);
+                if (!phoneValid)
+                {
+                    return BadRequest("Invalid phone number format.");
+                }
+            }
 
-        _logger.LogInformation("Recruiter {RecruiterId} submitted verification request {VerificationId}", 
-            recruiterId, verification.Id);
+            // Validate and save documents
+            Document? businessLicenseDoc = null;
+            Document? companyProofDoc = null;
 
-        var result = await BuildVerificationDtoAsync(verification.Id);
-        return CreatedAtAction(nameof(GetVerificationStatus), new { recruiterId }, result);
+            if (businessLicenseFile != null)
+            {
+                if (!_verificationService.IsValidDocumentType(businessLicenseFile))
+                    return BadRequest("Invalid business license file type. Allowed: PDF, JPG, PNG, DOC, DOCX");
+
+                if (!_verificationService.IsValidDocumentSize(businessLicenseFile))
+                    return BadRequest("Business license file size exceeds 10MB limit.");
+
+                businessLicenseDoc = await _verificationService.SaveVerificationDocumentAsync(
+                    businessLicenseFile, recruiterId, "BusinessLicense");
+                
+                if (businessLicenseDoc == null)
+                    return StatusCode(500, "Failed to save business license document.");
+            }
+
+            if (companyProofFile != null)
+            {
+                if (!_verificationService.IsValidDocumentType(companyProofFile))
+                    return BadRequest("Invalid company proof file type. Allowed: PDF, JPG, PNG, DOC, DOCX");
+
+                if (!_verificationService.IsValidDocumentSize(companyProofFile))
+                    return BadRequest("Company proof file size exceeds 10MB limit.");
+
+                companyProofDoc = await _verificationService.SaveVerificationDocumentAsync(
+                    companyProofFile, recruiterId, "CompanyProof");
+                
+                if (companyProofDoc == null)
+                    return StatusCode(500, "Failed to save company proof document.");
+            }
+
+            // Require at least one document
+            if (businessLicenseDoc == null && companyProofDoc == null)
+            {
+                return BadRequest("At least one document (business license or company proof) is required.");
+            }
+
+            // Create verification record
+            var verification = new RecruiterVerification
+            {
+                RecruiterId = recruiterId,
+                CompanyName = request.CompanyName.Trim(),
+                CompanyEmail = request.CompanyEmail.Trim(),
+                CompanyPhone = request.CompanyPhone?.Trim(),
+                CompanyAddress = request.CompanyAddress?.Trim(),
+                TaxCode = request.TaxCode?.Trim(),
+                BusinessLicenseDocumentId = businessLicenseDoc?.Id,
+                CompanyProofDocumentId = companyProofDoc?.Id,
+                Status = "Pending",
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _db.RecruiterVerifications.Add(verification);
+            
+            // Log action
+            _db.AdminLogs.Add(new AdminLog
+            {
+                Actor = recruiter.Email,
+                Action = "SubmitVerification",
+                Entity = "RecruiterVerification",
+                EntityId = verification.Id,
+                MetaJson = System.Text.Json.JsonSerializer.Serialize(new
+                {
+                    CompanyName = verification.CompanyName,
+                    CompanyEmail = verification.CompanyEmail
+                }),
+                CreatedAt = DateTime.UtcNow
+            });
+
+            await _db.SaveChangesAsync();
+
+            _logger.LogInformation("Recruiter {RecruiterId} submitted verification request {VerificationId}", 
+                recruiterId, verification.Id);
+
+            var result = await BuildVerificationDtoAsync(verification.Id);
+            return CreatedAtAction(nameof(GetVerificationStatus), new { recruiterId }, result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error submitting verification for recruiter {RecruiterId}", recruiterId);
+            return StatusCode(500, "An error occurred while submitting verification. Please try again later.");
+        }
     }
 
     // GET: /api/recruiter-verification/status?recruiterId={id}
@@ -160,21 +168,29 @@ public class RecruiterVerificationController : ControllerBase
     [HttpGet("status")]
     public async Task<IActionResult> GetVerificationStatus([FromQuery] int recruiterId)
     {
-        var verification = await _db.RecruiterVerifications
-            .Include(v => v.BusinessLicenseDocument)
-            .Include(v => v.CompanyProofDocument)
-            .Include(v => v.ReviewedByAdmin)
-            .Where(v => v.RecruiterId == recruiterId)
-            .OrderByDescending(v => v.CreatedAt)
-            .FirstOrDefaultAsync();
-
-        if (verification == null)
+        try
         {
-            return Ok(new { status = "NotSubmitted", message = "No verification request found." });
-        }
+            var verification = await _db.RecruiterVerifications
+                .Include(v => v.BusinessLicenseDocument)
+                .Include(v => v.CompanyProofDocument)
+                .Include(v => v.ReviewedByAdmin)
+                .Where(v => v.RecruiterId == recruiterId)
+                .OrderByDescending(v => v.CreatedAt)
+                .FirstOrDefaultAsync();
 
-        var result = await BuildVerificationDtoAsync(verification.Id);
-        return Ok(result);
+            if (verification == null)
+            {
+                return Ok(new { status = "NotSubmitted", message = "No verification request found." });
+            }
+
+            var result = await BuildVerificationDtoAsync(verification.Id);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving verification status for recruiter {RecruiterId}", recruiterId);
+            return StatusCode(500, "An error occurred while retrieving verification status. Please try again later.");
+        }
     }
 
     // GET: /api/recruiter-verification/{id}
@@ -182,18 +198,26 @@ public class RecruiterVerificationController : ControllerBase
     [HttpGet("{id:int}")]
     public async Task<IActionResult> GetVerification(int id)
     {
-        var verification = await _db.RecruiterVerifications
-            .Include(v => v.Recruiter)
-            .Include(v => v.BusinessLicenseDocument)
-            .Include(v => v.CompanyProofDocument)
-            .Include(v => v.ReviewedByAdmin)
-            .FirstOrDefaultAsync(v => v.Id == id);
+        try
+        {
+            var verification = await _db.RecruiterVerifications
+                .Include(v => v.Recruiter)
+                .Include(v => v.BusinessLicenseDocument)
+                .Include(v => v.CompanyProofDocument)
+                .Include(v => v.ReviewedByAdmin)
+                .FirstOrDefaultAsync(v => v.Id == id);
 
-        if (verification == null)
-            return NotFound("Verification not found.");
+            if (verification == null)
+                return NotFound("Verification not found.");
 
-        var result = await BuildVerificationDtoAsync(verification.Id);
-        return Ok(result);
+            var result = await BuildVerificationDtoAsync(verification.Id);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving verification {VerificationId}", id);
+            return StatusCode(500, "An error occurred while retrieving verification details. Please try again later.");
+        }
     }
 
     // GET: /api/recruiter-verification/admin/pending

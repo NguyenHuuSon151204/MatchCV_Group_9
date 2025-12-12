@@ -54,17 +54,36 @@ public class RecruiterController : ControllerBase
                 averageScore = Math.Round(avgValue, 1);
             }
 
+            var currentUserId = 0;
+            if (User.Identity?.IsAuthenticated == true)
+            {
+                var idClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+                if (idClaim != null && int.TryParse(idClaim.Value, out int uid))
+                {
+                    currentUserId = uid;
+                }
+            }
+
+            if (currentUserId == 0)
+            {
+                return Unauthorized("User not authenticated or invalid ID.");
+            }
+
             var sevenDaysAgo = DateTime.UtcNow.AddDays(-7);
 
-            // Calculate summary safely
-            var totalJobs = await _db.Jobs.CountAsync();
-            var totalApplicants = await _db.Applications.CountAsync();
-            var newApplications = await _db.Applications.CountAsync(a => a.CreatedAt >= sevenDaysAgo);
+            // Calculate summary safely - Filter by currentUserId
+            var totalJobs = await _db.Jobs.CountAsync(j => j.UserId == currentUserId);
+            
+            // For applicants, we need to join with jobs owned by this user
+            var totalApplicants = await _db.Applications
+                .CountAsync(a => _db.Jobs.Any(j => j.Id == a.JobId && j.UserId == currentUserId));
+                
+            var newApplications = await _db.Applications
+                .CountAsync(a => a.CreatedAt >= sevenDaysAgo && _db.Jobs.Any(j => j.Id == a.JobId && j.UserId == currentUserId));
             
             // Count active jobs - jobs that have at least one application
-            // Use a simpler query to avoid Include issues
             var allJobsWithApps = await _db.Jobs
-                .Where(j => _db.Applications.Any(a => a.JobId == j.Id))
+                .Where(j => j.UserId == currentUserId && _db.Applications.Any(a => a.JobId == j.Id))
                 .CountAsync();
 
             var summary = new
@@ -76,8 +95,9 @@ public class RecruiterController : ControllerBase
                 newApplications
             };
 
-            // Load jobs - simplified approach
+            // Load jobs - simplified approach - Filter by currentUserId
             var jobCards = await _db.Jobs
+                .Where(j => j.UserId == currentUserId)
                 .OrderByDescending(j => j.CreatedAt)
                 .Take(10)
                 .AsNoTracking()
@@ -194,6 +214,7 @@ public class RecruiterController : ControllerBase
 
             // Load recent applicants separately to avoid Include issues
             var recentApplicantsList = await _db.Applications
+                .Where(a => _db.Jobs.Any(j => j.Id == a.JobId && j.UserId == currentUserId)) // Filter by user's jobs
                 .OrderByDescending(a => a.CreatedAt)
                 .Take(8)
                 .AsNoTracking()
@@ -279,7 +300,22 @@ public class RecruiterController : ControllerBase
     {
         try
         {
-            var query = _db.Jobs.AsQueryable();
+            var currentUserId = 0;
+            if (User.Identity?.IsAuthenticated == true)
+            {
+                var idClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+                if (idClaim != null && int.TryParse(idClaim.Value, out int uid))
+                {
+                    currentUserId = uid;
+                }
+            }
+
+            if (currentUserId == 0)
+            {
+                return Unauthorized("User not authenticated.");
+            }
+
+            var query = _db.Jobs.Where(j => j.UserId == currentUserId).AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(q))
             {
@@ -390,6 +426,35 @@ public class RecruiterController : ControllerBase
     [HttpGet("jobs/{id:int}")]
     public async Task<IActionResult> GetJob(int id)
     {
+        var currentUserId = 0;
+        if (User.Identity?.IsAuthenticated == true)
+        {
+            var idClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+            if (idClaim != null && int.TryParse(idClaim.Value, out int uid))
+            {
+                currentUserId = uid;
+            }
+        }
+        
+        // Security check: verify job exists and belongs to current user
+        if (currentUserId != 0)
+        {
+            var jobOwnerId = await _db.Jobs
+                .Where(j => j.Id == id)
+                .Select(j => (int?)j.UserId)
+                .FirstOrDefaultAsync();
+                
+            if (jobOwnerId == null)
+            {
+                return NotFound("Job not found.");
+            }
+            
+            if (jobOwnerId != currentUserId && !User.IsInRole("Admin"))
+            {
+                return Forbid();
+            }
+        }
+        
         var job = await BuildJobDetailDto(id);
         return job is null ? NotFound("Job not found.") : Ok(job);
     }
@@ -486,6 +551,20 @@ public class RecruiterController : ControllerBase
     {
         var jobExists = await _db.Jobs.AnyAsync(j => j.Id == id);
         if (!jobExists) return NotFound("Job not found.");
+
+        // Security check: ensure job belongs to current user
+        if (User.Identity?.IsAuthenticated == true)
+        {
+            var idClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+            if (idClaim != null && int.TryParse(idClaim.Value, out int currentUserId))
+            {
+                 var isOwner = await _db.Jobs.AnyAsync(j => j.Id == id && j.UserId == currentUserId);
+                 if (!isOwner && !User.IsInRole("Admin"))
+                 {
+                     return Forbid();
+                 }
+            }
+        }
 
         // Lấy danh sách RequiredSkills của job
         var requiredSkillIds = await _db.RequiredSkills

@@ -66,8 +66,8 @@ export function VerificationManagementPage() {
       setError(null)
 
       const params = filterStatus ? { status: filterStatus } : undefined
-      const data = await adminService.getVerifications(params)
-      const verificationsList = Array.isArray(data) ? data : []
+      const response = await adminService.getVerifications(params)
+      const verificationsList = Array.isArray(response.data) ? response.data : []
 
       const normalized = verificationsList.map((v: any) => ({
         id: v.id || v.Id,
@@ -116,8 +116,8 @@ export function VerificationManagementPage() {
 
   const loadVerificationDetail = async (id: number) => {
     try {
-      const data = await adminService.getVerificationDetail(id)
-      setSelectedVerification(data)
+      const response = await adminService.getVerificationDetail(id)
+      setSelectedVerification(response.data)
       setShowDetailModal(true)
     } catch (err: any) {
       console.error('Failed to load verification detail:', err)

@@ -13,6 +13,8 @@ export function RecruiterLayout({ children }: { children: React.ReactNode }) {
       <RecruiterSidebar
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
       />
       <div className="flex flex-1 flex-col overflow-hidden">
         <RecruiterTopbar onToggleSidebar={() => setSidebarOpen(true)} />

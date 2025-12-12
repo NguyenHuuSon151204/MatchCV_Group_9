@@ -21,11 +21,13 @@ import { cn } from '@/lib/utils'
 
 const adminNavigation = [
   { label: 'Dashboard', path: '/admin', icon: LayoutDashboard },
+  { label: 'Jobs', path: '/admin/jobs', icon: Briefcase },
+  { label: 'Applicants', path: '/admin/applicants', icon: Users },
   { label: 'Recruiters', path: '/admin/recruiters', icon: Building2 },
   { label: 'Licenses', path: '/admin/licenses', icon: Key },
   { label: 'Verifications', path: '/admin/verifications', icon: FileCheck },
   { label: 'Reports', path: '/admin/reports', icon: BarChart3 },
-  { label: 'Audit Log', path: '/admin/logs', icon: FileText },
+  { label: 'Audit Log', path: '/admin/audit-log', icon: FileText },
   { label: 'AI Status', path: '/admin/ai-status', icon: Brain },
   { label: 'Configuration', path: '/admin/config', icon: Settings },
 ]
