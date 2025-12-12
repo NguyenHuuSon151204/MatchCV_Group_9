@@ -17,7 +17,6 @@ namespace matchCV_Project.Services
         private readonly EmailService _email;
         private readonly IConfiguration _config;
         private readonly ILogger<AccountService> _logger;
-        private bool RequireEmailVerification => _config.GetValue<bool>("Auth:RequireEmailVerification", false);
         private string PasswordResetKey => _config["JwtKeys:PasswordResetKey"] ?? "dev-reset-secret-key";
 
         public AccountService(MatchCvContext context, EmailService email, IConfiguration configuration, ILogger<AccountService> logger)
@@ -57,17 +56,13 @@ namespace matchCV_Project.Services
                 Email = req.Email,
                 Password = HashPassword(req.Password),
                 Role = req.Role,
-                Verified = !RequireEmailVerification
+                Verified = false
             };
 
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
 
-            // In local/dev we skip email verification to unblock login with email/password.
-            if (RequireEmailVerification)
-            {
-                await SendEmailVerification(user, baseUrl);
-            }
+            await SendEmailVerification(user, baseUrl);
 
             return (true, null);
         }
@@ -188,15 +183,8 @@ namespace matchCV_Project.Services
 
             if (!user.Verified)
             {
-                if (RequireEmailVerification)
-                {
-                    _logger.LogWarning("Login blocked - email not verified for {Email}", req.Email);
-                    return (null, "Please verify your email first");
-                }
-
-                // Auto-verify in non-production/local mode so email/password login works.
-                user.Verified = true;
-                await _context.SaveChangesAsync();
+                _logger.LogWarning("Login blocked - email not verified for {Email}", req.Email);
+                return (null, "Please verify your email first");
             }
 
             return (user, null);
@@ -339,6 +327,33 @@ namespace matchCV_Project.Services
             {
                 return false;
             }
+        }
+
+        public async Task<(User? user, string? error)> UpdateProfileAsync(int userId, UpdateProfileRequestDto dto)
+        {
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null)
+            {
+                return (null, "User not found");
+            }
+
+            if (!string.IsNullOrWhiteSpace(dto.Email))
+            {
+                var exists = await _context.Users.AnyAsync(u => u.Email == dto.Email && u.Id != userId);
+                if (exists)
+                {
+                    return (null, "Email already in use");
+                }
+                user.Email = dto.Email;
+            }
+
+            if (!string.IsNullOrWhiteSpace(dto.DisplayName))
+            {
+                user.DisplayName = dto.DisplayName;
+            }
+
+            await _context.SaveChangesAsync();
+            return (user, null);
         }
 
     }

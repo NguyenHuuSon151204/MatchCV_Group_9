@@ -20,6 +20,8 @@ namespace matchCV_Project.Interfaces
 
         Task<(bool success, string? error)> ResetPasswordAsync(string token, string newPassword);
 
+        Task<(User? user, string? error)> UpdateProfileAsync(int userId, UpdateProfileRequestDto dto);
+
     }
 
 }

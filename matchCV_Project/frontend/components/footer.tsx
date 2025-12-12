@@ -16,22 +16,22 @@ export function Footer() {
               <span>MatchCV</span>
             </div>
             <p className="text-sm text-muted-foreground">
-              Nền tảng AI tối ưu hóa CV và matching job cho ứng viên và nhà tuyển dụng.
+              AI-powered platform to optimize CVs and match candidates with the right jobs faster.
             </p>
           </div>
 
           {/* Product */}
           <div>
-            <h4 className="font-semibold text-foreground mb-4">Sản phẩm</h4>
+            <h4 className="font-semibold text-foreground mb-4">Product</h4>
             <ul className="space-y-2 text-sm">
               <li>
                 <Link href="#features" className="text-muted-foreground hover:text-foreground transition-colors">
-                  Tính năng
+                  Features
                 </Link>
               </li>
               <li>
                 <Link href="#how-it-works" className="text-muted-foreground hover:text-foreground transition-colors">
-                  Cách hoạt động
+                  How it works
                 </Link>
               </li>
               <li>
@@ -44,11 +44,11 @@ export function Footer() {
 
           {/* Company */}
           <div>
-            <h4 className="font-semibold text-foreground mb-4">Công ty</h4>
+            <h4 className="font-semibold text-foreground mb-4">Company</h4>
             <ul className="space-y-2 text-sm">
               <li>
                 <Link href="#team" className="text-muted-foreground hover:text-foreground transition-colors">
-                  Về chúng tôi
+                  About us
                 </Link>
               </li>
               <li>
@@ -58,7 +58,7 @@ export function Footer() {
               </li>
               <li>
                 <Link href="#" className="text-muted-foreground hover:text-foreground transition-colors">
-                  Liên hệ
+                  Contact
                 </Link>
               </li>
             </ul>
@@ -66,16 +66,16 @@ export function Footer() {
 
           {/* Legal */}
           <div>
-            <h4 className="font-semibold text-foreground mb-4">Pháp lý</h4>
+            <h4 className="font-semibold text-foreground mb-4">Legal</h4>
             <ul className="space-y-2 text-sm">
               <li>
                 <Link href="#" className="text-muted-foreground hover:text-foreground transition-colors">
-                  Điều khoản sử dụng
+                  Terms of use
                 </Link>
               </li>
               <li>
                 <Link href="#" className="text-muted-foreground hover:text-foreground transition-colors">
-                  Chính sách bảo mật
+                  Privacy policy
                 </Link>
               </li>
               <li>

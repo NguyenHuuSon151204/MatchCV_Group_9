@@ -74,8 +74,11 @@ export function JobDetailsPage() {
           if (appliedKey && localStorage.getItem(appliedKey) === 'true') {
             setApplied(true)
           }
-          if (savedKey && localStorage.getItem(savedKey) === 'true') {
-            setSaved(true)
+          const savedList = savedJdService.list()
+          const isSaved = savedList.some((j) => j.jobId === fresh.id)
+          setSaved(isSaved)
+          if (!isSaved && savedKey) {
+            localStorage.removeItem(savedKey)
           }
         } else if (!cached) {
           setError('Job not found')
@@ -230,22 +233,20 @@ export function JobDetailsPage() {
                   <Sparkles className="mr-2 size-4" />
                   Analyze with CV
                 </Button>
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="rounded-full px-6"
-                  onClick={() => {
-                    if (!job) return
-                    const content = job.jobDescription || job.rawText || job.title || ''
-                    savedJdService.save(content)
-                    if (savedKey) localStorage.setItem(savedKey, 'true')
-                    setSaved(true)
-                    toast.success('Saved job', `"${job.title}" saved to Saved JDs`)
-                  }}
-                  disabled={saved}
-                >
-                  {saved ? 'Saved' : 'Save'}
-                </Button>
+              <Button
+                size="lg"
+                variant={saved ? 'secondary' : 'outline'}
+                className="rounded-full px-6"
+                onClick={() => {
+                  if (!job || saved) return
+                  savedJdService.saveFromJob(job)
+                  if (savedKey) localStorage.setItem(savedKey, 'true')
+                  setSaved(true)
+                  toast.success('Saved job', `"${job.title}" saved to Saved JDs`)
+                }}
+              >
+                {saved ? 'Saved' : 'Save'}
+              </Button>
               </div>
             </div>
 

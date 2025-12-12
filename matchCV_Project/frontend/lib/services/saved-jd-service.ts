@@ -1,7 +1,29 @@
+import type { Job } from '@/lib/types'
+
 const STORAGE_KEY = 'saved-jd-list'
 const MAX_ITEMS = 20
 
-export type SavedJd = { id: string; title: string; content: string }
+export type SavedJd = {
+  id: string
+  jobId?: number
+  title: string
+  company?: string
+  content: string
+  savedAt: string
+}
+
+function normalize(item: any): SavedJd | null {
+  if (!item) return null
+  // Backward compatibility: old shape {id,title,content}
+  return {
+    id: item.id ?? `${Date.now()}`,
+    jobId: item.jobId,
+    title: item.title ?? 'Untitled JD',
+    company: item.company,
+    content: item.content ?? '',
+    savedAt: item.savedAt ?? new Date().toISOString(),
+  }
+}
 
 function load(): SavedJd[] {
   if (typeof window === 'undefined') return []
@@ -9,7 +31,8 @@ function load(): SavedJd[] {
   if (!raw) return []
   try {
     const parsed = JSON.parse(raw)
-    return Array.isArray(parsed) ? parsed : []
+    if (!Array.isArray(parsed)) return []
+    return parsed.map(normalize).filter((x): x is SavedJd => !!x)
   } catch {
     return []
   }
@@ -24,9 +47,16 @@ export const savedJdService = {
   list(): SavedJd[] {
     return load()
   },
-  save(content: string): SavedJd {
-    const title = content.split('\n').find((l) => l.trim())?.slice(0, 60) || 'Untitled JD'
-    const entry: SavedJd = { id: `${Date.now()}`, title, content }
+  saveFromJob(job: Job): SavedJd {
+    const content = job.jobDescription || (job as any).rawText || job.title || ''
+    const entry: SavedJd = {
+      id: `${Date.now()}`,
+      jobId: job.id,
+      title: job.title,
+      company: job.company,
+      content,
+      savedAt: new Date().toISOString(),
+    }
     const updated = [entry, ...load()].slice(0, MAX_ITEMS)
     persist(updated)
     return entry

@@ -11,7 +11,9 @@ import {
   Briefcase,
   Plus,
   Users,
-  Bookmark
+  Bookmark,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { cn } from '@/lib/utils'
@@ -44,6 +46,7 @@ export function Sidebar({ isMobileOpen, onClose }: SidebarProps) {
   const navItems = role === 'Recruiter' ? recruiterNav : candidateNav
   const location = useLocation()
   const [jobsOpen, setJobsOpen] = useState(false)
+  const [collapsed, setCollapsed] = useState(false)
 
   const jobLinks = [
     { label: 'Find Jobs', path: '/app/jobs' },
@@ -68,24 +71,36 @@ export function Sidebar({ isMobileOpen, onClose }: SidebarProps) {
       />
       <aside
         className={cn(
-          'fixed inset-y-0 z-40 w-72 transform border-r border-sidebar-border bg-sidebar/95 backdrop-blur-lg transition-transform lg:static lg:translate-x-0',
-          isMobileOpen ? 'translate-x-0' : '-translate-x-full'
+          'fixed inset-y-0 z-40 transform border-r border-sidebar-border bg-sidebar/95 backdrop-blur-lg transition-transform lg:static lg:translate-x-0',
+          isMobileOpen ? 'translate-x-0' : '-translate-x-full',
+          collapsed ? 'w-20' : 'w-72'
         )}
       >
         <div className="flex h-full flex-col">
-          <div className="flex items-center justify-between border-b border-sidebar-border px-6 py-5">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sidebar-foreground/60">
-                MatchCV
-              </p>
-              <h1 className="text-2xl font-bold text-sidebar-foreground">{role}</h1>
+          <div className={cn('flex items-center justify-between border-b border-sidebar-border px-4 py-4', collapsed && 'px-3')}>
+            <div className="flex items-center gap-3">
+              <div className="rounded-full bg-primary/20 px-3 py-1 text-xs font-medium text-primary-foreground/80">
+                AI
+              </div>
+              {!collapsed && (
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sidebar-foreground/60">
+                    MatchCV
+                  </p>
+                  <h1 className="text-2xl font-bold text-sidebar-foreground">{role}</h1>
+                </div>
+              )}
             </div>
-            <div className="rounded-full bg-primary/20 px-3 py-1 text-xs font-medium text-primary-foreground/80">
-              AI
-            </div>
+            <button
+              className="rounded-full border border-sidebar-border p-2 text-sidebar-foreground/70 hover:bg-sidebar-accent/40"
+              onClick={() => setCollapsed((prev) => !prev)}
+              aria-label="Toggle sidebar"
+            >
+              {collapsed ? <ChevronRight className="size-4" /> : <ChevronLeft className="size-4" />}
+            </button>
           </div>
 
-          <nav className="flex-1 space-y-1 px-4 py-6">
+          <nav className={cn('flex-1 space-y-1 py-6', collapsed ? 'px-2' : 'px-4')}>
             {navItems.map((item) => {
               const Icon = item.icon
               return (
@@ -102,8 +117,8 @@ export function Sidebar({ isMobileOpen, onClose }: SidebarProps) {
                   }
                   onClick={onClose}
                 >
-                  <Icon className="size-5" />
-                  {item.label}
+                  <Icon className="size-5 shrink-0" />
+                  {!collapsed && item.label}
                 </NavLink>
               )
             })}
@@ -119,10 +134,10 @@ export function Sidebar({ isMobileOpen, onClose }: SidebarProps) {
                 setJobsOpen((prev) => !prev)
               }}
             >
-              <Briefcase className="size-5" />
-              Jobs
+              <Briefcase className="size-5 shrink-0" />
+              {!collapsed && 'Jobs'}
             </button>
-            {jobsOpen && (
+            {jobsOpen && !collapsed && (
               <div className="ml-4 space-y-1">
                 {jobLinks.map((item) => (
                   <NavLink
@@ -145,24 +160,9 @@ export function Sidebar({ isMobileOpen, onClose }: SidebarProps) {
             )}
           </nav>
 
-          <div className="border-t border-sidebar-border px-6 py-4">
-            <div className="rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 p-4 text-sm text-sidebar-foreground/80">
-              <p className="font-semibold">AI Copilot</p>
-              <p className="text-xs text-sidebar-foreground/60">
-                {role === 'Recruiter'
-                  ? 'Optimize your job posts with AI analysis.'
-                  : 'Upload a new CV and let the AI analyze it instantly.'}
-              </p>
-              {role !== 'Recruiter' && (
-                <button className="mt-3 w-full rounded-xl bg-primary/20 py-2 text-xs font-semibold text-primary-foreground">
-                  Upload CV
-                </button>
-              )}
-            </div>
-          </div>
+          {/* Removed bottom AI Copilot card */}
         </div>
       </aside>
     </>
   )
 }
-

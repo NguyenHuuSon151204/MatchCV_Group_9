@@ -4,18 +4,18 @@ import { Upload, Zap, FileDown } from "lucide-react"
 const steps = [
   {
     icon: Upload,
-    title: "Nhập JD / Upload CV",
-    description: "Dán job description hoặc upload file CV của bạn. Hỗ trợ PDF, Word, và text.",
+    title: "Drop in your JD or CV",
+    description: "Paste the job description or upload your CV. PDF, Word, and text are supported.",
   },
   {
     icon: Zap,
-    title: "AI phân tích & chấm điểm match",
-    description: "AI sẽ phân tích, so sánh và cung cấp điểm match chi tiết trong giây lát.",
+    title: "AI analyzes & scores",
+    description: "We parse the content, compare, and return a detailed match score in seconds.",
   },
   {
     icon: FileDown,
-    title: "Chỉnh sửa & xuất file",
-    description: "Áp dụng gợi ý optimize, chỉnh sửa và xuất CV dưới dạng PDF hoặc Docx.",
+    title: "Refine & export",
+    description: "Apply AI rewrite tips, edit sections, and export a polished file instantly.",
   },
 ]
 
@@ -24,9 +24,9 @@ export function HowItWorks() {
     <section id="how-it-works" className="w-full py-16 md:py-24">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center space-y-4 mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold">Cách hoạt động</h2>
+          <h2 className="text-3xl md:text-4xl font-bold">How it works</h2>
           <p className="text-muted-foreground text-lg text-balance max-w-2xl mx-auto">
-            3 bước đơn giản để tối ưu CV của bạn
+            Three simple steps to optimize your CV for every role.
           </p>
         </div>
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { BookOpen, Trash2 } from 'lucide-react'
+import { BookOpen, Trash2, Briefcase, MapPin, Clock3 } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { savedJdService, type SavedJd } from '@/lib/services/saved-jd-service'
@@ -16,7 +16,7 @@ export function SavedJDsPage() {
   }, [])
 
   const handleOpenAnalyzer = (jd: SavedJd) => {
-    navigate('/app/jd-analyzer', { state: { jdContent: jd.content } })
+    navigate('/app/jd-analyzer', { state: { savedJd: jd } })
   }
 
   const handleDelete = (id: string) => {
@@ -39,27 +39,47 @@ export function SavedJDsPage() {
           {saved.length === 0 ? (
             <p className="text-sm text-muted-foreground">No saved JDs yet.</p>
           ) : (
-            <div className="space-y-3">
+            <div className="grid gap-3 md:grid-cols-2">
               {saved.map((jd) => (
-                <div
+                <Card
                   key={jd.id}
-                  className="rounded-2xl border border-border/40 bg-background/70 p-4 text-sm"
+                  className="rounded-2xl border border-border/40 bg-background/70 p-4 text-sm shadow-sm"
                 >
-                  <div className="flex items-start justify-between gap-3">
+                  <div className="flex flex-col gap-3">
                     <div className="space-y-1">
-                      <p className="font-semibold text-card-foreground">{jd.title}</p>
-                      <p className="line-clamp-2 text-xs text-muted-foreground">{jd.content}</p>
+                      <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                        {jd.company ? 'Saved job' : 'Saved JD'}
+                      </p>
+                      <p className="text-lg font-semibold text-card-foreground">{jd.title}</p>
+                      {jd.company && (
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <Briefcase className="size-4" />
+                          <span>{jd.company}</span>
+                        </div>
+                      )}
+                      <p className="line-clamp-3 text-xs text-muted-foreground">{jd.content}</p>
+                      <div className="flex items-center gap-2 text-[11px] text-muted-foreground/80">
+                        <Clock3 className="size-3.5" />
+                        <span>Saved {new Date(jd.savedAt).toLocaleString()}</span>
+                      </div>
                     </div>
-                    <div className="flex gap-2">
-                      <Button variant="ghost" size="icon" onClick={() => handleOpenAnalyzer(jd)} title="Open in JD Analyzer">
+                    <div className="flex flex-wrap gap-2">
+                      <Button variant="default" size="sm" className="gap-2" onClick={() => handleOpenAnalyzer(jd)}>
                         <BookOpen className="size-4" />
+                        Analyze with CV
                       </Button>
-                      <Button variant="ghost" size="icon" onClick={() => handleDelete(jd.id)} title="Delete">
-                        <Trash2 className="size-4 text-destructive" />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="gap-2 text-destructive hover:text-destructive"
+                        onClick={() => handleDelete(jd.id)}
+                      >
+                        <Trash2 className="size-4" />
+                        Delete
                       </Button>
                     </div>
                   </div>
-                </div>
+                </Card>
               ))}
             </div>
           )}
@@ -68,4 +88,3 @@ export function SavedJDsPage() {
     </section>
   )
 }
-

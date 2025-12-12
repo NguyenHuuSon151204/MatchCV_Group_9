@@ -2,29 +2,29 @@ import { Card, CardContent } from "@/components/ui/card"
 
 const teamMembers = [
   {
-    name: "Nguyễn Văn A",
+    name: "Alex Nguyen",
     role: "CEO & Co-founder",
-    description: "Chuyên gia HR Tech với 10 năm kinh nghiệm",
+    description: "HR tech specialist with 10+ years of experience.",
   },
   {
-    name: "Trần Thị B",
+    name: "Tracy Tran",
     role: "CTO & Co-founder",
-    description: "Lead Developer, AI/ML specialist",
+    description: "Lead developer focused on AI/ML systems.",
   },
   {
-    name: "Lê Minh C",
+    name: "Minh Le",
     role: "Product Manager",
-    description: "Thiết kế trải nghiệm người dùng tối ưu",
+    description: "Designs intuitive, conversion-friendly user journeys.",
   },
   {
-    name: "Phạm Quốc D",
+    name: "Quoc Pham",
     role: "Lead Designer",
-    description: "UI/UX Designer, Brand specialist",
+    description: "Crafts bold visual systems and brand experiences.",
   },
   {
-    name: "Hoàng Thu E",
+    name: "Thu Hoang",
     role: "Data Scientist",
-    description: "Machine Learning model optimization",
+    description: "Optimizes models for faster, more accurate matching.",
   },
 ]
 
@@ -33,9 +33,9 @@ export function Team() {
     <section id="team" className="w-full py-16 md:py-24 bg-muted/30">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center space-y-4 mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold">Nhóm phát triển</h2>
+          <h2 className="text-3xl md:text-4xl font-bold">Meet the team</h2>
           <p className="text-muted-foreground text-lg text-balance max-w-2xl mx-auto">
-            Những chuyên gia tằng sức mạnh cho MatchCV
+            Experts building the AI toolkit to supercharge your job search.
           </p>
         </div>
 
