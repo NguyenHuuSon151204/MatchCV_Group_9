@@ -217,6 +217,46 @@
 
 .add-btn-inline .material-icons,
 .remove-btn-inline .material-icons {
+    font-size: 20px;
+}
+
+.sidebar-action-btn {
+    background: white;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    padding: 2px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #6b7280;
+    transition: all 0.2s;
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+}
+
+.sidebar-action-btn:hover,
+.sidebar-action-btn:focus {
+    background-color: #f3f4f6;
+    border-color: #9ca3af;
+    color: #1f2937;
+}
+
+.sidebar-action-btn.delete {
+    color: #ef4444;
+    /* Light red default */
+    border-color: #fca5a5;
+}
+
+.sidebar-action-btn.delete:hover,
+.sidebar-action-btn.delete:focus {
+    background-color: #fee2e2;
+    border-color: #ef4444;
+    color: #b91c1c;
+}
+
+.sidebar-action-btn .material-icons {
     font-size: 18px;
 }
 

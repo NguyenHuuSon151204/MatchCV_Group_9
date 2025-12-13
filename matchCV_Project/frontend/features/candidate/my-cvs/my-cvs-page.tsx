@@ -13,6 +13,7 @@ import { UploadCvModal } from '@/features/candidate/my-cvs/upload-cv-modal'
 import { CreateCvDialog } from '@/features/candidate/my-cvs/create-cv-dialog'
 import { CreateOptionDialog } from '@/features/candidate/my-cvs/create-option-dialog'
 import { EditOptionDialog } from '@/features/candidate/my-cvs/edit-option-dialog'
+import { ViewCvDialog } from '@/features/candidate/my-cvs/view-cv-dialog'
 import type { CVStatus } from '@/lib/types'
 
 export function MyCVsPage() {
@@ -23,6 +24,7 @@ export function MyCVsPage() {
   const [optionOpen, setOptionOpen] = useState(false)
   const [editOptionId, setEditOptionId] = useState<string | null>(null)
   const [selectedCvId, setSelectedCvId] = useState<string | null>(null)
+  const [viewOpen, setViewOpen] = useState(false)
   const [busyId, setBusyId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | CVStatus>('all')
@@ -81,13 +83,9 @@ export function MyCVsPage() {
     setBusyId(null)
   }
 
-  const handleView = async (id: string) => {
-    setBusyId(id)
-    try {
-      await viewCV(id)
-    } finally {
-      setBusyId(null)
-    }
+  const handleView = (id: string) => {
+    setSelectedCvId(id)
+    setViewOpen(true)
   }
 
   const handleExport = async (id: string, format: 'pdf' | 'docx' | 'json') => {
@@ -270,9 +268,6 @@ export function MyCVsPage() {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
                         <StatusBadge status={cv.status} />
-                        <span className="text-[11px] text-muted-foreground">
-                          {formatDistanceToNow(new Date(cv.modifiedAt), { addSuffix: true })}
-                        </span>
                       </div>
                     </td>
                     <td className="px-6 py-4">
@@ -403,6 +398,15 @@ export function MyCVsPage() {
         }}
         cvId={selectedCvId}
         onUploadSuccess={refresh}
+      />
+
+      <ViewCvDialog
+        open={viewOpen}
+        onClose={() => {
+          setViewOpen(false)
+          setSelectedCvId(null)
+        }}
+        cv={cvs.find(c => c.id === selectedCvId) || null}
       />
     </section>
   )

@@ -6,7 +6,6 @@ using matchCV_Project.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Google;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Net;
@@ -162,36 +161,6 @@ namespace matchCV_Project.Controllers
         {
             await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
             return Ok(new { message = "Logged out" });
-        }
-
-        // -------------------------
-        // UPDATE PROFILE
-        // -------------------------
-        [HttpPost("update-profile")]
-        [Authorize]
-        public async Task<IActionResult> UpdateProfile(UpdateProfileRequestDto dto)
-        {
-            var idClaim = HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (idClaim == null)
-            {
-                return Unauthorized(new { message = "Invalid session" });
-            }
-
-            var userId = int.Parse(idClaim);
-            var (user, error) = await _service.UpdateProfileAsync(userId, dto);
-            if (user == null)
-            {
-                return BadRequest(new { message = error });
-            }
-
-            // Refresh auth cookie with new claims (e.g., display name/email)
-            await SignIn(user);
-
-            return Ok(new
-            {
-                message = "Profile updated",
-                user = new { user.Id, user.Email, user.DisplayName, user.Role }
-            });
         }
 
         // -------------------------

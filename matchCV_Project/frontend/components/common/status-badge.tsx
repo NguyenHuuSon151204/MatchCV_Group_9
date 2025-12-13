@@ -15,7 +15,7 @@ const statusMap: Record<
   uploaded: { label: 'Uploaded', variant: 'secondary', classes: 'bg-blue-500/20 text-blue-200' },
   analyzed: { label: 'Analyzed', variant: 'default', classes: 'bg-emerald-500/20 text-emerald-200' },
   submitted: { label: 'Submitted', variant: 'default', classes: 'bg-amber-500/20 text-amber-100' },
-  activing: { label: 'Activating', variant: 'outline', classes: 'border-primary/30 text-primary' },
+  activing: { label: 'Active', variant: 'outline', classes: 'border-primary/30 text-primary' },
 }
 
 interface StatusBadgeProps {

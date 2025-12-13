@@ -12,5 +12,15 @@
         public string Position { get; set; }
 
         public string Website { get; set; }
+        public List<CustomContactDto> CustomContacts { get; set; } = new List<CustomContactDto>();
+    }
+
+    public class CustomContactDto
+    {
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        public object Id { get; set; }
+        
+        [System.Text.Json.Serialization.JsonPropertyName("value")]
+        public string Value { get; set; }
     }
 }

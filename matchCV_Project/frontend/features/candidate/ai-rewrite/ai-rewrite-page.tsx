@@ -256,7 +256,7 @@ export function AIRewritePage() {
               <Button
                 className="w-full rounded-full"
                 variant="secondary"
-                disabled={!rewriteResult || applying}
+                disabled={!rewriteResult || applying || selectedCvMeta?.status === 'uploaded'}
                 onClick={handleApply}
               >
                 {applying ? 'Applying...' : 'Apply to CV'}
@@ -278,7 +278,9 @@ export function AIRewritePage() {
                 Working on <span className="font-semibold text-card-foreground">{selectedCvMeta.name}</span>{' '}
                 {selectedCvMeta.position}
                 {selectedCvMeta.status === 'uploaded' && (
-                  <div className="mt-2 text-destructive">Apply is disabled for uploaded CV files.</div>
+                  <div className="mt-2 text-destructive">
+                    Apply is disabled for uploaded CV files.
+                  </div>
                 )}
               </div>
             )}

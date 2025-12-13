@@ -49,20 +49,20 @@ export function UploadCvModal({ open, onClose, cvId, onUploadSuccess }: UploadCv
 
       // If creating new CV, create metadata first
       if (!targetId) {
-        if (!formData.name || !formData.fullName || !formData.position) {
-          setError('Please fill in all required fields.')
+        if (!formData.name) {
+          setError('Please fill in CV Name.')
           return
         }
 
         const newCv = await cvService.createCV({
           name: formData.name,
-          position: formData.position,
-          description: formData.description,
+          position: '',
+          description: '',
           cvData: {
             personalInfo: {
-              fullName: formData.fullName,
-              position: formData.position,
-              summary: formData.description
+              fullName: '',
+              position: '',
+              summary: ''
             }
           }
         })
@@ -85,7 +85,7 @@ export function UploadCvModal({ open, onClose, cvId, onUploadSuccess }: UploadCv
     }
   }
 
-  const isFormValid = cvId ? true : (formData.name && formData.fullName && formData.position)
+  const isFormValid = cvId ? true : (formData.name)
 
   return (
     <Modal
@@ -114,30 +114,6 @@ export function UploadCvModal({ open, onClose, cvId, onUploadSuccess }: UploadCv
                 placeholder="e.g. My Fullstack CV"
                 value={formData.name}
                 onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Full Name</label>
-              <Input
-                placeholder="e.g. John Doe"
-                value={formData.fullName}
-                onChange={(e) => setFormData(prev => ({ ...prev, fullName: e.target.value }))}
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Target Position</label>
-              <Input
-                placeholder="e.g. Senior Developer"
-                value={formData.position}
-                onChange={(e) => setFormData(prev => ({ ...prev, position: e.target.value }))}
-              />
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Description (Optional)</label>
-              <Textarea
-                placeholder="Brief description..."
-                value={formData.description}
-                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
               />
             </div>
             <div className="border-t border-border/50 my-4" />

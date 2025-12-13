@@ -24,16 +24,16 @@ export function Header() {
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-8">
             <Link href="#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              Features
+              Tính năng
             </Link>
             <Link
               href="#how-it-works"
               className="text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
-              How it works
+              Cách hoạt động
             </Link>
             <Link href="#team" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-              Team
+              Nhóm phát triển
             </Link>
           </nav>
 
@@ -43,13 +43,13 @@ export function Header() {
               href="/auth/login"
               className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}
             >
-              Log in
+              Đăng nhập
             </Link>
             <Link
               href="/auth/register"
               className={cn(buttonVariants({ variant: "default", size: "sm" }), "bg-primary hover:bg-primary/90")}
             >
-              Sign up free
+              Đăng ký miễn phí
             </Link>
           </div>
 
@@ -69,32 +69,32 @@ export function Header() {
               href="#features"
               className="block text-sm text-muted-foreground hover:text-foreground transition-colors py-2"
             >
-              Features
+              Tính năng
             </Link>
             <Link
               href="#how-it-works"
               className="block text-sm text-muted-foreground hover:text-foreground transition-colors py-2"
             >
-              How it works
+              Cách hoạt động
             </Link>
             <Link
               href="#team"
               className="block text-sm text-muted-foreground hover:text-foreground transition-colors py-2"
             >
-              Team
+              Nhóm phát triển
             </Link>
             <div className="flex flex-col gap-2 pt-2">
               <Link
                 href="/auth/login"
                 className={cn(buttonVariants({ variant: "outline", size: "sm" }), "w-full bg-transparent")}
               >
-                Log in
+                Đăng nhập
               </Link>
               <Link
                 href="/auth/register"
                 className={cn(buttonVariants({ variant: "default", size: "sm" }), "w-full bg-primary hover:bg-primary/90")}
               >
-                Sign up free
+                Đăng ký miễn phí
               </Link>
             </div>
           </nav>

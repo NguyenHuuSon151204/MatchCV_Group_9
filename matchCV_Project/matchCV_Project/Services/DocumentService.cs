@@ -170,7 +170,8 @@ public class DocumentService : IDocumentService
             document.CvData = JsonSerializer.Serialize(dto.CvData);
         }
 
-        document.Status = "Draft";
+        // document.Status = "Uploaded"; // Don't force Uploaded on metadata update
+        if (string.IsNullOrEmpty(document.Status)) document.Status = "Draft";
         document.UpdatedAt = DateTime.UtcNow;
 
         await _documentRepository.UpdateAsync(document);

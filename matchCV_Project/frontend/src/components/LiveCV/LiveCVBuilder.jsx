@@ -22,6 +22,12 @@ function LiveCVBuilder() {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [showConfirmNewCV, setShowConfirmNewCV] = useState(false); // New state for confirm dialog
     const [isExitAfterSave, setIsExitAfterSave] = useState(false);
+    const [confirmDialog, setConfirmDialog] = useState({
+        isOpen: false,
+        title: '',
+        message: '',
+        onConfirm: null
+    });
     const [cvTitle, setCvTitle] = useState('');
     const [currentCvId, setCurrentCvId] = useState(0);
     const fileInputRef = useRef(null);
@@ -66,7 +72,9 @@ function LiveCVBuilder() {
             { id: 1, name: 'Quản lý nhân sự', level: 'Thành thạo' },
             { id: 2, name: 'Dịch vụ khách hàng', level: 'Chuyên gia' },
             { id: 3, name: 'Quản lý chi phí', level: 'Thành thạo' }
-        ]
+        ],
+        customSections: [],
+        sectionOrder: ['summary', 'experiences', 'educations', 'skills']
     };
 
     const [cvData, setCvData] = useState(initialCvData);
@@ -124,7 +132,9 @@ function LiveCVBuilder() {
                         personalInfo: { ...initialCvData.personalInfo, ...(loadedCvData.personalInfo || {}) },
                         experiences: loadedCvData.experiences || [],
                         educations: loadedCvData.educations || [],
-                        skills: loadedCvData.skills || []
+                        skills: loadedCvData.skills || [],
+                        customSections: loadedCvData.customSections || [],
+                        sectionOrder: loadedCvData.sectionOrder || ['summary', 'experiences', 'educations', 'skills']
                     }));
                 }
 
@@ -208,7 +218,9 @@ function LiveCVBuilder() {
             })),
             skills: cvData.skills.map((skill) => ({
                 ...skill
-            }))
+            })),
+            customSections: cvData.customSections || [],
+            sectionOrder: cvData.sectionOrder || ['summary', 'experiences', 'educations', 'skills']
         };
 
         console.log('Saving CV Data:', formattedCvData);
@@ -317,7 +329,11 @@ function LiveCVBuilder() {
                     summary: cvData.personalInfo.summary,
                     avatarBase64: cvData.personalInfo.avatarBase64 || '',
                     position: cvData.personalInfo.position,
-                    website: cvData.personalInfo.website
+                    website: cvData.personalInfo.website,
+                    customContacts: (cvData.personalInfo.customContacts || []).map(c => ({
+                        id: c.id,
+                        value: c.value
+                    }))
                 },
                 experiences: cvData.experiences.map(exp => ({
                     company: exp.company,
@@ -336,7 +352,24 @@ function LiveCVBuilder() {
                 skills: cvData.skills.map(skill => ({
                     name: skill.name,
                     level: skill.level
-                }))
+                })),
+                customSections: cvData.customSections?.map(sec => ({
+                    title: sec.title,
+                    items: sec.items.map(item => ({
+                        title: item.title,
+                        subtitle: item.subtitle,
+                        startDate: parseDate(item.startDate),
+                        endDate: item.endDate ? parseDate(item.endDate) : null,
+                        description: item.description
+                    }))
+                })) || [],
+                sidebarSections: cvData.sidebarSections?.map(sec => ({
+                    title: sec.title,
+                    items: sec.items?.map(item => ({
+                        title: item.title,
+                        subtitle: item.subtitle
+                    })) || []
+                })) || []
             };
 
             const response = await exportCvPdf(exportData);
@@ -370,6 +403,24 @@ function LiveCVBuilder() {
         setShowTemplateSelection(true);
     };
 
+    const addCustomSection = () => {
+        const newId = `custom-${Date.now()}`;
+        setCvData(prev => ({
+            ...prev,
+            customSections: [
+                ...(prev.customSections || []),
+                {
+                    id: newId,
+                    title: 'Tiêu đề mục mới',
+                    items: [{ id: Date.now(), title: '', subtitle: '', startDate: '', endDate: '', description: '' }]
+                }
+            ],
+            // Append to order if not exists
+            sectionOrder: prev.sectionOrder ? [...prev.sectionOrder, newId] : ['summary', 'experiences', 'educations', 'skills', newId]
+        }));
+        toast.success('Đã thêm mục mới! Cuộn xuống dưới để xem.');
+    };
+
     const handleCreateNewCV = () => {
         setShowConfirmNewCV(true);
     };
@@ -389,6 +440,15 @@ function LiveCVBuilder() {
             setCurrentCvId(0);
             navigate('/app/cv-builder');
         }
+    };
+
+    const triggerConfirm = (message, action) => {
+        setConfirmDialog({
+            isOpen: true,
+            title: 'Xác nhận',
+            message: message,
+            onConfirm: action
+        });
     };
 
     // Safety check to prevent crash if cvData is somehow undefined
@@ -502,6 +562,7 @@ function LiveCVBuilder() {
                         <span className="material-icons">dashboard</span>
                         Đổi mẫu
                     </button>
+
                     <button
                         className="btn btn-secondary"
                         onClick={() => {
@@ -544,6 +605,8 @@ function LiveCVBuilder() {
                             cvData={cvData}
                             onUpdate={handleUpdate}
                             onImageClick={() => fileInputRef.current?.click()}
+                            onAddSection={addCustomSection}
+                            onConfirm={triggerConfirm}
                         />
                     )}
                     {cvData.templateType === 'modern' && (
@@ -551,6 +614,8 @@ function LiveCVBuilder() {
                             cvData={cvData}
                             onUpdate={handleUpdate}
                             onImageClick={() => fileInputRef.current?.click()}
+                            onAddSection={addCustomSection}
+                            onConfirm={triggerConfirm}
                         />
                     )}
                     {cvData.templateType === 'formal' && (
@@ -558,6 +623,8 @@ function LiveCVBuilder() {
                             cvData={cvData}
                             onUpdate={handleUpdate}
                             onImageClick={() => fileInputRef.current?.click()}
+                            onAddSection={addCustomSection}
+                            onConfirm={triggerConfirm}
                         />
                     )}
                 </div>
@@ -627,6 +694,33 @@ function LiveCVBuilder() {
                             </Button>
                             <Button onClick={confirmCreateNewCV} className="bg-red-600 hover:bg-red-700 text-white">
                                 Tạo mới
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* Generic Confirm Dialog */}
+            {confirmDialog.isOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setConfirmDialog(prev => ({ ...prev, isOpen: false }))}>
+                    <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-2xl ring-1 ring-gray-200" onClick={(e) => e.stopPropagation()}>
+                        <div className="mb-4 flex items-center gap-2 text-xl font-bold text-gray-800">
+                            <span className="material-icons text-warning" style={{ color: '#f59e0b' }}>help_outline</span>
+                            <h3>{confirmDialog.title}</h3>
+                        </div>
+                        <div className="mb-6">
+                            <p className="text-gray-600">
+                                {confirmDialog.message}
+                            </p>
+                        </div>
+                        <div className="flex justify-end gap-3">
+                            <Button variant="outline" onClick={() => setConfirmDialog(prev => ({ ...prev, isOpen: false }))}>
+                                Hủy
+                            </Button>
+                            <Button onClick={() => {
+                                if (confirmDialog.onConfirm) confirmDialog.onConfirm();
+                                setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+                            }} className="bg-red-600 hover:bg-red-700 text-white">
+                                Xác nhận
                             </Button>
                         </div>
                     </div>

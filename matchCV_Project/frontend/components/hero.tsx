@@ -16,23 +16,24 @@ export function Hero() {
           {/* Left Content */}
           <div className="space-y-6">
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-balance leading-tight">
-              Elevate your CV with <span className="text-primary">AI</span>
+              Tối ưu hóa CV của bạn với <span className="text-primary">AI</span>
             </h1>
 
             <p className="text-lg text-muted-foreground text-balance leading-relaxed">
-              Boost your match rate with JD analysis, smart rewrite suggestions, and professional exports in minutes.
+              Nâng cao tỷ lệ match với job description, nhận gợi ý rewrite thông minh và xuất CV chuyên nghiệp chỉ trong
+              vài phút.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 pt-4">
               <Button size="lg" className="bg-primary hover:bg-primary/90">
                 <Link href="/auth/register" className="flex items-center gap-2">
-                  Get started
+                  Bắt đầu ngay
                   <ArrowRight size={18} />
                 </Link>
               </Button>
               <Button size="lg" variant="outline">
                 <Link href="#" className="flex items-center gap-2">
-                  View dashboard demo
+                  Xem demo dashboard
                 </Link>
               </Button>
             </div>
@@ -41,11 +42,11 @@ export function Hero() {
             <div className="grid grid-cols-2 gap-4 pt-6 border-t border-border">
               <div>
                 <div className="text-2xl font-bold text-primary">95%</div>
-                <p className="text-sm text-muted-foreground">Higher match rate</p>
+                <p className="text-sm text-muted-foreground">Tỷ lệ match cải thiện</p>
               </div>
               <div>
                 <div className="text-2xl font-bold text-primary">50K+</div>
-                <p className="text-sm text-muted-foreground">Candidates helped</p>
+                <p className="text-sm text-muted-foreground">Ứng viên đã sử dụng</p>
               </div>
             </div>
           </div>
@@ -58,7 +59,7 @@ export function Hero() {
                   <span className="text-sm font-medium text-primary">Dashboard Preview</span>
                 </div>
                 <p className="text-muted-foreground text-balance">
-                  Intuitive workspace for candidates and recruiters.
+                  Giao diện trực quan và dễ sử dụng cho cả ứng viên và nhà tuyển dụng
                 </p>
                 <div className="pt-4 space-y-2">
                   <div className="h-2 bg-muted rounded-full w-3/4 mx-auto"></div>

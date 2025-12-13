@@ -1,7 +1,7 @@
 import EditableField from '../EditableField';
 import './ModernTemplate.css';
 
-function ModernTemplate({ cvData, onUpdate, onImageClick }) {
+function ModernTemplate({ cvData, onUpdate, onImageClick, onAddSection, onConfirm }) {
     // Helper to format date for month picker (YYYY-MM) and display
     const toMonthString = (dateString) => {
         if (!dateString) return '';
@@ -126,6 +126,64 @@ function ModernTemplate({ cvData, onUpdate, onImageClick }) {
         onUpdate({
             ...cvData,
             skills: cvData.skills.filter(skill => skill.id !== id)
+        });
+    };
+
+    // Custom Sections Logic
+    const updateCustomSectionTitle = (sectionId, value) => {
+        onUpdate({
+            ...cvData,
+            customSections: cvData.customSections.map(sec =>
+                sec.id === sectionId ? { ...sec, title: value } : sec
+            )
+        });
+    };
+
+    const removeCustomSection = (sectionId) => {
+        onConfirm('Bạn có chắc chắn muốn xóa toàn bộ mục này không?', () => {
+            onUpdate({
+                ...cvData,
+                customSections: cvData.customSections.filter(sec => sec.id !== sectionId),
+                sectionOrder: cvData.sectionOrder?.filter(id => id !== sectionId)
+            });
+        });
+    };
+
+    const addCustomSectionItem = (sectionId) => {
+        onUpdate({
+            ...cvData,
+            customSections: cvData.customSections.map(sec =>
+                sec.id === sectionId ? {
+                    ...sec,
+                    items: [...sec.items, { id: Date.now(), title: '', subtitle: '', startDate: '', endDate: '', description: '' }]
+                } : sec
+            )
+        });
+    };
+
+    const updateCustomSectionItem = (sectionId, itemId, field, value) => {
+        onUpdate({
+            ...cvData,
+            customSections: cvData.customSections.map(sec =>
+                sec.id === sectionId ? {
+                    ...sec,
+                    items: sec.items.map(item =>
+                        item.id === itemId ? { ...item, [field]: value } : item
+                    )
+                } : sec
+            )
+        });
+    };
+
+    const removeCustomSectionItem = (sectionId, itemId) => {
+        onUpdate({
+            ...cvData,
+            customSections: cvData.customSections.map(sec =>
+                sec.id === sectionId ? {
+                    ...sec,
+                    items: sec.items.filter(item => item.id !== itemId)
+                } : sec
+            )
         });
     };
 
@@ -327,6 +385,86 @@ function ModernTemplate({ cvData, onUpdate, onImageClick }) {
                             </div>
                         ))}
                     </section>
+
+                    {/* Custom Sections */}
+                    {cvData.customSections?.map((section) => (
+                        <section key={section.id}>
+                            <h3 className="section-title">
+                                <EditableField
+                                    value={section.title}
+                                    onChange={(val) => updateCustomSectionTitle(section.id, val)}
+                                    placeholder="Tên mục (ví dụ: Chứng chỉ, Dự án)"
+                                    tag="span"
+                                    className="section-label"
+                                />
+                                <div className="flex gap-2 inline-block ml-2" style={{ float: 'right' }}>
+                                    <button className="add-btn-inline" onClick={() => addCustomSectionItem(section.id)} title="Thêm mục con">
+                                        <span className="material-icons">add</span>
+                                    </button>
+                                    <button className="remove-btn-inline" onClick={() => removeCustomSection(section.id)} title="Xóa toàn bộ mục này">
+                                        <span className="material-icons">close</span>
+                                    </button>
+                                </div>
+                            </h3>
+                            {section.items.map((item) => (
+                                <div key={item.id} className="timeline-item">
+                                    <div className="timeline-header">
+                                        <EditableField
+                                            value={item.title}
+                                            onChange={(val) => updateCustomSectionItem(section.id, item.id, 'title', val)}
+                                            placeholder="Tiêu đề (ví dụ: Tên chứng chỉ)"
+                                            tag="h4"
+                                            className="timeline-title"
+                                        />
+                                        <span className="timeline-date">
+                                            <EditableField
+                                                value={toMonthString(item.startDate)}
+                                                onChange={(val) => updateCustomSectionItem(section.id, item.id, 'startDate', val)}
+                                                placeholder="MM/YYYY"
+                                                formatDisplay={formatDisplayDate}
+                                                type="month"
+                                                tag="span"
+                                            />
+                                            {(item.startDate || item.endDate) && ' - '}
+                                            <EditableField
+                                                value={toMonthString(item.endDate)}
+                                                onChange={(val) => updateCustomSectionItem(section.id, item.id, 'endDate', val)}
+                                                placeholder="Hiện tại"
+                                                formatDisplay={formatDisplayDate}
+                                                type="month"
+                                                tag="span"
+                                            />
+                                        </span>
+                                    </div>
+                                    <EditableField
+                                        value={item.subtitle}
+                                        onChange={(val) => updateCustomSectionItem(section.id, item.id, 'subtitle', val)}
+                                        placeholder="Phụ đề (ví dụ: Tổ chức cấp)"
+                                        tag="p"
+                                        className="timeline-subtitle"
+                                    />
+                                    {item.description !== undefined && (
+                                        <div className="job-description-text">
+                                            <EditableField
+                                                value={item.description}
+                                                onChange={(val) => updateCustomSectionItem(section.id, item.id, 'description', val)}
+                                                placeholder="Mô tả chi tiết..."
+                                                tag="p"
+                                                multiline
+                                            />
+                                        </div>
+                                    )}
+                                    <button
+                                        className="remove-btn-inline"
+                                        onClick={() => removeCustomSectionItem(section.id, item.id)}
+                                        title="Xóa"
+                                    >
+                                        <span className="material-icons">close</span>
+                                    </button>
+                                </div>
+                            ))}
+                        </section>
+                    ))}
                 </div>
 
                 {/* Skills */}
@@ -364,8 +502,49 @@ function ModernTemplate({ cvData, onUpdate, onImageClick }) {
                         ))}
                     </div>
                 </section>
+
+                {/* Add Section Button Area */}
+                <div className="add-section-area" style={{
+                    marginTop: '2rem',
+                    borderTop: '2px dashed #e2e8f0',
+                    paddingTop: '1.5rem',
+                    textAlign: 'center',
+                    width: '100%'
+                }}>
+                    <button
+                        onClick={onAddSection}
+                        style={{
+                            padding: '0.75rem 1.5rem',
+                            backgroundColor: 'white',
+                            border: '1px dashed #64748b',
+                            borderRadius: '0.5rem',
+                            color: '#64748b',
+                            fontWeight: '600',
+                            fontSize: '1rem',
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            transition: 'all 0.2s',
+                            boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                        }}
+                        onMouseOver={(e) => {
+                            e.currentTarget.style.backgroundColor = '#f8fafc';
+                            e.currentTarget.style.borderColor = '#334155';
+                            e.currentTarget.style.color = '#334155';
+                        }}
+                        onMouseOut={(e) => {
+                            e.currentTarget.style.backgroundColor = 'white';
+                            e.currentTarget.style.borderColor = '#64748b';
+                            e.currentTarget.style.color = '#64748b';
+                        }}
+                    >
+                        <span className="material-icons">post_add</span>
+                        Thêm mục mới
+                    </button>
+                </div>
             </main>
-        </div>
+        </div >
     );
 }
 

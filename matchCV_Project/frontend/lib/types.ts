@@ -10,12 +10,14 @@ export interface CV {
   score?: number
   evidence?: string[]
   fileUrl?: string
+  cvData?: any
 }
 
 export interface CreateCVInput {
   name: string
   position: string
   description?: string
+  cvData?: any
 }
 
 export interface UpdateCVInput extends Partial<CreateCVInput> {
