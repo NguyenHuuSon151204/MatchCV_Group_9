@@ -30,11 +30,11 @@ export default function ChooseRole() {
       await ggregister(email, name, role);
       // Redirect based on chosen role
       if (role === "Admin") {
-        router.push("/admin/dashboard");
+        router.push("/admin");
       } else if (role === "Recruiter") {
-        router.push("/recruiter/dashboard");
+        router.push("/recruiter");
       } else {
-        router.push("/app/dashboard");
+        router.push("/app");
       }
     } catch (err: any) {
       setError(err.response?.data?.message || "Registration failed");

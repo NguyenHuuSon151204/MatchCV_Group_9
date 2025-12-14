@@ -17,11 +17,11 @@ export default function GoogleSuccess() {
       if (user) {
         // Redirect based on role
         if (user.role === "Admin") {
-          router.push("/admin/dashboard");
+          router.push("/admin");
         } else if (user.role === "Recruiter") {
-          router.push("/recruiter/dashboard");
+          router.push("/recruiter");
         } else {
-          router.push("/app/dashboard");
+          router.push("/app");
         }
       } else {
         router.push("/auth/login");

@@ -29,11 +29,11 @@ export default function Login() {
 
       // Redirect based on role
       if (userRole === "Admin") {
-        router.push("/admin/dashboard");
+        router.push("/admin");
       } else if (userRole === "Recruiter") {
-        router.push("/recruiter/dashboard");
+        router.push("/recruiter");
       } else {
-        router.push("/app/dashboard");
+        router.push("/app");
       }
     } catch (err: any) {
       console.error(err);
