@@ -5,6 +5,10 @@ export const adminService = {
     return apiClient.get('/admin/summary')
   },
 
+  async getCandidates(params?: { search?: string; status?: string }) {
+    return apiClient.get('/admin/candidates', { params })
+  },
+
   async getLogs(params?: { page?: number; limit?: number; from?: string; to?: string }) {
     return apiClient.get('/admin/logs', { params })
   },
