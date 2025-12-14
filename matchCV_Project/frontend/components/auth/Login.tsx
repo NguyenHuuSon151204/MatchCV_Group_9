@@ -24,9 +24,17 @@ export default function Login() {
     console.log("Submitting login", email, password);
 
     try {
-      await login(email, password);
-      // Navigate to profile after successful login
-      router.push("/auth/profile");
+      const res = await login(email, password);
+      const userRole = res.data?.user?.role || res.data?.role;
+
+      // Redirect based on role
+      if (userRole === "Admin") {
+        router.push("/admin/dashboard");
+      } else if (userRole === "Recruiter") {
+        router.push("/recruiter/dashboard");
+      } else {
+        router.push("/app/dashboard");
+      }
     } catch (err: any) {
       console.error(err);
       setError(err.response?.data?.message || "Login failed");

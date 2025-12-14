@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -123,5 +123,3 @@ function JobCard({ job, onViewDetails }: { job: Job; onViewDetails: () => void }
     </Card>
   )
 }
-
-

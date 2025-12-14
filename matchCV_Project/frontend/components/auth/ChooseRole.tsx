@@ -23,16 +23,21 @@ export default function ChooseRole() {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !name) {
-      setError("Email and name are required");
+      setError("Email and name are required.");
       return;
     }
     try {
       await ggregister(email, name, role);
-      // Navigate to profile after successful login
-      router.push("/auth/profile");
+      // Redirect based on chosen role
+      if (role === "Admin") {
+        router.push("/admin/dashboard");
+      } else if (role === "Recruiter") {
+        router.push("/recruiter/dashboard");
+      } else {
+        router.push("/app/dashboard");
+      }
     } catch (err: any) {
-      console.error(err);
-      setError(err.response?.data?.message || "Login failed");
+      setError(err.response?.data?.message || "Registration failed");
     }
   };
 

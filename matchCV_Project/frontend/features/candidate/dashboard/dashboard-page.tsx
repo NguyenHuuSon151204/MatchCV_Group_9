@@ -1,4 +1,4 @@
-﻿'use client'
+'use client'
 
 import { useEffect, useState } from 'react'
 import { ActivityList } from '@/components/common/activity-list'
@@ -93,5 +93,3 @@ export function DashboardPage() {
     </div>
   )
 }
-
-

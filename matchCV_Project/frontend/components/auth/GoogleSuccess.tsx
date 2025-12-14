@@ -14,8 +14,18 @@ export default function GoogleSuccess() {
 
   useEffect(() => {
     if (!loading) {
-      if (user) router.push("/auth/profile");
-      else router.push("/auth/login");
+      if (user) {
+        // Redirect based on role
+        if (user.role === "Admin") {
+          router.push("/admin/dashboard");
+        } else if (user.role === "Recruiter") {
+          router.push("/recruiter/dashboard");
+        } else {
+          router.push("/app/dashboard");
+        }
+      } else {
+        router.push("/auth/login");
+      }
     }
   }, [loading, user, router]);
 
