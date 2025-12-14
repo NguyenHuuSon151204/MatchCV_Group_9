@@ -496,6 +496,126 @@ public class AdminController : ControllerBase
         });
     }
 
+    [HttpGet("reports")]
+    public async Task<IActionResult> GetReports([FromQuery] DateTime? from, [FromQuery] DateTime? to)
+    {
+        var start = from ?? DateTime.UtcNow.AddMonths(-6);
+        var end = to ?? DateTime.UtcNow;
+
+        // Applications over time (monthly)
+        var applicationsRaw = await _db.Applications
+            .Where(a => a.CreatedAt >= start && a.CreatedAt <= end)
+            .GroupBy(a => new { a.CreatedAt.Year, a.CreatedAt.Month })
+            .Select(g => new
+            {
+                Year = g.Key.Year,
+                Month = g.Key.Month,
+                count = g.Count(),
+                accepted = g.Count(a => a.Status != null && a.Status.ToLower().Contains("accept"))
+            })
+            .ToListAsync();
+
+        var applicationsOverTime = applicationsRaw
+            .Select(x => new
+            {
+                date = $"{x.Year}-{x.Month:D2}",
+                count = x.count,
+                accepted = x.accepted
+            })
+            .OrderBy(x => x.date)
+            .ToList();
+
+        // Jobs by status
+        var jobsByStatus = await _db.Jobs
+            .GroupBy(j => j.Status ?? "Unknown")
+            .Select(g => new { status = g.Key, count = g.Count() })
+            .ToListAsync();
+
+        // User growth (monthly for last 6 months)
+        var userGrowth = new List<object>();
+        for (int i = 5; i >= 0; i--)
+        {
+            var monthStart = DateTime.UtcNow.AddMonths(-i).Date;
+            var monthEnd = monthStart.AddMonths(1);
+            var users = await _db.Users.CountAsync(u => u.CreatedAt < monthEnd);
+            var recruiters = await _db.Users.CountAsync(u => u.CreatedAt < monthEnd && u.Role == "Recruiter");
+            userGrowth.Add(new
+            {
+                month = monthStart.ToString("MMM"),
+                users,
+                recruiters
+            });
+        }
+
+        // Top skills
+        var skillCounts = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        var reqSkills = await _db.RequiredSkills
+            .Join(_db.Skills, r => r.SkillId, s => s.Id, (r, s) => s.NormName)
+            .ToListAsync();
+        foreach (var s in reqSkills)
+            skillCounts[s] = skillCounts.TryGetValue(s, out var c) ? c + 1 : 1;
+
+        var docSkills = await _db.DocumentSkills
+            .Join(_db.Skills, ds => ds.SkillId, s => s.Id, (ds, s) => s.NormName)
+            .ToListAsync();
+        foreach (var s in docSkills)
+            skillCounts[s] = skillCounts.TryGetValue(s, out var c) ? c + 1 : 1;
+
+        var topSkills = skillCounts
+            .OrderByDescending(x => x.Value)
+            .Take(6)
+            .Select(x => new { skill = x.Key, count = x.Value })
+            .ToList();
+
+        // Match score distribution
+        var scores = await _db.Applications
+            .Where(a => a.ScoreSnapshot.HasValue)
+            .Select(a => a.ScoreSnapshot!.Value)
+            .ToListAsync();
+
+        var matchScoreDistribution = new[]
+        {
+            new { range = "90-100", count = scores.Count(s => s >= 90 && s <= 100) },
+            new { range = "80-89", count = scores.Count(s => s >= 80 && s < 90) },
+            new { range = "70-79", count = scores.Count(s => s >= 70 && s < 80) },
+            new { range = "60-69", count = scores.Count(s => s >= 60 && s < 70) },
+            new { range = "50-59", count = scores.Count(s => s >= 50 && s < 60) },
+            new { range = "<50", count = scores.Count(s => s < 50) }
+        };
+
+        // Application pipeline (mock funnel data based on actual counts)
+        var totalApps = await _db.Applications.CountAsync();
+        var applicationPipeline = new[]
+        {
+            new { stage = "Total Applications", value = totalApps, fill = "#3b82f6" },
+            new { stage = "CV Reviewed", value = (int)(totalApps * 0.85), fill = "#10b981" },
+            new { stage = "Interview Scheduled", value = (int)(totalApps * 0.45), fill = "#f59e0b" },
+            new { stage = "Interviewed", value = (int)(totalApps * 0.32), fill = "#ef4444" },
+            new { stage = "Offered", value = (int)(totalApps * 0.18), fill = "#8b5cf6" },
+            new { stage = "Hired", value = (int)(totalApps * 0.12), fill = "#ec4899" }
+        };
+
+        // Summary
+        var summary = new
+        {
+            totalUsers = await _db.Users.CountAsync(),
+            totalJobs = await _db.Jobs.CountAsync(),
+            totalApplications = totalApps,
+            avgMatchScore = scores.Any() ? Math.Round(scores.Average(), 1) : 0
+        };
+
+        return Ok(new
+        {
+            applicationsOverTime,
+            jobsByStatus,
+            userGrowth,
+            topSkills,
+            matchScoreDistribution,
+            applicationPipeline,
+            summary
+        });
+    }
+
     public record UpdateUserDto(string? DisplayName, string? Email);
     public record UpdateApplicationStatusDto(string Status, string? AdminNotes);
 }

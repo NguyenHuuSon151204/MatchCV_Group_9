@@ -1,10 +1,10 @@
-import { ReportsAnalyticsPage } from '@/features/admin/reports/reports-analytics-page'
+import { AdminReportsPage } from '@/features/admin/reports/admin-reports-page'
 import { AdminLayout } from '@/components/layout/admin-layout'
 
-export default function AdminReportsPage() {
+export default function ReportsPage() {
   return (
     <AdminLayout>
-      <ReportsAnalyticsPage />
+      <AdminReportsPage />
     </AdminLayout>
   )
 }

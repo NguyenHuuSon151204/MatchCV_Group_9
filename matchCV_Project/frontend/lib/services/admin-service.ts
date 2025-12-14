@@ -22,8 +22,7 @@ export const adminService = {
   },
 
   async getReports(params?: { from?: string; to?: string }) {
-    // Use summary endpoint with date range params
-    return apiClient.get('/admin/summary', { params })
+    return apiClient.get('/admin/reports', { params })
   },
 
   async generateLicense(data: { plan: string; expiryDays?: number }) {

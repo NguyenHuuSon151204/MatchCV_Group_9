@@ -57,7 +57,7 @@ const nextConfig = {
     return [
       {
         source: '/api/:path*',
-        destination: 'http://localhost:5185/api/:path*', // Using HTTP port 5185 to avoid SSL errors
+        destination: 'http://localhost:5185/api/:path*',
       },
     ]
   },
