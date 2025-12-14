@@ -1,3 +1,4 @@
+<<<<<<<< HEAD:matchCV_Project/frontend/features/candidate/my-cvs/my-cvs-page.tsx
 'use client'
 
 import { useMemo, useState, useEffect } from 'react'
@@ -28,7 +29,7 @@ export function MyCVsPage() {
       // Refresh CVs list when a CV is saved in CV Builder
       refresh()
     }
-
+    
     window.addEventListener('cv-saved', handleCvSaved)
     return () => {
       window.removeEventListener('cv-saved', handleCvSaved)
@@ -87,8 +88,8 @@ export function MyCVsPage() {
             <UploadIcon className="size-4" />
             Upload CV
           </Button>
-          <Button
-            className="gap-2 rounded-full"
+          <Button 
+            className="gap-2 rounded-full" 
             onClick={() => navigate('/cv-builder')}
           >
             <Plus className="size-4" />
@@ -274,3 +275,8 @@ export function MyCVsPage() {
     </section>
   )
 }
+
+
+========
+export * from '@/features/candidate/my-cvs/my-cvs-page'
+>>>>>>>> cc5f27092afd6cf6f701b8fbb0be3a8b618f8c93:matchCV_Project/frontend/features/my-cvs/my-cvs-page.tsx

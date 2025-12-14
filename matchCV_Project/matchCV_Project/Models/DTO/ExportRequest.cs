@@ -4,6 +4,6 @@
     {
         public int CvId { get; set; }
         public string Format { get; set; } = "pdf";  // Mặc định là pdf
-        public string Template { get; set; } = "modern";  // Mặc định là modern
+        public string? Template { get; set; }
     }
 }

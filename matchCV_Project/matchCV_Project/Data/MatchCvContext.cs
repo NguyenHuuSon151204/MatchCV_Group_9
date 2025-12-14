@@ -70,9 +70,10 @@ public partial class MatchCvContext : DbContext
 
     public virtual DbSet<User> Users { get; set; }
 
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
-        => optionsBuilder.UseSqlServer("Server=(local);Database=MatchCV;Trusted_Connection=True;TrustServerCertificate=True;");
+    public virtual DbSet<RecruiterVerification> RecruiterVerifications { get; set; }
+
+    // Connection string is configured in Program.cs via UseSqlServer
+    // No need to configure here to avoid conflicts
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -198,6 +199,8 @@ public partial class MatchCvContext : DbContext
                 .HasDefaultValue("Draft");
             entity.Property(e => e.StoragePath).HasMaxLength(400);
             entity.Property(e => e.UpdatedAt).HasDefaultValueSql("(sysutcdatetime())");
+
+            entity.Property(e => e.CvTemplateId).HasColumnName("TemplateId");
 
             entity.HasOne(d => d.CvTemplate).WithMany(p => p.Documents)
                 .HasForeignKey(d => d.CvTemplateId)
@@ -345,6 +348,7 @@ public partial class MatchCvContext : DbContext
 
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
             entity.Property(e => e.KeyHash).HasMaxLength(200);
+            entity.Property(e => e.OriginalKey).HasMaxLength(100);
             entity.Property(e => e.Plan)
                 .HasMaxLength(30)
                 .HasDefaultValue("Free");
@@ -500,6 +504,36 @@ public partial class MatchCvContext : DbContext
             entity.Property(e => e.IsActive).HasDefaultValue(true);
             entity.Property(e => e.Password).HasMaxLength(100);
             entity.Property(e => e.Role).HasMaxLength(100);
+        });
+
+        modelBuilder.Entity<RecruiterVerification>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__RecruiterVerifications__3214EC07");
+
+            entity.Property(e => e.Status).HasDefaultValue("Pending");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
+
+            entity.HasOne(d => d.Recruiter).WithMany(p => p.RecruiterVerifications)
+                .HasForeignKey(d => d.RecruiterId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_RecruiterVerification_Users_Recruiter");
+
+            entity.HasOne(d => d.BusinessLicenseDocument).WithMany(p => p.RecruiterVerificationsAsBusinessLicense)
+                .HasForeignKey(d => d.BusinessLicenseDocumentId)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_RecruiterVerification_Documents_BusinessLicense");
+
+            entity.HasOne(d => d.CompanyProofDocument).WithMany(p => p.RecruiterVerificationsAsCompanyProof)
+                .HasForeignKey(d => d.CompanyProofDocumentId)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_RecruiterVerification_Documents_CompanyProof");
+
+            entity.HasOne(d => d.ReviewedByAdmin).WithMany(p => p.RecruiterVerificationsReviewed)
+                .HasForeignKey(d => d.ReviewedByAdminId)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_RecruiterVerification_Users_Admin");
+
+            entity.HasCheckConstraint("CK_RecruiterVerification_Status", "Status IN ('Pending', 'Approved', 'Rejected')");
         });
 
         OnModelCreatingPartial(modelBuilder);

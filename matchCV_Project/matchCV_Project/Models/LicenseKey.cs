@@ -19,5 +19,7 @@ public partial class LicenseKey
 
     public DateTime CreatedAt { get; set; }
 
+    public string? OriginalKey { get; set; }
+
     public virtual User? AssignedUser { get; set; }
 }

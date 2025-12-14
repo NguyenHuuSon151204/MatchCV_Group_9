@@ -36,4 +36,8 @@ public partial class User
     public virtual ICollection<LicenseKey> LicenseKeys { get; set; } = new List<LicenseKey>();
 
     public virtual ICollection<SavedCv> SavedCvs { get; set; } = new List<SavedCv>();
+
+    public virtual ICollection<RecruiterVerification> RecruiterVerifications { get; set; } = new List<RecruiterVerification>();
+
+    public virtual ICollection<RecruiterVerification> RecruiterVerificationsReviewed { get; set; } = new List<RecruiterVerification>();
 }

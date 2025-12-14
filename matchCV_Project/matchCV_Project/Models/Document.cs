@@ -62,4 +62,8 @@ public partial class Document
     public virtual ICollection<Section> Sections { get; set; } = new List<Section>();
 
     public virtual User? User { get; set; }
+
+    public virtual ICollection<RecruiterVerification> RecruiterVerificationsAsBusinessLicense { get; set; } = new List<RecruiterVerification>();
+
+    public virtual ICollection<RecruiterVerification> RecruiterVerificationsAsCompanyProof { get; set; } = new List<RecruiterVerification>();
 }
