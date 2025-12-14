@@ -251,14 +251,7 @@ export function VerificationManagementPage() {
                     Company {getSortIcon('companyName')}
                   </div>
                 </th>
-                <th
-                  className="p-3 text-left text-sm font-medium cursor-pointer"
-                  onClick={() => handleSort('companyEmail')}
-                >
-                  <div className="flex items-center gap-2">
-                    Email {getSortIcon('companyEmail')}
-                  </div>
-                </th>
+                <th className="p-3 text-left text-sm font-medium">Recruiter Email</th>
                 <th className="p-3 text-left text-sm font-medium">Recruiter</th>
                 <th
                   className="p-3 text-left text-sm font-medium cursor-pointer"
@@ -291,7 +284,7 @@ export function VerificationManagementPage() {
                   <tr key={verification.id} className="border-b hover:bg-accent/50">
                     <td className="p-3 text-sm">{verification.id}</td>
                     <td className="p-3 font-medium">{verification.companyName}</td>
-                    <td className="p-3 text-sm">{verification.companyEmail}</td>
+                    <td className="p-3 text-sm">{verification.recruiter?.email || 'N/A'}</td>
                     <td className="p-3 text-sm">{verification.recruiter?.displayName || 'N/A'}</td>
                     <td className="p-3">
                       <span className={`px-2 py-1 rounded text-xs ${getStatusBadgeClass(verification.status)}`}>
