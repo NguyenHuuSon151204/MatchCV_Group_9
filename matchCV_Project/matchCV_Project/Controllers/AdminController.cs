@@ -616,6 +616,89 @@ public class AdminController : ControllerBase
         });
     }
 
+    // GET: /api/admin/licenses - Get all license keys
+    [HttpGet("licenses")]
+    public async Task<IActionResult> GetLicenses(
+        [FromQuery] string? search,
+        [FromQuery] string? status)
+    {
+        var query = _db.LicenseKeys.AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            query = query.Where(l =>
+                l.Plan.Contains(search) ||
+                (l.OriginalKey != null && l.OriginalKey.Contains(search)));
+        }
+
+        if (!string.IsNullOrWhiteSpace(status))
+        {
+            if (status.ToLower() == "active")
+                query = query.Where(l => l.IsActive);
+            else if (status.ToLower() == "inactive")
+                query = query.Where(l => !l.IsActive);
+        }
+
+        var licenses = await query
+            .OrderByDescending(l => l.CreatedAt)
+            .ToListAsync();
+
+        var result = licenses.Select(l => new
+        {
+            l.Id,
+            l.Plan,
+            l.OriginalKey,
+            l.AssignedUserId,
+            AssignedUserName = l.AssignedUserId != null
+                ? _db.Users.FirstOrDefault(u => u.Id == l.AssignedUserId)?.DisplayName
+                : null,
+            l.IsActive,
+            l.Expiry,
+            l.CreatedAt
+        }).ToList();
+
+        return Ok(result);
+    }
+
+    // GET: /api/admin/verifications - Get all recruiter verifications
+    [HttpGet("verifications")]
+    public async Task<IActionResult> GetVerifications([FromQuery] string? status)
+    {
+        var query = _db.RecruiterVerifications
+            .Include(v => v.Recruiter)
+            .Include(v => v.ReviewedByAdmin)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(status))
+        {
+            query = query.Where(v => v.Status == status);
+        }
+
+        var verifications = await query
+            .OrderByDescending(v => v.CreatedAt)
+            .ToListAsync();
+
+        var result = verifications.Select(v => new
+        {
+            v.Id,
+            v.RecruiterId,
+            RecruiterName = v.Recruiter?.DisplayName,
+            RecruiterEmail = v.Recruiter?.Email,
+            v.CompanyName,
+            CompanyWebsite = v.CompanyEmail,
+            BusinessLicenseId = v.BusinessLicenseDocumentId,
+            CompanyProofId = v.CompanyProofDocumentId,
+            v.Status,
+            SubmittedAt = v.CreatedAt,
+            v.ReviewedAt,
+            ReviewedBy = v.ReviewedByAdminId,
+            ReviewerName = v.ReviewedByAdmin?.DisplayName,
+            v.AdminNotes
+        }).ToList();
+
+        return Ok(result);
+    }
+
     public record UpdateUserDto(string? DisplayName, string? Email);
     public record UpdateApplicationStatusDto(string Status, string? AdminNotes);
 }
