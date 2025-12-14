@@ -292,14 +292,7 @@ export function VerificationManagementPage() {
                     <td className="p-3 text-sm">{verification.id}</td>
                     <td className="p-3 font-medium">{verification.companyName}</td>
                     <td className="p-3 text-sm">{verification.companyEmail}</td>
-                    <td className="p-3 text-sm">
-                      <div>
-                        {verification.recruiter?.displayName || 'N/A'}
-                        <div className="text-xs text-muted-foreground">
-                          {verification.recruiter?.email || ''}
-                        </div>
-                      </div>
-                    </td>
+                    <td className="p-3 text-sm">{verification.recruiter?.displayName || 'N/A'}</td>
                     <td className="p-3">
                       <span className={`px-2 py-1 rounded text-xs ${getStatusBadgeClass(verification.status)}`}>
                         {verification.status}
