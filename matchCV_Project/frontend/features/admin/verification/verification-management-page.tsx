@@ -72,7 +72,10 @@ export function VerificationManagementPage() {
       const normalized = verificationsList.map((v: any) => ({
         id: v.id || v.Id,
         recruiterId: v.recruiterId || v.RecruiterId,
-        recruiter: v.recruiter || v.Recruiter || {},
+        recruiter: {
+          displayName: v.recruiterName || v.RecruiterName || 'N/A',
+          email: v.recruiterEmail || v.RecruiterEmail || ''
+        },
         companyName: v.companyName || v.CompanyName || '',
         companyEmail: v.companyEmail || v.CompanyEmail || '',
         companyPhone: v.companyPhone || v.CompanyPhone,
@@ -82,7 +85,7 @@ export function VerificationManagementPage() {
         adminNotes: v.adminNotes || v.AdminNotes,
         reviewedBy: v.reviewedBy || v.ReviewedBy,
         reviewedAt: v.reviewedAt || v.ReviewedAt,
-        createdAt: v.createdAt || v.CreatedAt,
+        createdAt: v.submittedAt || v.SubmittedAt || v.createdAt || v.CreatedAt,
         businessLicense: v.businessLicense || v.BusinessLicense,
         companyProof: v.companyProof || v.CompanyProof,
       }))

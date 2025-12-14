@@ -59,11 +59,16 @@ export function RecruiterVerificationPage() {
 
   useEffect(() => {
     const storedUserId = localStorage.getItem('userId') || localStorage.getItem('matchcv-userId')
+    console.log('🔍 Stored userId from localStorage:', storedUserId)
+    console.log('🔍 All localStorage keys:', Object.keys(localStorage))
+
     if (storedUserId) {
       const id = parseInt(storedUserId)
+      console.log('✅ Setting recruiterId to:', id)
       setRecruiterId(id)
       loadVerificationStatus(id)
     } else {
+      console.warn('⚠️ No userId found in localStorage, using fallback ID=1')
       const id = 1 // Default fallback
       setRecruiterId(id)
       loadVerificationStatus(id)
@@ -74,17 +79,39 @@ export function RecruiterVerificationPage() {
     try {
       setLoading(true)
       const data = await recruiterService.getVerificationStatus(id)
-      if (data.status === 'NotSubmitted') {
+
+      // Normalize backend response
+      const normalizedData = {
+        id: data.id || data.Id,
+        status: data.status || data.Status || 'NotSubmitted',
+        companyName: data.companyName || data.CompanyName || '',
+        companyEmail: data.companyEmail || data.CompanyEmail || '',
+        companyPhone: data.companyPhone || data.CompanyPhone,
+        companyAddress: data.companyAddress || data.CompanyAddress,
+        taxCode: data.taxCode || data.TaxCode,
+        adminNotes: data.adminNotes || data.AdminNotes,
+        reviewedAt: data.reviewedAt || data.ReviewedAt,
+        businessLicense: data.businessLicense || data.BusinessLicense ? {
+          originalName: (data.businessLicense || data.BusinessLicense)?.originalName || (data.businessLicense || data.BusinessLicense)?.OriginalName,
+          sizeBytes: (data.businessLicense || data.BusinessLicense)?.fileSize || (data.businessLicense || data.BusinessLicense)?.FileSize || 0
+        } : undefined,
+        companyProof: data.companyProof || data.CompanyProof ? {
+          originalName: (data.companyProof || data.CompanyProof)?.originalName || (data.companyProof || data.CompanyProof)?.OriginalName,
+          sizeBytes: (data.companyProof || data.CompanyProof)?.fileSize || (data.companyProof || data.CompanyProof)?.FileSize || 0
+        } : undefined
+      }
+
+      if (normalizedData.status === 'NotSubmitted') {
         setVerificationStatus(null)
       } else {
-        setVerificationStatus(data)
-        if (data.status === 'Pending' || data.status === 'Approved' || data.status === 'Rejected') {
+        setVerificationStatus(normalizedData as VerificationStatus)
+        if (normalizedData.status === 'Pending' || normalizedData.status === 'Approved' || normalizedData.status === 'Rejected') {
           setFormData({
-            companyName: data.companyName || '',
-            companyEmail: data.companyEmail || '',
-            companyPhone: data.companyPhone || '',
-            companyAddress: data.companyAddress || '',
-            taxCode: data.taxCode || '',
+            companyName: normalizedData.companyName,
+            companyEmail: normalizedData.companyEmail,
+            companyPhone: normalizedData.companyPhone || '',
+            companyAddress: normalizedData.companyAddress || '',
+            taxCode: normalizedData.taxCode || '',
           })
         }
       }
