@@ -19,10 +19,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
       try {
         const res = await api.get("/account/me");
         setUser(res.data.user);
+        // Save userId to localStorage for other components
+        if (res.data.user?.id) {
+          localStorage.setItem('userId', res.data.user.id.toString());
+        }
         console.log("AuthContext loadUser:", res.data);
       } catch (err: any) {
         if (err.response?.status === 401) {
           setUser(null);
+          localStorage.removeItem('userId');
         } else {
           console.error("Unexpected error in /account/me:", err);
         }
@@ -39,6 +44,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       const res = await api.post("/account/login", { email, password });
       setUser(res.data.user);
+      // Save userId to localStorage
+      if (res.data.user?.id) {
+        localStorage.setItem('userId', res.data.user.id.toString());
+      }
       return res;
     } finally {
       setLoading(false);
@@ -54,6 +63,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
         role,
       });
       setUser(res.data.user);
+      // Save userId to localStorage
+      if (res.data.user?.id) {
+        localStorage.setItem('userId', res.data.user.id.toString());
+      }
       return res;
     } finally {
       setLoading(false);
@@ -67,6 +80,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     role: string
   ) => {
     setUser(null);
+    localStorage.removeItem('userId');
     setLoading(true);
     try {
       const res = await api.post("/account/register", {
@@ -86,6 +100,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       await api.post("/account/logout");
       setUser(null);
+      localStorage.removeItem('userId');
     } finally {
       setLoading(false);
     }
