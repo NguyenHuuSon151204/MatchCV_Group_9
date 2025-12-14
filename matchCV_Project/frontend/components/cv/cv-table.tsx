@@ -32,11 +32,11 @@ export function CVTable({ cvs }: CVTableProps) {
 
   const handleExport = async (id: string) => {
     try {
-      const blob = await cvService.exportCV(id)
+      const blob = await cvService.exportCV(id, 'pdf')
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `cv-${id}.txt`
+      a.download = `cv-${id}.pdf`
       a.click()
       URL.revokeObjectURL(url)
     } catch (error) {
