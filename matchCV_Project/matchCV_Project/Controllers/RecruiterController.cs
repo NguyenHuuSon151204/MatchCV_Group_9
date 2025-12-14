@@ -672,6 +672,8 @@ public class RecruiterController : ControllerBase
 
         await _db.SaveChangesAsync();
 
+        // Email notification disabled - SendNewApplicationAsync method not implemented
+        /*
         if (job.User != null)
         {
             try
@@ -688,6 +690,7 @@ public class RecruiterController : ControllerBase
                 _logger.LogError(ex, "Failed to send notification email for application {ApplicationId}", app.Id);
             }
         }
+        */
 
         return Ok(new { app.Id, app.ScoreSnapshot, app.Status });
     }
