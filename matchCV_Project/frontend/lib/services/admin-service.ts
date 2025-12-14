@@ -22,7 +22,7 @@ export const adminService = {
   },
 
   async getLicenses(params?: { page?: number; limit?: number; search?: string; plan?: string }) {
-    return apiClient.get('/license/all', { params })
+    return apiClient.get('/admin/licenses', { params })
   },
 
   async getReports(params?: { from?: string; to?: string }) {
@@ -50,10 +50,7 @@ export const adminService = {
   },
 
   async getVerifications(params?: { status?: string }) {
-    const endpoint = params?.status
-      ? `/recruiter-verification/admin/all?status=${params.status}`
-      : '/recruiter-verification/admin/all'
-    return apiClient.get(endpoint)
+    return apiClient.get('/admin/verifications', { params })
   },
 
   async getVerificationDetail(id: number) {
