@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using matchCV_Project.Data;
 using matchCV_Project.Interfaces;
 using matchCV_Project.Models;
+using matchCV_Project.Services;
 
 namespace matchCV_Project.Controllers;
 
@@ -15,7 +16,7 @@ public class RecruiterController : ControllerBase
 {
     private readonly MatchCvContext _db;
     private readonly IAiService _ai;
-    private readonly IEmailService _email;
+    private readonly EmailService _email;
     private readonly ILogger<RecruiterController> _logger;
 
     public record JobRequestDto(
@@ -27,7 +28,7 @@ public class RecruiterController : ControllerBase
     );
 
 
-    public RecruiterController(MatchCvContext db, IAiService ai, IEmailService email, ILogger<RecruiterController> logger)
+    public RecruiterController(MatchCvContext db, IAiService ai, EmailService email, ILogger<RecruiterController> logger)
     {
         _db = db;
         _ai = ai;
