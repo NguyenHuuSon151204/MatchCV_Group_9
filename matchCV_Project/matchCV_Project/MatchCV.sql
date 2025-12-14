@@ -1,6 +1,11 @@
-﻿CREATE DATABASE MatchCV;
+CREATE DATABASE MatchCV;
 GO
 USE MatchCV;
+GO
+
+ALTER TABLE Users
+ADD Headline NVARCHAR(MAX) NULL,
+    Bio NVARCHAR(MAX) NULL;
 GO
 
 /* 1. USERS
@@ -501,6 +506,7 @@ CREATE INDEX IX_SavedCVs_UserId ON dbo.SavedCVs(UserId) WHERE UserId IS NOT NULL
 CREATE INDEX IX_SavedCVs_CreatedAt ON dbo.SavedCVs(CreatedAt);
 GO
 
+/* 22. EmailVerificationTokens - Token xác thực email */
 IF OBJECT_ID('dbo.EmailVerificationTokens', 'U') IS NULL
 CREATE TABLE dbo.EmailVerificationTokens(
 	Id INT IDENTITY(1,1) PRIMARY KEY,
@@ -518,7 +524,7 @@ CREATE INDEX IX_EmailVerificationTokens_Token ON dbo.EmailVerificationTokens(Tok
 CREATE INDEX IX_EmailVerificationTokens_ExpiresAt ON dbo.EmailVerificationTokens(ExpiresAt);
 GO
 
-/* 22. RecruiterVerifications - Xác thực nhà tuyển dụng */
+/* 23. RecruiterVerifications - Xác thực nhà tuyển dụng */
 IF OBJECT_ID('dbo.RecruiterVerifications','U') IS NULL
 CREATE TABLE dbo.RecruiterVerifications (
     Id                          INT IDENTITY(1,1) PRIMARY KEY,
