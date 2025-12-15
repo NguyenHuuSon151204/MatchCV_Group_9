@@ -2,6 +2,7 @@ using matchCV_Project.Interfaces;
 using matchCV_Project.Models;
 using matchCV_Project.Models.Dtos;
 using Microsoft.AspNetCore.Hosting;
+using System.Linq;
 
 namespace matchCV_Project.Services;
 
@@ -36,6 +37,8 @@ public class JobService : IJobService
                 JobDescription = dto.JobDescription,
                 RawText = dto.RawText,
                 Status = "Active",
+                Deadline = dto.Deadline,
+                MaxApplicants = dto.MaxApplicants,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
@@ -44,7 +47,9 @@ public class JobService : IJobService
             await _jobRepository.SaveChangesAsync();
 
             _logger.LogInformation($"Job created: {created.Id} by user {userId}");
-            return MapToDto(created);
+            var applications = await ResolveApplicationCountAsync(created);
+            await EnsureAutoCloseAsync(created, applications);
+            return MapToDto(created, applications);
         }
         catch (Exception ex)
         {
@@ -63,13 +68,22 @@ public class JobService : IJobService
         if (job.UserId != userId && job.Status != "Active")
             throw new UnauthorizedAccessException("You are not allowed to access this job");
 
-        return MapToDto(job);
+        var applications = await ResolveApplicationCountAsync(job);
+        await EnsureAutoCloseAsync(job, applications);
+        return MapToDto(job, applications);
     }
 
     public async Task<IEnumerable<JobDto>> GetUserJobsAsync(int userId)
     {
         var jobs = await _jobRepository.GetUserJobsAsync(userId);
-        return jobs.Select(MapToDto).ToList();
+        var list = new List<JobDto>();
+        foreach (var job in jobs)
+        {
+            var applications = await ResolveApplicationCountAsync(job);
+            await EnsureAutoCloseAsync(job, applications);
+            list.Add(MapToDto(job, applications));
+        }
+        return list;
     }
 
     public async Task<IEnumerable<JobDto>> SearchJobsAsync(string? searchTerm, string? status = null, int? userId = null)
@@ -82,7 +96,15 @@ public class JobService : IJobService
             jobs = jobs.Where(j => j.UserId == userId.Value);
         }
 
-        return jobs.Select(MapToDto).ToList();
+        var list = new List<JobDto>();
+        foreach (var job in jobs)
+        {
+            var applications = await ResolveApplicationCountAsync(job);
+            await EnsureAutoCloseAsync(job, applications);
+            list.Add(MapToDto(job, applications));
+        }
+
+        return list;
     }
 
     public async Task<JobDto> UpdateJobAsync(int id, UpdateJobDto dto, int userId)
@@ -104,6 +126,10 @@ public class JobService : IJobService
             job.RawText = dto.RawText;
         if (!string.IsNullOrWhiteSpace(dto.Status))
             job.Status = dto.Status;
+        if (dto.Deadline.HasValue)
+            job.Deadline = dto.Deadline;
+        if (dto.MaxApplicants.HasValue)
+            job.MaxApplicants = dto.MaxApplicants;
 
         job.UpdatedAt = DateTime.UtcNow;
 
@@ -111,7 +137,9 @@ public class JobService : IJobService
         await _jobRepository.SaveChangesAsync();
 
         _logger.LogInformation($"Job updated: {id}");
-        return MapToDto(job);
+        var applications = await ResolveApplicationCountAsync(job);
+        await EnsureAutoCloseAsync(job, applications);
+        return MapToDto(job, applications);
     }
 
     public async Task DeleteJobAsync(int id, int userId)
@@ -167,6 +195,7 @@ public class JobService : IJobService
                 RawText = extractedText,
                 JobDescription = extractedText,
                 Status = "Active",
+                Deadline = DateTime.UtcNow.AddDays(30),
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
@@ -175,7 +204,9 @@ public class JobService : IJobService
             await _jobRepository.SaveChangesAsync();
 
             _logger.LogInformation($"Job created from file: {created.Id}");
-            return MapToDto(created);
+            var applications = await ResolveApplicationCountAsync(created);
+            await EnsureAutoCloseAsync(created, applications);
+            return MapToDto(created, applications);
         }
         catch (Exception ex)
         {
@@ -217,7 +248,7 @@ public class JobService : IJobService
         return null;
     }
 
-    private JobDto MapToDto(Job job)
+    private JobDto MapToDto(Job job, int applicationsCount)
     {
         return new JobDto
         {
@@ -228,9 +259,46 @@ public class JobService : IJobService
             RawText = job.RawText,
             JobDescription = job.JobDescription,
             Status = job.Status,
+            Deadline = job.Deadline,
+            MaxApplicants = job.MaxApplicants,
+            Applications = applicationsCount,
             CreatedAt = job.CreatedAt,
             UpdatedAt = job.UpdatedAt
         };
+    }
+
+    private async Task EnsureAutoCloseAsync(Job job, int applicationsCount)
+    {
+        var shouldClose = false;
+
+        if (job.Deadline.HasValue && DateTime.UtcNow > job.Deadline.Value)
+        {
+            shouldClose = true;
+        }
+
+        if (job.MaxApplicants.HasValue && applicationsCount >= job.MaxApplicants.Value)
+        {
+            shouldClose = true;
+        }
+
+        if (shouldClose && job.Status != "Closed")
+        {
+            job.Status = "Closed";
+            job.UpdatedAt = DateTime.UtcNow;
+            await _jobRepository.UpdateAsync(job);
+            await _jobRepository.SaveChangesAsync();
+        }
+    }
+
+    private async Task<int> ResolveApplicationCountAsync(Job job)
+    {
+        // Use loaded navigation if available to avoid extra queries
+        if (job.Applications != null && job.Applications.Any())
+        {
+            return job.Applications.Count;
+        }
+
+        return await _jobRepository.GetApplicationsCountAsync(job.Id);
     }
 }
 

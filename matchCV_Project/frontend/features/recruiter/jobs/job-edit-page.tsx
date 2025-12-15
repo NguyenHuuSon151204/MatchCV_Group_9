@@ -20,6 +20,7 @@ export function JobEditPage() {
   const router = useRouter()
   const id = params?.id as string
   const [job, setJob] = useState<Job>({
+    id: parseInt(id || '0', 10) || 0,
     title: '',
     company: '',
     rawText: '',
@@ -41,6 +42,7 @@ export function JobEditPage() {
       setError(null)
       const data = await recruiterService.getJob(parseInt(id))
       setJob({
+        id: data.id ?? parseInt(id, 10),
         title: data.title || '',
         company: data.company || '',
         rawText: data.rawText || data.description || '',
@@ -67,7 +69,7 @@ export function JobEditPage() {
       await recruiterService.updateJob(parseInt(id), {
         Title: job.title.trim(),
         Company: job.company?.trim() || '',
-        Description: job.rawText.trim(),
+        Description: job.rawText?.trim() || '',
         Skills: job.skills || [],
       })
       alert('Job updated successfully!')

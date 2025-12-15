@@ -38,6 +38,7 @@ export interface CreateCVInput {
   name: string
   position: string
   description?: string
+  cvData?: CVData
 }
 
 export interface UpdateCVInput extends Partial<CreateCVInput> {
@@ -76,6 +77,9 @@ export interface JDAnalysisResult {
   skills: string[]
   priorities: string[]
   suggestions: string[]
+  totalScore?: number
+  label?: string
+  color?: string
 }
 
 export type RewriteSection = 'summary' | 'experience' | 'skills'

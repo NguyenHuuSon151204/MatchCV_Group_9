@@ -14,6 +14,8 @@ export function JobCreatePage() {
     company: '',
     description: '',
     skills: [] as string[],
+    deadline: '',
+    maxApplicants: '',
   })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -69,6 +71,8 @@ export function JobCreatePage() {
         Description: form.description.trim(),
         Skills: form.skills || [],
         RecruiterId: recruiterId > 0 ? recruiterId : undefined,
+        Deadline: form.deadline ? new Date(form.deadline).toISOString() : undefined,
+        MaxApplicants: form.maxApplicants ? parseInt(form.maxApplicants, 10) : undefined,
       }
 
       if (!payload.Title || !payload.Description) {
@@ -175,6 +179,37 @@ export function JobCreatePage() {
               onChange={(skills) => handleChange('skills', skills)}
               placeholder="e.g., React, Node.js, SQL..."
             />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label htmlFor="deadline" className="block text-sm font-medium">
+                Deadline (auto close)
+              </label>
+              <input
+                id="deadline"
+                type="date"
+                className="w-full px-3 py-2 border rounded-lg bg-background"
+                value={form.deadline}
+                onChange={(event) => handleChange('deadline', event.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">Job will close after this date.</p>
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="maxApplicants" className="block text-sm font-medium">
+                Max Applicants (auto close)
+              </label>
+              <input
+                id="maxApplicants"
+                type="number"
+                min={1}
+                className="w-full px-3 py-2 border rounded-lg bg-background"
+                value={form.maxApplicants}
+                onChange={(event) => handleChange('maxApplicants', event.target.value)}
+                placeholder="e.g., 50"
+              />
+              <p className="text-xs text-muted-foreground">Job closes when this number is reached.</p>
+            </div>
           </div>
         </div>
 

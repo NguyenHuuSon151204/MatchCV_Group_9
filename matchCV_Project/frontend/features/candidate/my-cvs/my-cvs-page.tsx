@@ -18,7 +18,7 @@ import type { CVStatus } from '@/lib/types'
 
 export function MyCVsPage() {
   const navigate = useNavigate()
-  const { cvs, loading, createCV, analyzeCV, deleteCV, exportCV, viewCV, refresh } = useCV()
+  const { cvs, loading, createCV, analyzeCV, deleteCV, exportCV, refresh } = useCV()
   const [uploadOpen, setUploadOpen] = useState(false)
   const [createOpen, setCreateOpen] = useState(false)
   const [optionOpen, setOptionOpen] = useState(false)

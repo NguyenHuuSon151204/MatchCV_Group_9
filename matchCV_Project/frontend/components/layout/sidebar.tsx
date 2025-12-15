@@ -1,6 +1,7 @@
 'use client'
 
 import { useContext } from 'react'
+import type { LucideIcon } from 'lucide-react'
 import {
   LayoutDashboard,
   FileText,
@@ -16,7 +17,19 @@ import { cn } from '@/lib/utils'
 import { AuthContext } from '@/contexts/AuthContext'
 import { X } from 'lucide-react'
 
-const candidateNav = [
+type NavChild = {
+  label: string
+  path: string
+}
+
+type NavItem = {
+  label: string
+  path: string
+  icon: LucideIcon
+  children?: NavChild[]
+}
+
+const candidateNav: NavItem[] = [
   { label: 'Dashboard', path: '/app/dashboard', icon: LayoutDashboard },
   { label: 'My CVs', path: '/app/my-cvs', icon: FileText },
   { label: 'JD Analyzer', path: '/app/jd-analyzer', icon: BarChart3 },
@@ -34,7 +47,7 @@ const candidateNav = [
   { label: 'Settings', path: '/app/settings', icon: Settings },
 ]
 
-const recruiterNav = [
+const recruiterNav: NavItem[] = [
   { label: 'Dashboard', path: '/app/dashboard', icon: LayoutDashboard },
   { label: 'Post Job', path: '/app/post-job', icon: Plus },
   { label: 'Find Candidates', path: '/app/candidates', icon: Users },
@@ -88,7 +101,7 @@ export function Sidebar({ isOpen, onClose, onToggle }: SidebarProps) {
             {navItems.map((item) => {
               const Icon = item.icon
 
-              if (!('children' in item)) {
+              if (!item.children || item.children.length === 0) {
                 return (
                   <NavLink
                     key={item.path}

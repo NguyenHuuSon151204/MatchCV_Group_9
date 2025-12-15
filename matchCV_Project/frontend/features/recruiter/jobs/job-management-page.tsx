@@ -16,6 +16,9 @@ interface Job {
   topSkill?: string
   applications?: number
   avgScore?: number
+  status?: string
+  deadline?: string | null
+  maxApplicants?: number | null
   createdAt: string
 }
 
@@ -62,6 +65,24 @@ export function JobManagementPage() {
     fetchVerification()
   }, [])
 
+  function computeStatus(job: Job) {
+    const applications = job.applications || 0
+    const statusText = job.status?.toLowerCase() || 'active'
+    const now = new Date()
+    const deadline = job.deadline ? new Date(job.deadline) : null
+
+    const closedByStatus = statusText === 'closed'
+    const closedByDeadline = deadline && !isNaN(deadline.getTime()) && deadline.getTime() < now.getTime()
+    const closedByQuota =
+      job.maxApplicants != null && job.maxApplicants > 0 && applications >= job.maxApplicants
+
+    if (closedByStatus || closedByDeadline || closedByQuota) return 'closed'
+    if (applications === 0) return 'draft'
+    if (applications < 5) return 'open'
+    if (applications < 15) return 'reviewing'
+    return 'closed'
+  }
+
   const loadJobs = async () => {
     try {
       setLoading(true)
@@ -73,6 +94,18 @@ export function JobManagementPage() {
       const response = await recruiterService.getJobs(params)
       // Handle response - backend returns array directly or wrapped
       let filtered = Array.isArray(response) ? response : (response?.data || response || [])
+
+      // Normalize fields (case-insensitive) for downstream logic
+      filtered = filtered.map((job: any) => ({
+        ...job,
+        id: job.id ?? job.Id,
+        title: job.title ?? job.Title,
+        company: job.company ?? job.Company,
+        applications: job.applications ?? job.Applications ?? job.applicants ?? 0,
+        status: job.status ?? job.Status ?? 'Active',
+        deadline: job.deadline ?? job.Deadline ?? null,
+        maxApplicants: job.maxApplicants ?? job.MaxApplicants ?? null,
+      }))
 
       if (filters.search) {
         const searchLower = filters.search.toLowerCase()
@@ -86,12 +119,8 @@ export function JobManagementPage() {
 
       if (filters.status) {
         filtered = filtered.filter((job: Job) => {
-          const count = job.applications || 0
-          if (filters.status === 'draft') return count === 0
-          if (filters.status === 'open') return count > 0 && count < 5
-          if (filters.status === 'reviewing') return count >= 5 && count < 15
-          if (filters.status === 'closed') return count >= 15
-          return true
+          const statusValue = computeStatus(job)
+          return statusValue === filters.status
         })
       }
 
@@ -221,11 +250,13 @@ export function JobManagementPage() {
   }
 
   const getStatusBadge = (job: Job) => {
+    const status = computeStatus(job)
     const count = job.applications || 0
-    if (count === 0) return { label: 'Draft', class: 'bg-gray-100 text-gray-800' }
-    if (count < 5) return { label: 'Open', class: 'bg-green-100 text-green-800' }
-    if (count < 15) return { label: 'Reviewing', class: 'bg-yellow-100 text-yellow-800' }
-    return { label: 'Closed', class: 'bg-red-100 text-red-800' }
+    if (status === 'closed') return { label: 'Closed', class: 'bg-red-100 text-red-800' }
+    if (status === 'draft') return { label: 'Draft', class: 'bg-gray-100 text-gray-800' }
+    if (status === 'open') return { label: 'Open', class: 'bg-green-100 text-green-800' }
+    if (status === 'reviewing') return { label: `Reviewing (${count})`, class: 'bg-yellow-100 text-yellow-800' }
+    return { label: status || 'Unknown', class: 'bg-gray-100 text-gray-800' }
   }
 
   const formatDate = (dateString: string) => {

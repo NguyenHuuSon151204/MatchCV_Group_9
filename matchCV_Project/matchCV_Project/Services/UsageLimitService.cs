@@ -45,10 +45,10 @@ public class UsageLimitService
 
         var key = $"{action}:{userId}:{DateTime.UtcNow:yyyyMMdd}";
         var today = DateTime.UtcNow.Date;
-        _counters.AddOrUpdate(key, _ => (today, 0), (_, current) =>
+        _counters.AddOrUpdate(key, _ => (Date: today, Count: 0), (_, current) =>
         {
             // Reset counter when day changes
-            return current.Date == today ? current : (today, 0);
+            return current.Date == today ? current : (Date: today, Count: 0);
         });
 
         var entry = _counters[key];
@@ -58,7 +58,7 @@ public class UsageLimitService
             return false;
         }
 
-        var updated = (entry.Date, entry.Count + 1);
+        var updated = (Date: entry.Date, Count: entry.Count + 1);
         _counters[key] = updated;
         remaining = limit - updated.Count;
         return true;

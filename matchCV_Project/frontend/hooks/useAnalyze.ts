@@ -26,12 +26,8 @@ export function useAnalyze() {
         skills: data.highlights || [],
         priorities,
         suggestions: data.warnings || [],
-        // Enrich with score info for UI if needed
-        // @ts-expect-error allow optional fields
         totalScore: data.totalScore,
-        // @ts-expect-error
         label: data.label,
-        // @ts-expect-error
         color: data.color,
       }
 

@@ -34,6 +34,15 @@ export function ApplyCVDialog({ open, onOpenChange, job, onApplied }: ApplyCVDia
   }
 
   const handleConfirmApply = async () => {
+    if (!selectedCV) {
+      setError('Please select a CV to apply with')
+      return
+    }
+    if (!job) {
+      setError('No job selected to apply for')
+      return
+    }
+
     setShowConfirm(false)
     setSubmitting(true)
     try {
@@ -44,7 +53,7 @@ export function ApplyCVDialog({ open, onOpenChange, job, onApplied }: ApplyCVDia
         throw new Error('User not logged in')
       }
 
-      await apiClient.post(`/recruiter/jobs/${job?.id}/apply`, {
+      await apiClient.post(`/recruiter/jobs/${job.id}/apply`, {
         documentId: parseInt(selectedCV, 10),
         candidateId,
       })

@@ -25,6 +25,26 @@ GO
 CREATE UNIQUE INDEX UQ_Users_Email ON dbo.Users(Email);
 GO
 
+/* 2. JOBS */
+IF OBJECT_ID('dbo.Jobs','U') IS NULL
+CREATE TABLE dbo.Jobs (
+    Id              INT IDENTITY(1,1) PRIMARY KEY,
+    UserId          INT NOT NULL,
+    Title           NVARCHAR(200) NOT NULL,
+    Company         NVARCHAR(200) NULL,
+    RawText         NVARCHAR(MAX) NULL,
+    JobDescription  NVARCHAR(MAX) NULL,
+    [Status]        NVARCHAR(30) NOT NULL DEFAULT 'Active',
+    Deadline        DATETIME2 NULL,
+    MaxApplicants   INT NULL,
+    CreatedAt       DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+    UpdatedAt       DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+    CONSTRAINT FK_Jobs_Users FOREIGN KEY (UserId) REFERENCES dbo.Users(Id)
+);
+GO
+CREATE INDEX IX_Jobs_UserId ON dbo.Jobs(UserId);
+GO
+
 /* 2. DOCUMENTS */
 IF OBJECT_ID('dbo.Documents','U') IS NULL
 CREATE TABLE dbo.Documents (

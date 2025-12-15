@@ -10,6 +10,9 @@ interface JobDto {
   RawText?: string
   JobDescription?: string
   Status: string
+  Deadline?: string
+  MaxApplicants?: number
+  Applications?: number
   CreatedAt: string
   UpdatedAt: string
 }
@@ -24,6 +27,9 @@ function mapJobDtoToJob(dto: JobDto | any): Job {
     rawText: dto.RawText ?? dto.rawText,
     jobDescription: dto.JobDescription ?? dto.jobDescription,
     status: dto.Status ?? dto.status,
+    deadline: dto.Deadline ?? dto.deadline ?? null,
+    maxApplicants: dto.MaxApplicants ?? dto.maxApplicants ?? null,
+    applications: dto.Applications ?? dto.applications,
     createdAt: dto.CreatedAt ?? dto.createdAt,
     updatedAt: dto.UpdatedAt ?? dto.updatedAt,
   }
@@ -137,6 +143,8 @@ export const jobService = {
           Company: payload.company,
           JobDescription: payload.jobDescription,
           RawText: payload.rawText,
+          Deadline: payload.deadline,
+          MaxApplicants: payload.maxApplicants,
         }, {
           params: { userId: parseInt(userId, 10) },
         })
@@ -151,6 +159,8 @@ export const jobService = {
           company: payload.company,
           jobDescription: payload.jobDescription,
           rawText: payload.rawText,
+          deadline: payload.deadline || null,
+          maxApplicants: payload.maxApplicants,
           status: 'Active',
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
@@ -174,6 +184,8 @@ export const jobService = {
           JobDescription: payload.jobDescription,
           RawText: payload.rawText,
           Status: payload.status,
+          Deadline: payload.deadline,
+          MaxApplicants: payload.maxApplicants,
         }, {
           params: { userId: parseInt(userId, 10) },
         })

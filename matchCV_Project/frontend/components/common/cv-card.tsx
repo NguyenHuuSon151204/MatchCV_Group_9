@@ -1,12 +1,13 @@
 'use client'
 
-import { FileText, MoreHorizontal } from 'lucide-react'
+import { Eye, FileText, MoreHorizontal } from 'lucide-react'
 import { ScoreCircle } from '@/components/common/score-circle'
 import { StatusBadge } from '@/components/common/status-badge'
 import type { CV } from '@/lib/types'
 
 interface CVCardProps {
   cv: CV
+  onView?: (id: string) => void
   onEdit: (id: string) => void
   onAnalyze: (id: string) => void
   onRewrite: (id: string) => void
@@ -14,7 +15,7 @@ interface CVCardProps {
   onDelete: (id: string) => void
 }
 
-export function CVCard({ cv, onEdit, onAnalyze, onRewrite, onExport, onDelete }: CVCardProps) {
+export function CVCard({ cv, onView, onEdit, onAnalyze, onRewrite, onExport, onDelete }: CVCardProps) {
   return (
     <div className="rounded-3xl border border-border/40 bg-card/70 p-4 shadow-lg shadow-black/5">
       <div className="flex items-start gap-3">
@@ -38,6 +39,15 @@ export function CVCard({ cv, onEdit, onAnalyze, onRewrite, onExport, onDelete }:
         </div>
       </div>
       <div className="mt-4 grid grid-cols-2 gap-2 text-xs font-semibold">
+        {onView && (
+          <button
+            onClick={() => onView(cv.id)}
+            className="col-span-2 rounded-2xl border border-green-500/30 px-3 py-2 text-green-600 hover:border-green-500/60"
+          >
+            <Eye className="mr-2 inline size-3" />
+            View CV
+          </button>
+        )}
         <button
           onClick={() => onEdit(cv.id)}
           className="col-span-2 rounded-2xl border border-blue-500/30 px-3 py-2 text-blue-500 hover:border-blue-500/60"

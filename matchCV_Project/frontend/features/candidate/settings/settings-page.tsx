@@ -45,16 +45,16 @@ export function SettingsPage() {
   }
 
   useEffect(() => {
-    if (auth?.user) {
-      setProfile((prev) => ({
-        ...prev,
-        fullName: auth.user.displayName || '',
-        email: auth.user.email || '',
-        avatarBase64: auth.user.avatarBase64 || prev.avatarBase64,
-      }))
-      if (auth.user.avatarBase64) {
-        setAvatarPreview(`data:image/png;base64,${auth.user.avatarBase64}`)
-      }
+    if (!auth?.user) return
+    const currentUser = auth.user
+    setProfile((prev) => ({
+      ...prev,
+      fullName: currentUser.displayName || '',
+      email: currentUser.email || '',
+      avatarBase64: currentUser.avatarBase64 || prev.avatarBase64,
+    }))
+    if (currentUser.avatarBase64) {
+      setAvatarPreview(`data:image/png;base64,${currentUser.avatarBase64}`)
     }
     const storedExtras = typeof window !== 'undefined' ? localStorage.getItem('matchcv-profile-extras') : null
     if (storedExtras) {

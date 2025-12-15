@@ -9,6 +9,9 @@ public class JobDto
     public string? RawText { get; set; }
     public string? JobDescription { get; set; }
     public string Status { get; set; }
+    public DateTime? Deadline { get; set; }
+    public int? MaxApplicants { get; set; }
+    public int Applications { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 }
@@ -19,6 +22,8 @@ public class CreateJobDto
     public string Company { get; set; }
     public string? JobDescription { get; set; }
     public string? RawText { get; set; }
+    public DateTime? Deadline { get; set; }
+    public int? MaxApplicants { get; set; }
 }
 
 public class UpdateJobDto
@@ -28,5 +33,7 @@ public class UpdateJobDto
     public string? JobDescription { get; set; }
     public string? RawText { get; set; }
     public string? Status { get; set; }
+    public DateTime? Deadline { get; set; }
+    public int? MaxApplicants { get; set; }
 }
 

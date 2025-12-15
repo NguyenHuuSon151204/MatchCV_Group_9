@@ -287,12 +287,23 @@ export const cvService = {
         // If id is null or empty, backend will create new CV
         const formData = new FormData()
         formData.append('file', file)
-        
-        const params: { id?: number } = {}
+
+        let userId: string | null = null
+        if (typeof window !== 'undefined') {
+          userId = window.localStorage.getItem('matchcv-userId') || window.localStorage.getItem('userId')
+        }
+
+        const params: { id?: number; userId?: number } = {}
         if (id) {
           const idNum = parseInt(id, 10)
           if (!isNaN(idNum) && idNum > 0) {
             params.id = idNum
+          }
+        }
+        if (userId) {
+          const userIdNum = parseInt(userId, 10)
+          if (!isNaN(userIdNum) && userIdNum > 0) {
+            params.userId = userIdNum
           }
         }
         
@@ -302,7 +313,8 @@ export const cvService = {
         })
         
         // Backend returns DocumentDto wrapped in BaseResponseDto
-        const doc = response.data
+        const payload = response.data?.data ?? response.data
+        const doc = payload?.data ?? payload
         return {
           fileName: doc.FileName || file.name,
           fileSize: doc.FileSize || file.size,

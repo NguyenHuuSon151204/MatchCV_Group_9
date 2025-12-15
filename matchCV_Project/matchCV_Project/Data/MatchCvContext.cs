@@ -116,6 +116,20 @@ public partial class MatchCvContext : DbContext
             entity.Property(e => e.Provider).HasMaxLength(50);
         });
 
+        modelBuilder.Entity<Job>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__Jobs__3214EC07");
+            entity.Property(e => e.Title).HasMaxLength(200);
+            entity.Property(e => e.Company).HasMaxLength(200);
+            entity.Property(e => e.Status).HasMaxLength(30).HasDefaultValue("Active");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
+            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("(sysutcdatetime())");
+
+            entity.HasOne(d => d.User).WithMany(p => p.Jobs)
+                .HasForeignKey(d => d.UserId)
+                .HasConstraintName("FK_Jobs_Users");
+        });
+
         modelBuilder.Entity<Application>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PK__Applicat__3214EC075A978F19");
