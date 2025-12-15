@@ -68,6 +68,8 @@ public partial class MatchCvContext : DbContext
 
     public virtual DbSet<Skill> Skills { get; set; }
 
+    public virtual DbSet<Notification> Notifications { get; set; }
+
     public virtual DbSet<User> Users { get; set; }
 
     public virtual DbSet<RecruiterVerification> RecruiterVerifications { get; set; }
@@ -549,6 +551,21 @@ public partial class MatchCvContext : DbContext
                 .HasConstraintName("FK_RecruiterVerification_Users_Admin");
 
             entity.HasCheckConstraint("CK_RecruiterVerification_Status", "Status IN ('Pending', 'Approved', 'Rejected')");
+        });
+
+        modelBuilder.Entity<Notification>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__Notifications__3214EC07");
+            entity.Property(e => e.Role).HasMaxLength(50).HasDefaultValue("Candidate");
+            entity.Property(e => e.Title).HasMaxLength(200);
+            entity.Property(e => e.Message).HasMaxLength(500);
+            entity.Property(e => e.Category).HasMaxLength(20).HasDefaultValue("info");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
+
+            entity.HasOne(d => d.User).WithMany(p => p.Notifications)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("FK_Notifications_Users");
         });
 
         OnModelCreatingPartial(modelBuilder);

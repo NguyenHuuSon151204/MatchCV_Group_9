@@ -33,49 +33,69 @@ public class ScoringEngine
     {
         var weight = _weightService.Get(jd.Industry, jd.Level);
         var result = new ScoringResult { Breakdown = new(), Highlights = new(), Warnings = new() };
+        var highlights = new List<string>();
+        var warnings = new List<string>();
         int total = 0;
+
+        int ApplyWeight(int raw, int w) => w > 0 ? (int)Math.Round(raw * w / 100.0) : raw;
 
         // 1. Keyword & Skill Match (dùng Gemini embedding hoặc cosine)
         int keywordScore = await KeywordMatchScore(candidate.CvText, jd.JdText);
         result.Breakdown["keyword"] = keywordScore;
-        total += (int)(keywordScore * weight.keyword / 100.0);
+        total += ApplyWeight(keywordScore, weight.keyword);
+        if (keywordScore >= 80) highlights.Add("Strong keyword overlap with the JD.");
+        else if (keywordScore <= 50) warnings.Add("CV is missing several JD keywords.");
 
         // 2. Years of Experience
         int expScore = ExperienceScore(candidate.CvText, jd.JdText);
         result.Breakdown["experience"] = expScore;
-        total += (int)(expScore * weight.exp / 100.0);
+        total += ApplyWeight(expScore, weight.exp);
+        if (expScore >= 90) highlights.Add("Experience meets or exceeds JD requirements.");
+        else if (expScore <= 60) warnings.Add("Experience may not fully meet the JD requirement.");
 
         // 3. Achievement & Impact (đa ngành)
         int achievementScore = await _achievementDetector.CalculateScoreAsync(candidate.CvText);
         result.Breakdown["achievement"] = achievementScore;
-        total += (int)(achievementScore * weight.achievement / 100.0);
+        total += ApplyWeight(achievementScore, weight.achievement);
+        if (achievementScore >= 30) highlights.Add("Clear impact with quantified achievements.");
 
         // 4. Portfolio Scoring
         int portfolioScore = await _portfolioScorer.CalculateScoreAsync(candidate.PortfolioUrl, jd.Industry);
         result.Breakdown["portfolio"] = portfolioScore;
-        total += (int)(portfolioScore * weight.portfolio / 100.0);
+        total += ApplyWeight(portfolioScore, weight.portfolio);
+        if (!string.IsNullOrWhiteSpace(candidate.PortfolioUrl))
+            highlights.Add("Portfolio provided for review.");
+        else
+            warnings.Add("No portfolio/case study link provided.");
 
         // 5. Leadership Signals
         int leadershipScore = await LeadershipScore(candidate.CvText);
         result.Breakdown["leadership"] = leadershipScore;
-        total += (int)(leadershipScore * weight.leadership / 100.0);
+        total += ApplyWeight(leadershipScore, weight.leadership);
+        if (leadershipScore >= 20) highlights.Add("Leadership or mentoring experience detected.");
 
         // 6. Certification Bonus
         int certScore = _certDb.CalculateScore(candidate.CvText);
         result.Breakdown["certification"] = certScore;
-        total += certScore;
+        var certWeight = weight.certification > 0 ? weight.certification : 5;
+        total += ApplyWeight(certScore, certWeight);
+        if (certScore > 0) highlights.Add("Relevant certifications found.");
 
         // 7. Salary Fit
         int salaryBonus = SalaryFit(candidate.ExpectedSalary, jd.BudgetMin, jd.BudgetMax);
         result.Breakdown["salary"] = salaryBonus;
         total += salaryBonus;
+        if (salaryBonus < 0) warnings.Add("Expected salary may exceed JD budget.");
 
         // 8. Red Flag Penalty
         int redflagPenalty = await _redFlagDetector.DetectPenaltyAsync(candidate.CvText);
         result.Breakdown["redflag"] = redflagPenalty;
         total += redflagPenalty;
+        if (redflagPenalty < 0) warnings.Add("Potential red flags detected in work history.");
 
         result.TotalScore = Math.Clamp(total, 0, 100);
+        result.Highlights = highlights.Distinct().ToList();
+        result.Warnings = warnings.Distinct().ToList();
         return result;
     }
 

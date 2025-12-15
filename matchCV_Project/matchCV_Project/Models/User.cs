@@ -40,4 +40,6 @@ public partial class User
     public virtual ICollection<RecruiterVerification> RecruiterVerifications { get; set; } = new List<RecruiterVerification>();
 
     public virtual ICollection<RecruiterVerification> RecruiterVerificationsReviewed { get; set; } = new List<RecruiterVerification>();
+
+    public virtual ICollection<Notification> Notifications { get; set; } = new List<Notification>();
 }

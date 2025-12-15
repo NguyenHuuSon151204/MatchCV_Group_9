@@ -8,6 +8,7 @@ using matchCV_Project.Data;
 using matchCV_Project.Interfaces;
 using matchCV_Project.Models;
 using matchCV_Project.Models.Dtos;
+using matchCV_Project.Services;
 using System.Security.Claims;
 
 namespace matchCV_Project.Controllers;
@@ -18,15 +19,18 @@ public class RecruiterVerificationController : ControllerBase
 {
     private readonly MatchCvContext _db;
     private readonly IRecruiterVerificationService _verificationService;
+    private readonly NotificationService _notificationService;
     private readonly ILogger<RecruiterVerificationController> _logger;
 
     public RecruiterVerificationController(
         MatchCvContext db,
         IRecruiterVerificationService verificationService,
+        NotificationService notificationService,
         ILogger<RecruiterVerificationController> logger)
     {
         _db = db;
         _verificationService = verificationService;
+        _notificationService = notificationService;
         _logger = logger;
     }
 
@@ -180,6 +184,12 @@ public class RecruiterVerificationController : ControllerBase
 
             _logger.LogInformation("Recruiter {RecruiterId} submitted verification request {VerificationId}", 
                 recruiterId, verification.Id);
+
+            // Notify Admin about new verification request
+            await _notificationService.CreateForAdminAsync(
+                "Yêu cầu xác minh mới",
+                $"Recruiter {recruiter.Email} gửi yêu cầu xác minh doanh nghiệp.",
+                "info");
 
             var result = await BuildVerificationDtoAsync(verification.Id);
             return CreatedAtAction(nameof(GetVerificationStatus), new { recruiterId }, result);
@@ -385,6 +395,16 @@ public class RecruiterVerificationController : ControllerBase
 
         _logger.LogInformation("Admin {AdminId} {Action} verification {VerificationId} for recruiter {RecruiterId}",
             adminId, request.Status, id, verification.RecruiterId);
+
+        // Notify recruiter about decision
+        var recruiterEmail = verification.Recruiter?.Email ?? $"Recruiter {verification.RecruiterId}";
+        var title = request.Status == "Approved" ? "Xác minh đã được chấp thuận" : "Xác minh bị từ chối";
+        var message = request.Status == "Approved"
+            ? "Hồ sơ xác minh của bạn đã được chấp thuận. Bạn có thể tiếp tục đăng tuyển."
+            : $"Yêu cầu xác minh bị từ chối. Ghi chú: {request.AdminNotes}";
+
+        await _notificationService.CreateForRecruiterAsync(verification.RecruiterId, title, message,
+            request.Status == "Approved" ? "success" : "warning");
 
         var result = await BuildVerificationDtoAsync(verification.Id);
         return Ok(result);

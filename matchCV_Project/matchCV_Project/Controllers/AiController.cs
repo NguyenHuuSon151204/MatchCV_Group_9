@@ -5,6 +5,8 @@ using matchCV_Project.Services;
 using matchCV_Project.Services.Scoring;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Configuration;
 
 namespace matchCV_Project.Controllers;
 
@@ -16,13 +18,21 @@ public class AiController : ControllerBase
     private readonly ScoringEngine _scoring;
     private readonly UsageLimitService _usage;
     private readonly ILogger<AiController> _logger;
+    private readonly bool _disableUsageLimit;
 
-    public AiController(MatchCvContext db, ScoringEngine scoring, UsageLimitService usage, ILogger<AiController> logger)
+    public AiController(
+        MatchCvContext db,
+        ScoringEngine scoring,
+        UsageLimitService usage,
+        ILogger<AiController> logger,
+        IConfiguration config,
+        IWebHostEnvironment env)
     {
         _db = db;
         _scoring = scoring;
         _usage = usage;
         _logger = logger;
+        _disableUsageLimit = config.GetValue<bool>("Features:DisableUsageLimit") || env.IsDevelopment();
     }
 
     private async Task<(int userId, string plan)> ResolveUserAsync(int? userIdFromRequest)
@@ -72,7 +82,8 @@ public class AiController : ControllerBase
             return Unauthorized(new { success = false, message = "User not identified." });
         }
 
-        if (!_usage.TryConsume(userId, plan, "jd-analyze", out var remaining))
+        var remaining = int.MaxValue;
+        if (!_disableUsageLimit && !_usage.TryConsume(userId, plan, "jd-analyze", out remaining))
         {
             return TooManyRequests("JD Analyzer quota exceeded for your plan. Upgrade to Pro for more runs.", remaining);
         }
@@ -118,7 +129,8 @@ public class AiController : ControllerBase
             return Unauthorized(new { success = false, message = "User not identified." });
         }
 
-        if (!_usage.TryConsume(userId, plan, "rewrite", out var remaining))
+        var remaining = int.MaxValue;
+        if (!_disableUsageLimit && !_usage.TryConsume(userId, plan, "rewrite", out remaining))
         {
             return TooManyRequests("AI Rewrite quota exceeded for your plan. Upgrade to Pro for more runs.", remaining);
         }

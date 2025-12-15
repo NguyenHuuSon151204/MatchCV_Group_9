@@ -35,12 +35,14 @@ export function AnalyzeJDDialog({ open, onOpenChange, job, onAnalysisComplete }:
   const [selectedCV, setSelectedCV] = useState<string | null>(null)
   const [analyzing, setAnalyzing] = useState(false)
   const [analysisResult, setAnalysisResult] = useState<any>(null)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const toast = useToastContext()
 
   const handleAnalyze = async () => {
     if (!selectedCV || !job) return
 
     setAnalyzing(true)
+    setErrorMessage(null)
     try {
       const selectedCVData = cvs.find(cv => cv.id === selectedCV)
       const cvText =
@@ -49,12 +51,13 @@ export function AnalyzeJDDialog({ open, onOpenChange, job, onAnalysisComplete }:
         selectedCVData?.name ||
         'CV Content'
 
-      const scoringResult = await aiService.analyzeJD({
+      const scoringResult: ScoringResult = await aiService.analyzeJD({
         description: job.jobDescription || '',
         cvText,
         industry: 'IT',
         level: 'Mid',
       })
+      const breakdownEntries = Object.entries(scoringResult.breakdown || {}).sort((a, b) => b[1] - a[1])
       const result = {
         cvId: selectedCV,
         cvName: selectedCVData?.name || 'Unknown CV',
@@ -66,10 +69,8 @@ export function AnalyzeJDDialog({ open, onOpenChange, job, onAnalysisComplete }:
         scoreColor: scoringResult.color,
         matchedSkills: scoringResult.highlights || [],
         missingSkills: scoringResult.warnings || [],
-        recommendations: Object.entries(scoringResult.breakdown || {})
-          .map(([key, value]) => `${key}: ${value}%`)
-          .slice(0, 5),
-        breakdown: scoringResult.breakdown,
+        recommendations: breakdownEntries.map(([key, value]) => `${key}: ${value}%`).slice(0, 5),
+        breakdown: scoringResult.breakdown || {},
         timestamp: new Date().toISOString(),
       }
 
@@ -77,29 +78,10 @@ export function AnalyzeJDDialog({ open, onOpenChange, job, onAnalysisComplete }:
       toast.success('JD analyzed', `Score: ${result.matchScore}%`)
     } catch (error) {
       console.error('Error analyzing:', error)
-      toast.error('Analyze failed', error instanceof Error ? error.message : 'Quota exceeded or server error')
-      // Fallback to mock data on error
-      const selectedCVData = cvs.find(cv => cv.id === selectedCV)
-      const mockResult = {
-        cvId: selectedCV,
-        cvName: selectedCVData?.name || 'Unknown CV',
-        jobId: job.id,
-        jobTitle: job.title,
-        jobCompany: job.company,
-        matchScore: Math.floor(Math.random() * 40 + 60),
-        scoreLabel: 'Good',
-        scoreColor: '#f59e0b',
-        matchedSkills: ['React', 'TypeScript', 'Node.js', 'Database Design'],
-        missingSkills: ['AWS', 'Docker', 'Kubernetes'],
-        recommendations: [
-          'Add more details about your experience with React',
-          'Include cloud platform experience (AWS/Azure/GCP)',
-          'Highlight containerization skills',
-        ],
-        breakdown: {},
-        timestamp: new Date().toISOString(),
-      }
-      setAnalysisResult(mockResult)
+      const message = error instanceof Error ? error.message : 'Quota exceeded or server error'
+      setErrorMessage(message)
+      toast.error('Analyze failed', message)
+      setAnalysisResult(null)
     } finally {
       setAnalyzing(false)
     }
@@ -115,6 +97,7 @@ export function AnalyzeJDDialog({ open, onOpenChange, job, onAnalysisComplete }:
   const handleClose = () => {
     setSelectedCV(null)
     setAnalysisResult(null)
+    setErrorMessage(null)
     onOpenChange(false)
   }
 
@@ -170,6 +153,12 @@ export function AnalyzeJDDialog({ open, onOpenChange, job, onAnalysisComplete }:
                   </div>
                 )}
               </div>
+              {errorMessage && (
+                <div className="mt-4 flex items-center gap-2 rounded-xl border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                  <AlertCircle className="size-4" />
+                  <span>{errorMessage}</span>
+                </div>
+              )}
             </DialogBody>
 
             <DialogFooter>
@@ -193,15 +182,15 @@ export function AnalyzeJDDialog({ open, onOpenChange, job, onAnalysisComplete }:
             </DialogHeader>
 
             <DialogBody className="space-y-6">
-              {/* Match Score */}
               <div className="text-center">
-                <div className="text-5xl font-bold text-primary mb-2">
+                <div className="text-5xl font-bold mb-2" style={{ color: analysisResult.scoreColor || 'inherit' }}>
                   {analysisResult.matchScore}%
                 </div>
-                <p className="text-muted-foreground">Match Score</p>
+                <p className="text-muted-foreground">
+                  Match Score • {analysisResult.scoreLabel}
+                </p>
               </div>
 
-              {/* Matched Skills */}
               <div>
                 <h4 className="font-semibold text-card-foreground mb-3">Matched Skills</h4>
                 <div className="flex flex-wrap gap-2">
@@ -216,7 +205,6 @@ export function AnalyzeJDDialog({ open, onOpenChange, job, onAnalysisComplete }:
                 </div>
               </div>
 
-              {/* Missing Skills */}
               {analysisResult.missingSkills.length > 0 && (
                 <div>
                   <h4 className="font-semibold text-card-foreground mb-3">Missing Skills</h4>
@@ -233,7 +221,21 @@ export function AnalyzeJDDialog({ open, onOpenChange, job, onAnalysisComplete }:
                 </div>
               )}
 
-              {/* Recommendations */}
+              <div>
+                <h4 className="font-semibold text-card-foreground mb-3">Breakdown</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                  {Object.entries(analysisResult.breakdown || {}).map(([key, value]: [string, number]) => (
+                    <div
+                      key={key}
+                      className="flex items-center justify-between rounded-xl border border-border/40 bg-background/60 px-3 py-2"
+                    >
+                      <span className="font-medium capitalize">{key}</span>
+                      <span className="text-card-foreground">{value}%</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
               <div>
                 <h4 className="font-semibold text-card-foreground mb-3">Recommendations</h4>
                 <div className="space-y-2">

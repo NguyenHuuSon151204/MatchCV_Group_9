@@ -33,6 +33,11 @@ export function useAnalyze() {
 
       setJdAnalysis(mapped)
       return mapped
+    } catch (error: any) {
+      console.error('[useAnalyze] analyzeJD failed', error)
+      setJdError(error?.message || 'Analyze JD failed')
+      setJdAnalysis(null)
+      return null
     } finally {
       setAnalysisLoading(false)
     }
