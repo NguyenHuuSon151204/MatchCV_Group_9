@@ -6,14 +6,18 @@ import { Sidebar } from '@/components/layout/sidebar'
 import { Topbar } from '@/components/layout/topbar'
 
 export function MainLayout() {
-  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(true)
 
   return (
     <div className="flex h-screen bg-background text-foreground">
-      <Sidebar isMobileOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <Sidebar
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        onToggle={() => setSidebarOpen((v) => !v)}
+      />
 
       <div className="flex flex-1 flex-col">
-        <Topbar onToggleSidebar={() => setSidebarOpen(true)} />
+        <Topbar onToggleSidebar={() => setSidebarOpen((v) => !v)} />
         <div className="flex-1 overflow-y-auto bg-background px-4 py-6 lg:px-8">
           <Outlet />
         </div>
