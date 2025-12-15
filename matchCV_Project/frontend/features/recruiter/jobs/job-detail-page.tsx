@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { recruiterService } from '@/lib/services/recruiter-service'
 import { SkillChipsInput } from '@/components/ui/skill-chips-input'
-import { Edit, Trash2, X, Eye } from 'lucide-react'
+import { Edit, Trash2, X, Eye, Download } from 'lucide-react'
 
 interface Job {
   id: number
@@ -24,6 +24,11 @@ interface Application {
     id?: number
     displayName?: string
     email?: string
+  }
+  document?: {
+    id: number
+    originalName?: string
+    storagePath?: string
   }
   scoreSnapshot?: number
   status?: string
@@ -46,6 +51,7 @@ export function JobDetailPage() {
     skills: [] as string[],
   })
   const [saving, setSaving] = useState(false)
+  const [downloading, setDownloading] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [selectedApplicant, setSelectedApplicant] = useState<Application | null>(null)
   const [showApplicantModal, setShowApplicantModal] = useState(false)
@@ -176,6 +182,117 @@ export function JobDetailPage() {
     setShowApplicantModal(true)
   }
 
+  const handleDownloadSingle = async (appId: number, originalName?: string) => {
+    try {
+      setDownloading(true)
+      const blob = await recruiterService.downloadApplication(appId)
+      if (!blob || (blob as any).size === 0) {
+        alert('Không tìm thấy file ứng viên.')
+        return
+      }
+
+      if (blob.type && blob.type.includes('application/json')) {
+        const text = await blob.text()
+        try {
+          const parsed = JSON.parse(text)
+          alert(parsed.message || parsed.Message || text || 'Không tìm thấy file ứng viên.')
+        } catch {
+          alert(text || 'Không tìm thấy file ứng viên.')
+        }
+        return
+      }
+
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = originalName || `application-${appId}`
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      URL.revokeObjectURL(url)
+    } catch (error: any) {
+      console.error('Failed to download applicant file:', error?.response || error)
+      const data = error?.response?.data
+      if (data instanceof Blob) {
+        try {
+          const text = await data.text()
+          const parsed = JSON.parse(text)
+          alert(parsed.message || parsed.Message || text || 'Tải file thất bại.')
+          return
+        } catch {
+          const text = await data.text().catch(() => '')
+          alert(text || 'Tải file thất bại.')
+          return
+        }
+      }
+
+      const message =
+        error?.response?.data?.message ||
+        error?.response?.data ||
+        'Tải file thất bại.'
+      alert(typeof message === 'string' ? message : 'Tải file thất bại.')
+    } finally {
+      setDownloading(false)
+    }
+  }
+
+  const handleDownloadAll = async () => {
+    try {
+      setDownloading(true)
+      const blob = await recruiterService.downloadJobApplications(parseInt(id))
+      if (!blob || (blob as any).size === 0) {
+        alert('No applicant files available to download.')
+        return
+      }
+
+      // If backend sent an error payload as JSON, show it instead of downloading
+      if (blob.type && blob.type.includes('application/json')) {
+        const text = await blob.text()
+        try {
+          const parsed = JSON.parse(text)
+          alert(parsed.message || parsed.Message || 'No applicant files available.')
+        } catch {
+          alert(text || 'No applicant files available.')
+        }
+        return
+      }
+
+      const url = URL.createObjectURL(new Blob([blob], { type: 'application/zip' }))
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `job-${id}-applications.zip`
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      URL.revokeObjectURL(url)
+    } catch (error: any) {
+      console.error('Failed to download applicant files:', error?.response || error)
+
+      // Try to surface meaningful error messages even when response is a Blob
+      const data = error?.response?.data
+      if (data instanceof Blob) {
+        try {
+          const text = await data.text()
+          const parsed = JSON.parse(text)
+          alert(parsed.message || parsed.Message || text || 'Failed to download applicant files.')
+          return
+        } catch {
+          const text = await data.text().catch(() => '')
+          alert(text || 'Failed to download applicant files.')
+          return
+        }
+      }
+
+      const message =
+        error?.response?.data?.message ||
+        error?.response?.data ||
+        'Failed to download applicant files.'
+      alert(typeof message === 'string' ? message : 'Failed to download applicant files.')
+    } finally {
+      setDownloading(false)
+    }
+  }
+
   const getStatusBadge = (status?: string) => {
     const badges: Record<string, { label: string; class: string }> = {
       Hired: { label: 'Hired', class: 'bg-green-100 text-green-800' },
@@ -273,6 +390,15 @@ export function JobDetailPage() {
               </>
             ) : (
               <>
+                <button
+                  className="px-4 py-2 border rounded-lg hover:bg-accent flex items-center gap-2 disabled:opacity-50"
+                  onClick={handleDownloadAll}
+                  disabled={downloading || applications.length === 0}
+                  title={applications.length === 0 ? 'No applicants yet' : 'Download all applicant files'}
+                >
+                  <Download size={16} />
+                  {downloading ? 'Downloading...' : 'Download All'}
+                </button>
                 <button
                   className="px-4 py-2 border rounded-lg hover:bg-accent flex items-center gap-2"
                   onClick={handleEdit}
@@ -396,6 +522,17 @@ export function JobDetailPage() {
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
+                        <button
+                          className="px-3 py-1 border rounded text-xs hover:bg-accent disabled:opacity-50"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleDownloadSingle(app.id, app.document?.originalName)
+                          }}
+                          disabled={downloading}
+                          title="Tải CV ứng viên"
+                        >
+                          Download CV
+                        </button>
                         {app.scoreSnapshot != null ? (
                           <span className="px-2 py-1 bg-primary/10 text-primary rounded text-sm font-semibold">
                             {Math.round(app.scoreSnapshot)}%

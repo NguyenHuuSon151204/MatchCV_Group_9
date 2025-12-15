@@ -8,6 +8,7 @@ using matchCV_Project.Data;
 using matchCV_Project.Interfaces;
 using matchCV_Project.Models;
 using matchCV_Project.Models.Dtos;
+using System.Security.Claims;
 
 namespace matchCV_Project.Controllers;
 
@@ -40,6 +41,12 @@ public class RecruiterVerificationController : ControllerBase
     {
         try
     {
+        recruiterId = await ResolveRecruiterIdAsync(recruiterId);
+        if (recruiterId <= 0)
+        {
+            return Unauthorized("Recruiter is not authenticated.");
+        }
+
         _logger.LogInformation("SubmitVerification called with recruiterId: {RecruiterId}", recruiterId);
         
         // Check if there's already a verification (any status)
@@ -437,5 +444,20 @@ public class RecruiterVerificationController : ControllerBase
             verification.UpdatedAt
         };
     }
-}
 
+    private async Task<int> ResolveRecruiterIdAsync(int recruiterIdFromQuery)
+    {
+        if (recruiterIdFromQuery > 0)
+        {
+            return recruiterIdFromQuery;
+        }
+
+        var userIdClaim = User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (int.TryParse(userIdClaim, out var userId))
+        {
+            return userId;
+        }
+
+        return 0;
+    }
+}

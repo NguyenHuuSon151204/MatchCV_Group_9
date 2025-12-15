@@ -38,11 +38,25 @@ export const recruiterService = {
     // Backend returns array directly
     return response.data || response
   },
+
+  async downloadJobApplications(jobId: number) {
+    const response = await apiClient.get(`/recruiter/jobs/${jobId}/applications/download`, {
+      responseType: 'blob',
+    })
+    return response.data as Blob
+  },
   
   async getApplication(applicationId: number) {
     const response = await apiClient.get(`/recruiter/applications/${applicationId}`)
     // Backend returns object directly
     return response.data || response
+  },
+
+  async downloadApplication(applicationId: number) {
+    const response = await apiClient.get(`/recruiter/applications/${applicationId}/download`, {
+      responseType: 'blob',
+    })
+    return response.data as Blob
   },
   
   async updateApplication(jobId: number, applicationId: number, data: { status: string }) {

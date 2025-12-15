@@ -23,7 +23,7 @@ namespace matchCV_Project.Data
             }
 
             var templateId = await context.Cvtemplates.Select(t => t.Id).FirstOrDefaultAsync();
-            var userId = 10; // default candidate user we used elsewhere
+            var userId = await EnsureSampleUserAsync(context, logger);
 
             // Seed sample CVs if none exist for this user
             var existingSamples = await context.Documents
@@ -117,6 +117,33 @@ namespace matchCV_Project.Data
                 await context.SaveChangesAsync();
                 logger?.LogInformation("Seeded sample JD for analyzer.");
             }
+        }
+
+        private static async Task<int> EnsureSampleUserAsync(MatchCvContext context, ILogger? logger)
+        {
+            const string email = "sample-candidate@matchcv.local";
+            var user = await context.Users.FirstOrDefaultAsync(u => u.Email == email);
+
+            if (user == null)
+            {
+                user = new User
+                {
+                    DisplayName = "Sample Candidate",
+                    Email = email,
+                    Password = "sample123!",
+                    Role = "Candidate",
+                    Verified = true,
+                    IsActive = true,
+                    IsDeleted = false,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                context.Users.Add(user);
+                await context.SaveChangesAsync();
+                logger?.LogInformation("Created sample candidate user with id {Id}", user.Id);
+            }
+
+            return user.Id;
         }
     }
 }

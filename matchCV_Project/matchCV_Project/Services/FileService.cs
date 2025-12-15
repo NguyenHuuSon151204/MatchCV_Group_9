@@ -77,11 +77,23 @@ public class FileService : IFileService
     {
         try
         {
-            var fullPath = Path.Combine(_environment.WebRootPath, filePath);
+            if (string.IsNullOrWhiteSpace(filePath))
+            {
+                return Array.Empty<byte>();
+            }
+
+            // Support both relative (uploads/...) and absolute paths
+            var relativePath = filePath.TrimStart(Path.DirectorySeparatorChar, '/');
+            var fullPath = Path.IsPathRooted(filePath)
+                ? filePath
+                : Path.Combine(_environment.WebRootPath, relativePath);
+
             if (File.Exists(fullPath))
             {
                 return await File.ReadAllBytesAsync(fullPath);
             }
+
+            _logger.LogWarning("File not found at path: {Path}", fullPath);
             return Array.Empty<byte>();
         }
         catch (Exception ex)

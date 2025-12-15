@@ -1,5 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using System.IO;
+using System.IO.Compression;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -17,6 +19,7 @@ public class RecruiterController : ControllerBase
     private readonly MatchCvContext _db;
     private readonly IAiService _ai;
     private readonly EmailService _email;
+    private readonly IFileService _fileService;
     private readonly ILogger<RecruiterController> _logger;
 
     public record JobRequestDto(
@@ -28,11 +31,12 @@ public class RecruiterController : ControllerBase
     );
 
 
-    public RecruiterController(MatchCvContext db, IAiService ai, EmailService email, ILogger<RecruiterController> logger)
+    public RecruiterController(MatchCvContext db, IAiService ai, EmailService email, IFileService fileService, ILogger<RecruiterController> logger)
     {
         _db = db;
         _ai = ai;
         _email = email;
+        _fileService = fileService;
         _logger = logger;
     }
 
@@ -629,6 +633,96 @@ public class RecruiterController : ControllerBase
         return Ok(list);
     }
 
+    // GET: /api/recruiter/jobs/{id}/applications/download
+    // Download all candidate documents for a job as a ZIP file
+    [HttpGet("jobs/{id:int}/applications/download")]
+    public async Task<IActionResult> DownloadApplications(int id)
+    {
+        var job = await _db.Jobs.FindAsync(id);
+        if (job is null) return NotFound("Job not found.");
+
+        if (User.Identity?.IsAuthenticated != true)
+        {
+            return Unauthorized("User not authenticated.");
+        }
+
+        // Only job owner or admin
+        if (User.Identity?.IsAuthenticated == true)
+        {
+            var idClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+            if (idClaim != null && int.TryParse(idClaim.Value, out int currentUserId))
+            {
+                if (job.UserId != currentUserId && !User.IsInRole("Admin"))
+                {
+                    return Forbid();
+                }
+            }
+        }
+
+        var applications = await _db.Applications
+            .Where(a => a.JobId == id)
+            .Join(_db.Documents, a => a.DocumentId, d => d.Id, (a, d) => new { App = a, Document = d })
+            .Join(_db.Users, x => x.App.CandidateId, u => u.Id, (x, u) => new { x.App, x.Document, Candidate = u })
+            .ToListAsync();
+
+        if (applications.Count == 0)
+        {
+            return NotFound("No application files found for this job.");
+        }
+
+        await using var memoryStream = new MemoryStream();
+        using (var zip = new ZipArchive(memoryStream, ZipArchiveMode.Create, true))
+        {
+            var usedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var index = 1;
+            var added = 0;
+
+            foreach (var item in applications)
+            {
+                if (string.IsNullOrWhiteSpace(item.Document.StoragePath))
+                {
+                    continue;
+                }
+
+                var fileBytes = await _fileService.GetFileAsync(item.Document.StoragePath);
+                if (fileBytes.Length == 0)
+                {
+                    _logger.LogWarning("Skip missing file for application {AppId} with storage path {Path}", item.App.Id, item.Document.StoragePath);
+                    continue;
+                }
+
+                var candidateName = string.IsNullOrWhiteSpace(item.Candidate.DisplayName)
+                    ? "candidate"
+                    : item.Candidate.DisplayName!;
+                var originalName = string.IsNullOrWhiteSpace(item.Document.OriginalName)
+                    ? $"cv_{item.Document.Id}"
+                    : Path.GetFileName(item.Document.OriginalName);
+
+                var safeName = SanitizeFileName($"{candidateName}_{originalName}");
+                var finalName = safeName;
+                while (!usedNames.Add(finalName))
+                {
+                    finalName = $"{Path.GetFileNameWithoutExtension(safeName)}_{index}{Path.GetExtension(safeName)}";
+                    index++;
+                }
+
+                var entry = zip.CreateEntry(finalName, CompressionLevel.Fastest);
+                await using var entryStream = entry.Open();
+                await entryStream.WriteAsync(fileBytes, 0, fileBytes.Length);
+                added++;
+            }
+
+            if (added == 0)
+            {
+                return NotFound("No application files available to download.");
+            }
+        }
+
+        memoryStream.Position = 0;
+        var zipName = $"job-{id}-applications.zip";
+        return File(memoryStream.ToArray(), "application/zip", zipName);
+    }
+
     // POST: /api/recruiter/jobs/{id}/apply
     public record ApplyDto(int DocumentId, int CandidateId);
 
@@ -760,6 +854,57 @@ public class RecruiterController : ControllerBase
         return Ok(result);
     }
 
+    // GET: /api/recruiter/applications/{id}/download
+    // Download a single applicant document (CV)
+    [HttpGet("applications/{id:int}/download")]
+    public async Task<IActionResult> DownloadApplication(int id)
+    {
+        var app = await _db.Applications
+            .Include(a => a.Document)
+            .Include(a => a.Job)
+            .Include(a => a.Candidate)
+            .FirstOrDefaultAsync(a => a.Id == id);
+
+        if (app is null || app.Document is null)
+        {
+            return NotFound("Application or document not found.");
+        }
+
+        // Only job owner or admin
+        if (User.Identity?.IsAuthenticated != true)
+        {
+            return Unauthorized("User not authenticated.");
+        }
+
+        var idClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+        if (idClaim != null && int.TryParse(idClaim.Value, out int currentUserId))
+        {
+            if (app.Job != null && app.Job.UserId != currentUserId && !User.IsInRole("Admin"))
+            {
+                return Forbid();
+            }
+        }
+
+        // Prefer StoragePath; fall back to FileName relative to uploads if needed
+        var storagePath = app.Document.StoragePath;
+        if (string.IsNullOrWhiteSpace(storagePath) && !string.IsNullOrWhiteSpace(app.Document.FileName))
+        {
+            storagePath = Path.Combine("uploads", app.Document.FileName);
+        }
+
+        var fileBytes = await _fileService.GetFileAsync(storagePath ?? string.Empty);
+        if (fileBytes.Length == 0)
+        {
+            return NotFound("Document file not found on server.");
+        }
+
+        var fileName = SanitizeFileName(string.IsNullOrWhiteSpace(app.Document.OriginalName)
+            ? $"cv_{app.Document.Id}.pdf"
+            : app.Document.OriginalName);
+
+        return File(fileBytes, app.Document.ContentType ?? "application/octet-stream", fileName);
+    }
+
     // PATCH: /api/recruiter/applications/{id}/status
     public record StatusDto(string Status);
 
@@ -885,6 +1030,13 @@ public class RecruiterController : ControllerBase
             .Where(s => !string.IsNullOrWhiteSpace(s))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
+    }
+
+    private static string SanitizeFileName(string name)
+    {
+        var invalid = Path.GetInvalidFileNameChars();
+        var cleaned = new string(name.Select(ch => invalid.Contains(ch) ? '_' : ch).ToArray());
+        return string.IsNullOrWhiteSpace(cleaned) ? "file" : cleaned;
     }
 
     private static double? CalculateAverageScore(IEnumerable<Application> applications)
