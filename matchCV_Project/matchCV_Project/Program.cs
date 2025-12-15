@@ -40,17 +40,8 @@ builder.Services.AddAuthentication(options =>
 .AddCookie(options =>
 {
     options.Cookie.HttpOnly = true;
-    // In dev we run over HTTP, so allow non-secure cookies; tighten in prod.
-    if (builder.Environment.IsDevelopment())
-    {
-        options.Cookie.SecurePolicy = CookieSecurePolicy.None;
-        options.Cookie.SameSite = SameSiteMode.Lax;
-    }
-    else
-    {
-        options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-        options.Cookie.SameSite = SameSiteMode.None;
-    }
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+    options.Cookie.SameSite = SameSiteMode.None;
 
     // expiry
     options.ExpireTimeSpan = TimeSpan.FromHours(1);
@@ -90,7 +81,10 @@ builder.Services.AddScoped<ITemplateService, TemplateService>();
 builder.Services.AddScoped<ICVService, CVService>();
 builder.Services.AddScoped<IExportService, ExportService>();
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
+builder.Services.AddScoped<IAccountService, AccountService>();
+builder.Services.AddScoped<ILicenseService, LicenseService>();
 builder.Services.AddScoped<EmailService>();
+builder.Services.AddScoped<PayOSService>();
 builder.Services.AddScoped<IGeminiService, GeminiService>();
 builder.Services.AddScoped<DynamicWeightService>();
 builder.Services.AddScoped<AchievementDetector>();

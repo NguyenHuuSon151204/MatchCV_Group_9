@@ -17,6 +17,7 @@ import LiveCVBuilder from '@/src/components/LiveCV/LiveCVBuilder'
 import ProtectedRoute from '@/components/auth/ProtectedRoute'
 import Login from '@/components/auth/Login'
 import { RouterErrorBoundary } from '@/components/common/router-error'
+import EmbeddedPayOS from '@/components/payos/payos'
 
 const routes = [
   {
@@ -24,10 +25,10 @@ const routes = [
     children: [{ path: 'login', element: <Login /> }],
   },
   {
+    path: '/app',
     element: <ProtectedRoute />, // Protect everything inside
     children: [
       {
-        path: '/app',
         element: <MainLayout />,
         children: [
           { index: true, element: <Navigate to="dashboard" replace /> },
@@ -42,6 +43,7 @@ const routes = [
           { path: 'jobs/applied', element: <AppliedJobsPage /> },
           { path: 'jobs/:jobId', element: <JobDetailsPage /> },
           { path: 'post-job', element: <PostJobPage /> },
+          { path: 'payos', element: <EmbeddedPayOS /> }
         ],
         errorElement: <RouterErrorBoundary />,
       },

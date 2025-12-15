@@ -61,7 +61,7 @@ namespace matchCV_Project.Data
                 var documents = cvPayloads.Select((cv, idx) => new Document
                 {
                     UserId = userId,
-                    CvTemplateId = templateId,
+                    TemplateId = templateId,
                     DocType = "cv",
                     OriginalName = cv.Name,
                     Status = "draft",

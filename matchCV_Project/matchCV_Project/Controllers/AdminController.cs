@@ -618,48 +618,48 @@ public class AdminController : ControllerBase
     }
 
     // GET: /api/admin/licenses - Get all license keys
-    [HttpGet("licenses")]
-    public async Task<IActionResult> GetLicenses(
-        [FromQuery] string? search,
-        [FromQuery] string? status)
-    {
-        var query = _db.LicenseKeys.AsQueryable();
+    //[HttpGet("licenses")]
+    //public async Task<IActionResult> GetLicenses(
+    //    [FromQuery] string? search,
+    //    [FromQuery] string? status)
+    //{
+    //    var query = _db.LicenseKeys.AsQueryable();
 
-        if (!string.IsNullOrWhiteSpace(search))
-        {
-            query = query.Where(l =>
-                l.Plan.Contains(search) ||
-                (l.OriginalKey != null && l.OriginalKey.Contains(search)));
-        }
+    //    if (!string.IsNullOrWhiteSpace(search))
+    //    {
+    //        query = query.Where(l =>
+    //            l.Plan.Contains(search) ||
+    //            (l.OriginalKey != null && l.OriginalKey.Contains(search)));
+    //    }
 
-        if (!string.IsNullOrWhiteSpace(status))
-        {
-            if (status.ToLower() == "active")
-                query = query.Where(l => l.IsActive);
-            else if (status.ToLower() == "inactive")
-                query = query.Where(l => !l.IsActive);
-        }
+    //    if (!string.IsNullOrWhiteSpace(status))
+    //    {
+    //        if (status.ToLower() == "active")
+    //            query = query.Where(l => l.IsActive);
+    //        else if (status.ToLower() == "inactive")
+    //            query = query.Where(l => !l.IsActive);
+    //    }
 
-        var licenses = await query
-            .OrderByDescending(l => l.CreatedAt)
-            .ToListAsync();
+    //    var licenses = await query
+    //        .OrderByDescending(l => l.CreatedAt)
+    //        .ToListAsync();
 
-        var result = licenses.Select(l => new
-        {
-            l.Id,
-            l.Plan,
-            l.OriginalKey,
-            l.AssignedUserId,
-            AssignedUserName = l.AssignedUserId != null
-                ? _db.Users.FirstOrDefault(u => u.Id == l.AssignedUserId)?.DisplayName
-                : null,
-            l.IsActive,
-            l.Expiry,
-            l.CreatedAt
-        }).ToList();
+    //    var result = licenses.Select(l => new
+    //    {
+    //        l.Id,
+    //        l.Plan,
+    //        l.OriginalKey,
+    //        l.AssignedUserId,
+    //        AssignedUserName = l.AssignedUserId != null
+    //            ? _db.Users.FirstOrDefault(u => u.Id == l.AssignedUserId)?.DisplayName
+    //            : null,
+    //        l.IsActive,
+    //        l.Expiry,
+    //        l.CreatedAt
+    //    }).ToList();
 
-        return Ok(result);
-    }
+    //    return Ok(result);
+    //}
 
     // GET: /api/admin/verifications - Get all recruiter verifications
     [HttpGet("verifications")]

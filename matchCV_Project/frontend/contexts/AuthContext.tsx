@@ -36,12 +36,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         }
         console.log("AuthContext loadUser:", res.data);
       } catch (err: any) {
-        if (err.response?.status === 401) {
-          setUser(null);
-          localStorage.removeItem('userId');
-        } else {
-          console.error("Unexpected error in /account/me:", err);
-        }
+        console.info("User not authenticated yet");
       } finally {
         setLoading(false);
       }
@@ -168,9 +163,32 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
+  const forgotpass = async (email: string) => {
+    setLoading(true);
+    try {
+      const res = await api.post("/account/forgot-password", {email});
+      return res;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resetpass = async (token: string, newPassword: string) => {
+    setLoading(true);
+    try {
+      const res = await api.post("/account/reset-password", {
+        token,
+        newPassword,
+      });
+      return res;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <AuthContext.Provider
-      value={{ user, loading, login, ggregister, register, logout, updateProfile }}
+      value={{ user, loading, login, ggregister, register, logout, updateProfile, forgotpass, resetpass }}
     >
       {children}
     </AuthContext.Provider>

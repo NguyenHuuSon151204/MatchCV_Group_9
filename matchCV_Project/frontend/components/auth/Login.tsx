@@ -1,22 +1,26 @@
 'use client'
 
-import { useState, useContext } from "react";
+import { useState, useContext, useEffect } from "react";
 import { AuthContext } from "../../contexts/AuthContext";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useSearchParams } from "next/navigation";
 
 export default function Login() {
   const authContext = useContext(AuthContext);
   if (!authContext) {
     throw new Error("AuthContext must be used within AuthProvider");
   }
-  const { login } = authContext;
+  const { login, loading } = authContext;
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isVerified = searchParams.get("verified") === "true";
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault(); // Prevent page reload
@@ -54,6 +58,12 @@ export default function Login() {
           <CardDescription>Enter your credentials to access your account</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {isVerified && (
+            <p className="text-sm text-green-600">
+              Your email has been verified successfully. You can now log in.
+            </p>
+          )}
+
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Input
@@ -72,12 +82,20 @@ export default function Login() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
+              <button
+                type="button"
+                onClick={() => router.push("/auth/forgot-pass")}
+                className="text-xs text-primary hover:underline mt-1"
+              >
+                Forgot password?
+              </button>
+
             </div>
             {error && (
               <p className="text-sm text-destructive">{error}</p>
             )}
             <Button type="submit" className="w-full">
-              Login
+              {loading? "Logging in" : "Login"}
             </Button>
           </form>
 

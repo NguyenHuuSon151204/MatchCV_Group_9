@@ -56,7 +56,7 @@ public class DocumentService : IDocumentService
             {
                 UserId = userId,
                 OriginalName = dto.Title ?? dto.OriginalName ?? "Untitled CV",
-                CvTemplateId = templateId,
+                TemplateId = templateId,
                 CvData = dto.CvData != null ? JsonSerializer.Serialize(dto.CvData) : null,
                 DocType = "CV",
                 Status = "Draft",
@@ -133,7 +133,7 @@ public class DocumentService : IDocumentService
                 UserId = document.UserId ?? 0,
                 OriginalName = document.OriginalName ?? string.Empty,
                 Title = document.OriginalName ?? string.Empty, // Map Title from OriginalName
-                TemplateType = document.CvTemplate?.Key ?? "professional", // Map TemplateType
+                TemplateType = document.Template?.Key ?? "professional", // Map TemplateType
                 DocType = document.DocType ?? string.Empty,
                 FileName = document.FileName ?? string.Empty,
                 StoragePath = document.StoragePath,
@@ -177,12 +177,12 @@ public class DocumentService : IDocumentService
                 .FirstOrDefaultAsync(t => t.Key == dto.TemplateType);
             if (template != null)
             {
-                document.CvTemplateId = template.Id;
+                document.TemplateId = template.Id;
             }
         }
         else if (dto.TemplateId.HasValue)
         {
-            document.CvTemplateId = dto.TemplateId;
+            document.TemplateId = dto.TemplateId;
         }
 
         if (dto.CvData != null)

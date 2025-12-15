@@ -246,9 +246,30 @@ CREATE TABLE dbo.Jobs (
     [Status]        NVARCHAR(50) NOT NULL DEFAULT 'Active',
     CreatedAt       DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
     UpdatedAt       DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+	Deadline datetime2 NULL,
+	MaxApplicants int NULL,
     CONSTRAINT FK_Jobs_Users
         FOREIGN KEY (UserId) REFERENCES dbo.Users(Id) ON DELETE CASCADE
 );
+GO
+
+/* 12. Notifications */
+IF OBJECT_ID('dbo.Notifications','U') IS NULL
+CREATE TABLE Notifications (
+    Id int IDENTITY PRIMARY KEY,
+    Role nvarchar(50) NOT NULL DEFAULT 'Candidate',
+    UserId int NULL,
+    Title nvarchar(200) NOT NULL,
+    Message nvarchar(500) NOT NULL,
+    Category nvarchar(20) NOT NULL DEFAULT 'info',
+    IsRead bit NOT NULL DEFAULT 0,
+    CreatedAt datetime2 NOT NULL DEFAULT (sysutcdatetime()),
+    CONSTRAINT FK_Notifications_Users FOREIGN KEY (UserId) REFERENCES Users(Id)
+);
+GO
+CREATE INDEX IX_Notifications_UserId ON Notifications(UserId);
+CREATE INDEX IX_Notifications_Role ON Notifications(Role);
+CREATE INDEX IX_Notifications_CreatedAt ON Notifications(CreatedAt);
 GO
 
 /* 13. RequiredSkills */
@@ -464,15 +485,37 @@ CREATE TABLE dbo.SavedCVs (
 );
 GO
 
-/* 27. EmailVerificationTokens - from File 1 */
-IF OBJECT_ID('dbo.EmailVerificationTokens', 'U') IS NULL
-CREATE TABLE dbo.EmailVerificationTokens(
-    Id INT IDENTITY(1,1) PRIMARY KEY,
-    UserId INT NOT NULL,
-    Token NVARCHAR(500) NOT NULL,
-    ExpiresAt DATETIME2 NOT NULL,
-    CONSTRAINT FK_EmailVerificationTokens_Users
-        FOREIGN KEY (UserId) REFERENCES dbo.Users(Id)
-        ON DELETE CASCADE
+/* 23. RecruiterVerifications - Xác thực nhà tuyển dụng */
+IF OBJECT_ID('dbo.RecruiterVerifications','U') IS NULL
+CREATE TABLE dbo.RecruiterVerifications (
+    Id                          INT IDENTITY(1,1) PRIMARY KEY,
+    RecruiterId                 INT             NOT NULL,
+    CompanyName                 NVARCHAR(200)   NOT NULL,
+    CompanyEmail                NVARCHAR(250)   NOT NULL,
+    CompanyPhone                NVARCHAR(50)    NULL,
+    CompanyAddress              NVARCHAR(200)   NULL,
+    TaxCode                     NVARCHAR(50)    NULL,
+    BusinessLicenseDocumentId   INT             NULL,
+    CompanyProofDocumentId      INT             NULL,
+    Status                      NVARCHAR(30)   NOT NULL DEFAULT N'Pending',
+    AdminNotes                  NVARCHAR(500)   NULL,
+    ReviewedByAdminId           INT             NULL,
+    ReviewedAt                  DATETIME2       NULL,
+    CreatedAt                   DATETIME2       NOT NULL DEFAULT SYSUTCDATETIME(),
+    UpdatedAt                   DATETIME2       NULL,
+    CONSTRAINT FK_RecruiterVerification_Users_Recruiter
+        FOREIGN KEY (RecruiterId) REFERENCES dbo.Users(Id) ON DELETE CASCADE,
+    CONSTRAINT FK_RecruiterVerification_Documents_BusinessLicense
+        FOREIGN KEY (BusinessLicenseDocumentId) REFERENCES dbo.Documents(Id) ON DELETE NO ACTION,
+    CONSTRAINT FK_RecruiterVerification_Documents_CompanyProof
+        FOREIGN KEY (CompanyProofDocumentId) REFERENCES dbo.Documents(Id) ON DELETE NO ACTION,
+    CONSTRAINT FK_RecruiterVerification_Users_Admin
+        FOREIGN KEY (ReviewedByAdminId) REFERENCES dbo.Users(Id) ON DELETE NO ACTION,
+    CONSTRAINT CK_RecruiterVerification_Status
+        CHECK (Status IN ('Pending', 'Approved', 'Rejected'))
 );
+GO
+CREATE INDEX IX_RecruiterVerification_RecruiterId ON dbo.RecruiterVerifications(RecruiterId);
+CREATE INDEX IX_RecruiterVerification_Status ON dbo.RecruiterVerifications(Status);
+CREATE INDEX IX_RecruiterVerification_CreatedAt ON dbo.RecruiterVerifications(CreatedAt);
 GO

@@ -23,7 +23,7 @@ public class DocumentRepository : BaseRepository<Document>, IDocumentRepository
     {
         return await _dbSet
             .Include(d => d.User)
-            .Include(d => d.CvTemplate)
+            .Include(d => d.Template)
             .Include(d => d.DocumentSkills)
                 .ThenInclude(ds => ds.Skill)
             .Include(d => d.Experiences)
@@ -49,7 +49,7 @@ public class DocumentRepository : BaseRepository<Document>, IDocumentRepository
         // We return Document entities but with only specific fields populated
         return await _dbSet
             .Where(d => d.UserId == userId)
-            .Include(d => d.CvTemplate) // Include template to get the Key
+            .Include(d => d.Template) // Include template to get the Key
             .Select(d => new Document
             {
                 Id = d.Id,
@@ -62,8 +62,8 @@ public class DocumentRepository : BaseRepository<Document>, IDocumentRepository
                 Status = d.Status,
                 CreatedAt = d.CreatedAt,
                 UpdatedAt = d.UpdatedAt,
-                CvTemplateId = d.CvTemplateId,
-                CvTemplate = d.CvTemplate, // EF might not project this automatically in Select new Document, but let's try or map manually
+                TemplateId = d.TemplateId,
+                Template = d.Template, // EF might not project this automatically in Select new Document, but let's try or map manually
                 // CvData is EXCLUDED
             })
             .OrderByDescending(d => d.UpdatedAt)

@@ -9,7 +9,7 @@ public partial class Document
 
     public int? UserId { get; set; }
 
-    public int? CvTemplateId { get; set; }
+    public int? TemplateId { get; set; }
 
     public string DocType { get; set; } = null!;
 
@@ -45,8 +45,6 @@ public partial class Document
 
     public virtual ICollection<Application> Applications { get; set; } = new List<Application>();
 
-    public virtual Cvtemplate? CvTemplate { get; set; }
-
     public virtual ICollection<DocumentSkill> DocumentSkills { get; set; } = new List<DocumentSkill>();
 
     public virtual ICollection<Education> Educations { get; set; } = new List<Education>();
@@ -59,11 +57,13 @@ public partial class Document
 
     public virtual ICollection<Ocrresult> Ocrresults { get; set; } = new List<Ocrresult>();
 
+    public virtual ICollection<RecruiterVerification> RecruiterVerificationBusinessLicenseDocuments { get; set; } = new List<RecruiterVerification>();
+
+    public virtual ICollection<RecruiterVerification> RecruiterVerificationCompanyProofDocuments { get; set; } = new List<RecruiterVerification>();
+
     public virtual ICollection<Section> Sections { get; set; } = new List<Section>();
 
+    public virtual Cvtemplate? Template { get; set; }
+
     public virtual User? User { get; set; }
-
-    public virtual ICollection<RecruiterVerification> RecruiterVerificationsAsBusinessLicense { get; set; } = new List<RecruiterVerification>();
-
-    public virtual ICollection<RecruiterVerification> RecruiterVerificationsAsCompanyProof { get; set; } = new List<RecruiterVerification>();
 }
