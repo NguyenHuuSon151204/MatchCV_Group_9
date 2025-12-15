@@ -17,7 +17,8 @@ namespace matchCV_Project.Services
         private readonly EmailService _email;
         private readonly IConfiguration _config;
         private readonly ILogger<AccountService> _logger;
-        private string Key => _config["JwtKeys:Key"] ?? "dev-reset-secret-key";
+        private bool RequireEmailVerification => _config.GetValue<bool>("Auth:RequireEmailVerification", false);
+        private string PasswordResetKey => _config["JwtKeys:PasswordResetKey"] ?? "dev-reset-secret-key";
 
         public AccountService(MatchCvContext context, EmailService email, IConfiguration configuration, ILogger<AccountService> logger)
         {
@@ -56,23 +57,36 @@ namespace matchCV_Project.Services
                 Email = req.Email,
                 Password = HashPassword(req.Password),
                 Role = req.Role,
-                Verified = false,
+                Verified = !RequireEmailVerification
             };
 
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
 
-            await SendEmailVerification(user, baseUrl);
+            // In local/dev we skip email verification to unblock login with email/password.
+            if (RequireEmailVerification)
+            {
+                await SendEmailVerification(user, baseUrl);
+            }
 
             return (true, null);
         }
 
         private async Task SendEmailVerification(User user, string baseUrl)
         {
-            var token = GenerateToken(user.Id);
+            var token = Guid.NewGuid().ToString("N");
 
-            var verifyUrl = $"{baseUrl}/api/account/verify-email?token={Uri.EscapeDataString(token)}";
+            var ev = new EmailVerificationToken
+            {
+                UserId = user.Id,
+                Token = token,
+                ExpiresAt = DateTime.UtcNow.AddHours(24)
+            };
 
+            _context.EmailVerificationTokens.Add(ev);
+            await _context.SaveChangesAsync();
+
+            var verifyUrl = $"{baseUrl}/api/account/verify-email?userId={user.Id}&token={token}";
             var html = $@"
                 <!DOCTYPE html>
                 <html lang=""en"">
@@ -106,6 +120,14 @@ namespace matchCV_Project.Services
                                 </a>
                             </div>
 
+                            <p style=""font-size: 14px; color: #555;"">
+                                If the button above does not work, you can copy and paste this link into your browser:
+                            </p>
+
+                            <p style=""word-break: break-all; font-size: 14px; color: #555;"">
+                                {verifyUrl}
+                            </p>
+
                             <p style=""font-size: 14px; color: #555;"">This link will expire in 24 hours.</p>
 
                             <p style=""font-size: 14px; color: #555;"">
@@ -129,24 +151,22 @@ namespace matchCV_Project.Services
         // -------------------------
         // VERIFY EMAIL
         // -------------------------
-        public async Task<(bool success, string? error)> VerifyEmailAsync(string token)
+        public async Task<(bool success, string? error)> VerifyEmailAsync(int userId, string token)
         {
-            if (!ValidateToken(token, out int userId))
+            var record = await _context.EmailVerificationTokens
+                .Include(t => t.User)
+                .FirstOrDefaultAsync(t => t.UserId == userId && t.Token == token);
+
+            if (record == null || record.ExpiresAt < DateTime.UtcNow)
                 return (false, "Invalid or expired token");
 
-            var user = await _context.Users.FindAsync(userId);
-            if (user == null)
-                return (false, "User not found");
+            record.User.Verified = true;
 
-            if (user.Verified)
-                return (true, null);
-
-            user.Verified = true;
+            _context.EmailVerificationTokens.Remove(record);
             await _context.SaveChangesAsync();
 
             return (true, null);
         }
-
 
         // -------------------------
         // LOGIN
@@ -168,8 +188,15 @@ namespace matchCV_Project.Services
 
             if (!user.Verified)
             {
-                _logger.LogWarning("Login blocked - email not verified for {Email}", req.Email);
-                return (null, "Please verify your email first");
+                if (RequireEmailVerification)
+                {
+                    _logger.LogWarning("Login blocked - email not verified for {Email}", req.Email);
+                    return (null, "Please verify your email first");
+                }
+
+                // Auto-verify in non-production/local mode so email/password login works.
+                user.Verified = true;
+                await _context.SaveChangesAsync();
             }
 
             return (user, null);
@@ -212,7 +239,7 @@ namespace matchCV_Project.Services
             if (user == null)
                 return (false, "Email not found");
 
-            var token = GenerateToken(user.Id);
+            var token = GenerateResetToken(user.Id);
             var resetUrl = $"http://localhost:3000/auth/reset-pass?token={Uri.EscapeDataString(token)}";
 
             var html = $@"
@@ -230,6 +257,9 @@ namespace matchCV_Project.Services
                             Reset Your Password
                         </a>
                     </p>
+
+                    <p>If the button above doesn't work, you can also copy and paste this link into your browser:</p>
+                    <p><a href=""{resetUrl}"">{resetUrl}</a></p>
 
                     <p>This reset link will expire in <strong>1 hour</strong> for security reasons.</p>
 
@@ -249,7 +279,7 @@ namespace matchCV_Project.Services
 
         public async Task<(bool success, string? error)> ResetPasswordAsync(string token, string newPassword)
         {
-            if (!ValidateToken(token, out int userId))
+            if (!ValidateResetToken(token, out int userId))
                 return (false, "Invalid or expired token");
 
             var user = await _context.Users.FindAsync(userId);
@@ -263,9 +293,9 @@ namespace matchCV_Project.Services
         }
 
 
-        private string GenerateToken(int userId)
+        private string GenerateResetToken(int userId)
         {
-            var key = Encoding.UTF8.GetBytes(Key);
+            var key = Encoding.UTF8.GetBytes(PasswordResetKey);
 
             var expiry = DateTime.UtcNow.AddHours(1);
 
@@ -278,7 +308,7 @@ namespace matchCV_Project.Services
             return Convert.ToBase64String(Encoding.UTF8.GetBytes(token));
         }
 
-        private bool ValidateToken(string token, out int userId)
+        private bool ValidateResetToken(string token, out int userId)
         {
             userId = 0;
 
@@ -295,7 +325,7 @@ namespace matchCV_Project.Services
 
                 if (expiry < DateTime.UtcNow) return false;
 
-                var key = Encoding.UTF8.GetBytes(Key);
+                var key = Encoding.UTF8.GetBytes(PasswordResetKey);
                 var payload = $"{parts[0]}|{parts[1]}";
 
                 using var hmac = new HMACSHA256(key);

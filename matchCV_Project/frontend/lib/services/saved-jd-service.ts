@@ -1,50 +1,39 @@
-export type SavedJd = {
-  id: string
-  title: string
-  content: string
-  savedAt: string
-}
+const STORAGE_KEY = 'saved-jd-list'
+const MAX_ITEMS = 20
 
-const STORAGE_KEY = 'saved-jds'
+export type SavedJd = { id: string; title: string; content: string }
 
-const load = (): SavedJd[] => {
+function load(): SavedJd[] {
   if (typeof window === 'undefined') return []
+  const raw = window.localStorage.getItem(STORAGE_KEY)
+  if (!raw) return []
   try {
-    const raw = window.localStorage.getItem(STORAGE_KEY)
-    return raw ? (JSON.parse(raw) as SavedJd[]) : []
+    const parsed = JSON.parse(raw)
+    return Array.isArray(parsed) ? parsed : []
   } catch {
     return []
   }
 }
 
-const persist = (items: SavedJd[]) => {
+function persist(items: SavedJd[]) {
   if (typeof window === 'undefined') return
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(items))
+  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(items.slice(0, MAX_ITEMS)))
 }
 
 export const savedJdService = {
   list(): SavedJd[] {
     return load()
   },
-
   save(content: string): SavedJd {
-    const items = load()
-    const firstLine = content.trim().split(/\r?\n/)[0] ?? ''
-    const title = firstLine || 'Saved JD'
-    const entry: SavedJd = {
-      id: Date.now().toString(),
-      title: title.slice(0, 80),
-      content,
-      savedAt: new Date().toISOString(),
-    }
-    const next = [entry, ...items].slice(0, 50)
-    persist(next)
+    const title = content.split('\n').find((l) => l.trim())?.slice(0, 60) || 'Untitled JD'
+    const entry: SavedJd = { id: `${Date.now()}`, title, content }
+    const updated = [entry, ...load()].slice(0, MAX_ITEMS)
+    persist(updated)
     return entry
   },
-
   delete(id: string): SavedJd[] {
-    const next = load().filter((item) => item.id !== id)
-    persist(next)
-    return next
+    const filtered = load().filter((j) => j.id !== id)
+    persist(filtered)
+    return filtered
   },
 }

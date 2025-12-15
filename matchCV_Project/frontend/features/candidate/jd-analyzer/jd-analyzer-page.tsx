@@ -10,16 +10,14 @@ import { useAnalyze } from '@/hooks/useAnalyze'
 import { useCV } from '@/hooks/useCV'
 import { activityService } from '@/lib/services/activity-service'
 import { savedJdService, type SavedJd } from '@/lib/services/saved-jd-service'
-import { useToastContext } from '@/contexts/toast-context'
 
 export function JDAnalyzerPage() {
   const location = useLocation()
-  const preset = (location.state as { jdContent?: string; cvId?: string } | null) ?? null
+  const preset = (location.state as { jdContent?: string } | null) ?? null
   const [jobDescription, setJobDescription] = useState('')
   const [selectedCvId, setSelectedCvId] = useState<string | null>(null)
   const { analyzeJD, jdAnalysis, jdError, analysisLoading } = useAnalyze()
   const { cvs, loading: cvsLoading } = useCV()
-  const toast = useToastContext()
   const selectedCvName = cvs.find((cv) => cv.id === selectedCvId)?.name || 'CV'
   const [savedJds, setSavedJds] = useState<SavedJd[]>([])
 
@@ -34,30 +32,19 @@ export function JDAnalyzerPage() {
   }, [preset])
 
   useEffect(() => {
-    if (preset?.cvId && cvs.some((cv) => cv.id === preset.cvId)) {
-      setSelectedCvId(preset.cvId)
-    } else if (!selectedCvId && cvs.length === 1) {
+    if (!selectedCvId && cvs.length === 1) {
       setSelectedCvId(cvs[0].id)
     }
-  }, [cvs, selectedCvId, preset])
+  }, [cvs, selectedCvId])
 
   const handleAnalyze = async () => {
     if (!jobDescription.trim() || !selectedCvId) return
-    const selectedCv = cvs.find((cv) => cv.id === selectedCvId)
-    const cvText =
-      selectedCv?.description ||
-      selectedCv?.cvData?.personalInfo?.summary ||
-      selectedCv?.name ||
-      'CV Content'
-    const result = await analyzeJD(jobDescription, cvText, undefined, undefined)
+    const result = await analyzeJD(jobDescription)
     if (result) {
       activityService.add({
         title: 'JD Analyzed',
         description: `Ran JD analysis for CV "${selectedCvName}"`,
       })
-      toast.success('JD analyzed', `Score: ${result.totalScore ?? ''} ${result.label ?? ''}`.trim())
-    } else {
-      toast.error('JD analyze failed', 'Please try again later')
     }
   }
 

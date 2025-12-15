@@ -108,17 +108,6 @@ export function JobDetailsPage() {
     }
   }, [job])
 
-  const jobClosed = useMemo(() => {
-    if (!job) return false
-    const statusClosed = job.status?.toLowerCase() === 'closed'
-    const deadlinePassed = job.deadline ? new Date(job.deadline) < new Date() : false
-    const maxReached =
-      job.maxApplicants != null &&
-      job.maxApplicants > 0 &&
-      (job.applications ?? 0) >= job.maxApplicants
-    return statusClosed || deadlinePassed || maxReached
-  }, [job])
-
   const bulletList = (source?: string, fallback: string[] = []) => {
     if (!source) return fallback
     const items = source
@@ -229,16 +218,8 @@ export function JobDetailsPage() {
             )}
 
               <div className="flex flex-wrap gap-3">
-                <Button
-                  size="lg"
-                  className="rounded-full px-6"
-                  disabled={jobClosed || applied}
-                  onClick={() => {
-                    if (jobClosed) return
-                    setApplyDialogOpen(true)
-                  }}
-                >
-                  {jobClosed ? 'Job Closed' : applied ? 'Applied' : 'Apply Now'}
+                <Button size="lg" className="rounded-full px-6" onClick={() => setApplyDialogOpen(true)}>
+                  {applied ? 'Applied' : 'Apply Now'}
                 </Button>
                 <Button
                   size="lg"
@@ -400,10 +381,10 @@ export function JobDetailsPage() {
               </div>
               <div className="flex items-center gap-2">
                 <Badge
-                  variant={jobClosed ? 'destructive' : job.status === 'Active' ? 'default' : 'secondary'}
+                  variant={job.status === 'Active' ? 'default' : 'secondary'}
                   className="rounded-full"
                 >
-                  {jobClosed ? 'Closed' : job.status}
+                  {job.status}
                 </Badge>
               </div>
             </div>
@@ -442,7 +423,7 @@ export function JobDetailsPage() {
       />
 
       <ApplyCVDialog
-        open={applyDialogOpen && !jobClosed}
+        open={applyDialogOpen}
         onOpenChange={setApplyDialogOpen}
         onApplied={() => {
           setApplied(true)

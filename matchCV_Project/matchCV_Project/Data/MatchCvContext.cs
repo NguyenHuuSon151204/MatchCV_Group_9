@@ -34,6 +34,8 @@ public partial class MatchCvContext : DbContext
 
     public virtual DbSet<Education> Educations { get; set; }
 
+    public virtual DbSet<EmailVerificationToken> EmailVerificationTokens { get; set; }
+
     public virtual DbSet<Embedding> Embeddings { get; set; }
 
     public virtual DbSet<EmbeddingCache> EmbeddingCaches { get; set; }
@@ -54,10 +56,8 @@ public partial class MatchCvContext : DbContext
 
     public virtual DbSet<MissingItem> MissingItems { get; set; }
 
-    public virtual DbSet<Notification> Notifications { get; set; }
-
     public virtual DbSet<Ocrresult> Ocrresults { get; set; }
-
+    public virtual DbSet<Notification> Notifications { get; set; }
     public virtual DbSet<RecruiterVerification> RecruiterVerifications { get; set; }
 
     public virtual DbSet<RequiredSkill> RequiredSkills { get; set; }
@@ -80,11 +80,7 @@ public partial class MatchCvContext : DbContext
     {
         modelBuilder.Entity<AdminLog>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__AdminLog__3214EC071038136F");
-
-            entity.HasIndex(e => e.CreatedAt, "IX_AdminLogs_CreatedAt");
-
-            entity.HasIndex(e => new { e.Entity, e.EntityId }, "IX_AdminLogs_Entity_EntityId");
+            entity.HasKey(e => e.Id).HasName("PK__AdminLog__3214EC0702CA0BAF");
 
             entity.Property(e => e.Action).HasMaxLength(100);
             entity.Property(e => e.Actor).HasMaxLength(200);
@@ -95,7 +91,7 @@ public partial class MatchCvContext : DbContext
 
         modelBuilder.Entity<ApicallLog>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__APICallL__3214EC0725C840F4");
+            entity.HasKey(e => e.Id).HasName("PK__APICallL__3214EC07E4A21A02");
 
             entity.ToTable("APICallLogs");
 
@@ -109,7 +105,7 @@ public partial class MatchCvContext : DbContext
 
         modelBuilder.Entity<Apisetting>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__APISetti__3214EC07FFE8A37C");
+            entity.HasKey(e => e.Id).HasName("PK__APISetti__3214EC0726CA6C3A");
 
             entity.ToTable("APISettings");
 
@@ -123,15 +119,7 @@ public partial class MatchCvContext : DbContext
 
         modelBuilder.Entity<Application>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Applicat__3214EC070847CDC4");
-
-            entity.HasIndex(e => e.CandidateId, "IX_Applications_CandidateId");
-
-            entity.HasIndex(e => e.CreatedAt, "IX_Applications_CreatedAt");
-
-            entity.HasIndex(e => e.JobId, "IX_Applications_JobId");
-
-            entity.HasIndex(e => e.Status, "IX_Applications_Status");
+            entity.HasKey(e => e.Id).HasName("PK__Applicat__3214EC075A978F19");
 
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
             entity.Property(e => e.Status)
@@ -154,9 +142,7 @@ public partial class MatchCvContext : DbContext
 
         modelBuilder.Entity<Bullet>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Bullets__3214EC07F631F642");
-
-            entity.HasIndex(e => e.SectionId, "IX_Bullets_SectionId");
+            entity.HasKey(e => e.Id).HasName("PK__Bullets__3214EC073D19D9B3");
 
             entity.HasOne(d => d.Section).WithMany(p => p.Bullets)
                 .HasForeignKey(d => d.SectionId)
@@ -165,11 +151,11 @@ public partial class MatchCvContext : DbContext
 
         modelBuilder.Entity<Cvtemplate>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__CVTempla__3214EC0752D52AD1");
+            entity.HasKey(e => e.Id).HasName("PK__CVTempla__3214EC078FBAD6DE");
 
             entity.ToTable("CVTemplates");
 
-            entity.HasIndex(e => e.Key, "UQ__CVTempla__C41E0289DE48762E").IsUnique();
+            entity.HasIndex(e => e.Key, "UQ_CVTemplates_Key").IsUnique();
 
             entity.Property(e => e.Address).HasMaxLength(500);
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
@@ -194,13 +180,9 @@ public partial class MatchCvContext : DbContext
 
         modelBuilder.Entity<Document>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Document__3214EC07BA44AC6A");
+            entity.HasKey(e => e.Id).HasName("PK__Document__3214EC07ADBDF128");
 
             entity.HasIndex(e => e.DocType, "IX_Documents_DocType");
-
-            entity.HasIndex(e => new { e.Status, e.IsDeleted }, "IX_Documents_Status_IsDeleted").HasFilter("([IsDeleted]=(0))");
-
-            entity.HasIndex(e => e.TemplateId, "IX_Documents_TemplateId").HasFilter("([TemplateId] IS NOT NULL)");
 
             entity.HasIndex(e => e.CreatedAt, "IX_Documents_Uploaded");
 
@@ -219,23 +201,20 @@ public partial class MatchCvContext : DbContext
             entity.Property(e => e.StoragePath).HasMaxLength(400);
             entity.Property(e => e.UpdatedAt).HasDefaultValueSql("(sysutcdatetime())");
 
+            entity.Property(e => e.TemplateId).HasColumnName("TemplateId");
+
             entity.HasOne(d => d.Template).WithMany(p => p.Documents)
                 .HasForeignKey(d => d.TemplateId)
-                .OnDelete(DeleteBehavior.SetNull)
                 .HasConstraintName("FK_Documents_CVTemplates");
 
-            entity.HasOne(d => d.User).WithMany(p => p.Documents).HasForeignKey(d => d.UserId);
+            entity.HasOne(d => d.User).WithMany(p => p.Documents)
+                .HasForeignKey(d => d.UserId)
+                .HasConstraintName("FK_Documents_Users");
         });
 
         modelBuilder.Entity<DocumentSkill>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Document__3214EC07F14E9437");
-
-            entity.HasIndex(e => e.DocumentId, "IX_DocumentSkills_DocumentId");
-
-            entity.HasIndex(e => new { e.DocumentId, e.SkillId }, "IX_DocumentSkills_Document_Skill").IsUnique();
-
-            entity.HasIndex(e => e.SkillId, "IX_DocumentSkills_SkillId");
+            entity.HasKey(e => e.Id).HasName("PK__Document__3214EC078C11A511");
 
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
             entity.Property(e => e.Proficiency).HasMaxLength(50);
@@ -254,9 +233,7 @@ public partial class MatchCvContext : DbContext
 
         modelBuilder.Entity<Education>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Educatio__3214EC0730C1362F");
-
-            entity.HasIndex(e => e.DocumentId, "IX_Educations_DocumentId");
+            entity.HasKey(e => e.Id).HasName("PK__Educatio__3214EC0704AFBFF6");
 
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
             entity.Property(e => e.Degree).HasMaxLength(150);
@@ -268,9 +245,20 @@ public partial class MatchCvContext : DbContext
                 .HasConstraintName("FK_Education_Documents");
         });
 
+        modelBuilder.Entity<EmailVerificationToken>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__EmailVer__3214EC079303E37D");
+
+            entity.Property(e => e.Token).HasMaxLength(500);
+
+            entity.HasOne(d => d.User).WithMany(p => p.EmailVerificationTokens)
+                .HasForeignKey(d => d.UserId)
+                .HasConstraintName("FK_EmailVerificationTokens_Users");
+        });
+
         modelBuilder.Entity<Embedding>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Embeddin__3214EC07487933E3");
+            entity.HasKey(e => e.Id).HasName("PK__Embeddin__3214EC0703CA2B9A");
 
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
             entity.Property(e => e.Model).HasMaxLength(80);
@@ -278,11 +266,11 @@ public partial class MatchCvContext : DbContext
 
         modelBuilder.Entity<EmbeddingCache>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Embeddin__3214EC073BFAA201");
+            entity.HasKey(e => e.Id).HasName("PK__Embeddin__3214EC0752E6CCB2");
 
             entity.ToTable("EmbeddingCache");
 
-            entity.HasIndex(e => e.InputHash, "UQ__Embeddin__FA28014814145847").IsUnique();
+            entity.HasIndex(e => e.InputHash, "UQ__Embeddin__FA280148E20B25A3").IsUnique();
 
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
             entity.Property(e => e.InputHash).HasMaxLength(128);
@@ -291,7 +279,7 @@ public partial class MatchCvContext : DbContext
 
         modelBuilder.Entity<EmbeddingOwnership>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Embeddin__3214EC07B738B40C");
+            entity.HasKey(e => e.Id).HasName("PK__Embeddin__3214EC0719EF8940");
 
             entity.ToTable("EmbeddingOwnership");
 
@@ -304,9 +292,7 @@ public partial class MatchCvContext : DbContext
 
         modelBuilder.Entity<Experience>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Experien__3214EC070FB2A8EB");
-
-            entity.HasIndex(e => e.DocumentId, "IX_Experiences_DocumentId");
+            entity.HasKey(e => e.Id).HasName("PK__Experien__3214EC07568063B1");
 
             entity.Property(e => e.CompanyName).HasMaxLength(200);
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
@@ -320,11 +306,7 @@ public partial class MatchCvContext : DbContext
 
         modelBuilder.Entity<Export>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Exports__3214EC074636AC9F");
-
-            entity.HasIndex(e => e.DocumentId, "IX_Exports_DocumentId");
-
-            entity.HasIndex(e => new { e.Status, e.CreatedAt }, "IX_Exports_Status_CreatedAt");
+            entity.HasKey(e => e.Id).HasName("PK__Exports__3214EC07DE3A327F");
 
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
             entity.Property(e => e.Engine).HasMaxLength(50);
@@ -344,15 +326,10 @@ public partial class MatchCvContext : DbContext
 
         modelBuilder.Entity<Job>(entity =>
         {
-            entity.HasIndex(e => e.CreatedAt, "IX_Jobs_CreatedAt");
-
-            entity.HasIndex(e => e.Status, "IX_Jobs_Status");
-
-            entity.HasIndex(e => e.UserId, "IX_Jobs_UserId");
+            entity.HasKey(e => e.Id).HasName("PK__Jobs__3214EC070AA99336");
 
             entity.Property(e => e.Company).HasMaxLength(200);
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
-            entity.Property(e => e.RawText).HasMaxLength(4000);
             entity.Property(e => e.Status)
                 .HasMaxLength(50)
                 .HasDefaultValue("Active");
@@ -366,9 +343,9 @@ public partial class MatchCvContext : DbContext
 
         modelBuilder.Entity<LicenseKey>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__LicenseK__3214EC0757496BA6");
+            entity.HasKey(e => e.Id).HasName("PK__LicenseK__3214EC0790DE2819");
 
-            entity.HasIndex(e => e.KeyHash, "UQ__LicenseK__BA9770BB73EC4E59").IsUnique();
+            entity.HasIndex(e => e.KeyHash, "UQ__LicenseK__BA9770BB950E9179").IsUnique();
 
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
             entity.Property(e => e.KeyHash).HasMaxLength(200);
@@ -384,11 +361,7 @@ public partial class MatchCvContext : DbContext
 
         modelBuilder.Entity<MatchEvidence>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__MatchEvi__3214EC0778707171");
-
-            entity.HasIndex(e => e.MatchId, "IX_MatchEvidences_MatchId");
-
-            entity.HasIndex(e => e.SkillId, "IX_MatchEvidences_SkillId").HasFilter("([SkillId] IS NOT NULL)");
+            entity.HasKey(e => e.Id).HasName("PK__MatchEvi__3214EC07DD74CDFE");
 
             entity.Property(e => e.EvidenceType).HasMaxLength(30);
 
@@ -404,13 +377,7 @@ public partial class MatchCvContext : DbContext
 
         modelBuilder.Entity<MatchRun>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__MatchRun__3214EC07E64642FE");
-
-            entity.HasIndex(e => e.CreatedAt, "IX_MatchRuns_CreatedAt");
-
-            entity.HasIndex(e => new { e.DocumentId, e.JobId }, "IX_MatchRuns_Document_Job");
-
-            entity.HasIndex(e => e.Score, "IX_MatchRuns_Score");
+            entity.HasKey(e => e.Id).HasName("PK__MatchRun__3214EC07B68B2605");
 
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
             entity.Property(e => e.TraceId).HasMaxLength(180);
@@ -426,11 +393,7 @@ public partial class MatchCvContext : DbContext
 
         modelBuilder.Entity<MissingItem>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__MissingI__3214EC0774FAE7A1");
-
-            entity.HasIndex(e => e.MatchId, "IX_MissingItems_MatchId");
-
-            entity.HasIndex(e => e.MustHave, "IX_MissingItems_MustHave").HasFilter("([MustHave]=(1))");
+            entity.HasKey(e => e.Id).HasName("PK__MissingI__3214EC0740D2FEBD");
 
             entity.Property(e => e.MissingKeyword).HasMaxLength(180);
             entity.Property(e => e.Reason).HasMaxLength(300);
@@ -446,40 +409,11 @@ public partial class MatchCvContext : DbContext
                 .HasConstraintName("FK_MissingItems_Skills");
         });
 
-        modelBuilder.Entity<Notification>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("PK__Notifica__3214EC07D1E611B2");
-
-            entity.HasIndex(e => e.CreatedAt, "IX_Notifications_CreatedAt");
-
-            entity.HasIndex(e => e.Role, "IX_Notifications_Role");
-
-            entity.HasIndex(e => e.UserId, "IX_Notifications_UserId");
-
-            entity.Property(e => e.Category)
-                .HasMaxLength(20)
-                .HasDefaultValue("info");
-            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
-            entity.Property(e => e.Message).HasMaxLength(500);
-            entity.Property(e => e.Role)
-                .HasMaxLength(50)
-                .HasDefaultValue("Candidate");
-            entity.Property(e => e.Title).HasMaxLength(200);
-
-            entity.HasOne(d => d.User).WithMany(p => p.Notifications)
-                .HasForeignKey(d => d.UserId)
-                .HasConstraintName("FK_Notifications_Users");
-        });
-
         modelBuilder.Entity<Ocrresult>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__OCRResul__3214EC0771EEE90C");
+            entity.HasKey(e => e.Id).HasName("PK__OCRResul__3214EC07D21DD5F9");
 
             entity.ToTable("OCRResults");
-
-            entity.HasIndex(e => e.CreatedAt, "IX_OCRResults_CreatedAt");
-
-            entity.HasIndex(e => e.DocumentId, "IX_OCRResults_DocumentId");
 
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
             entity.Property(e => e.Engine).HasMaxLength(50);
@@ -489,53 +423,9 @@ public partial class MatchCvContext : DbContext
                 .HasConstraintName("FK_OCRResults_Documents");
         });
 
-        modelBuilder.Entity<RecruiterVerification>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("PK__Recruite__3214EC07486F644C");
-
-            entity.HasIndex(e => e.CreatedAt, "IX_RecruiterVerification_CreatedAt");
-
-            entity.HasIndex(e => e.RecruiterId, "IX_RecruiterVerification_RecruiterId");
-
-            entity.HasIndex(e => e.Status, "IX_RecruiterVerification_Status");
-
-            entity.Property(e => e.AdminNotes).HasMaxLength(500);
-            entity.Property(e => e.CompanyAddress).HasMaxLength(200);
-            entity.Property(e => e.CompanyEmail).HasMaxLength(250);
-            entity.Property(e => e.CompanyName).HasMaxLength(200);
-            entity.Property(e => e.CompanyPhone).HasMaxLength(50);
-            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
-            entity.Property(e => e.Status)
-                .HasMaxLength(30)
-                .HasDefaultValue("Pending");
-            entity.Property(e => e.TaxCode).HasMaxLength(50);
-
-            entity.HasOne(d => d.BusinessLicenseDocument).WithMany(p => p.RecruiterVerificationBusinessLicenseDocuments)
-                .HasForeignKey(d => d.BusinessLicenseDocumentId)
-                .HasConstraintName("FK_RecruiterVerification_Documents_BusinessLicense");
-
-            entity.HasOne(d => d.CompanyProofDocument).WithMany(p => p.RecruiterVerificationCompanyProofDocuments)
-                .HasForeignKey(d => d.CompanyProofDocumentId)
-                .HasConstraintName("FK_RecruiterVerification_Documents_CompanyProof");
-
-            entity.HasOne(d => d.Recruiter).WithMany(p => p.RecruiterVerificationRecruiters)
-                .HasForeignKey(d => d.RecruiterId)
-                .HasConstraintName("FK_RecruiterVerification_Users_Recruiter");
-
-            entity.HasOne(d => d.ReviewedByAdmin).WithMany(p => p.RecruiterVerificationReviewedByAdmins)
-                .HasForeignKey(d => d.ReviewedByAdminId)
-                .HasConstraintName("FK_RecruiterVerification_Users_Admin");
-        });
-
         modelBuilder.Entity<RequiredSkill>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Required__3214EC073A8C24F4");
-
-            entity.HasIndex(e => e.JobId, "IX_RequiredSkills_JobId");
-
-            entity.HasIndex(e => new { e.JobId, e.SkillId }, "IX_RequiredSkills_Job_Skill").IsUnique();
-
-            entity.HasIndex(e => e.SkillId, "IX_RequiredSkills_SkillId");
+            entity.HasKey(e => e.Id).HasName("PK__Required__3214EC07DAEFB9A4");
 
             entity.Property(e => e.Note).HasMaxLength(200);
 
@@ -550,11 +440,7 @@ public partial class MatchCvContext : DbContext
 
         modelBuilder.Entity<RewriteSuggestion>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__RewriteS__3214EC07D89822B3");
-
-            entity.HasIndex(e => e.Accepted, "IX_RewriteSuggestions_Accepted").HasFilter("([Accepted]=(0))");
-
-            entity.HasIndex(e => e.MatchId, "IX_RewriteSuggestions_MatchId");
+            entity.HasKey(e => e.Id).HasName("PK__RewriteS__3214EC07C487AC03");
 
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
 
@@ -569,13 +455,9 @@ public partial class MatchCvContext : DbContext
 
         modelBuilder.Entity<SavedCv>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__SavedCVs__3214EC079DED8F3D");
+            entity.HasKey(e => e.Id).HasName("PK__SavedCVs__3214EC07FAF68A96");
 
             entity.ToTable("SavedCVs");
-
-            entity.HasIndex(e => e.CreatedAt, "IX_SavedCVs_CreatedAt");
-
-            entity.HasIndex(e => e.UserId, "IX_SavedCVs_UserId").HasFilter("([UserId] IS NOT NULL)");
 
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
             entity.Property(e => e.CvdataJson).HasColumnName("CVDataJson");
@@ -590,11 +472,7 @@ public partial class MatchCvContext : DbContext
 
         modelBuilder.Entity<Section>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Sections__3214EC0705669E15");
-
-            entity.HasIndex(e => e.DocumentId, "IX_Sections_DocumentId");
-
-            entity.HasIndex(e => new { e.DocumentId, e.SectionType }, "IX_Sections_DocumentId_SectionType");
+            entity.HasKey(e => e.Id).HasName("PK__Sections__3214EC07A855A635");
 
             entity.Property(e => e.SectionType).HasMaxLength(50);
 
@@ -605,9 +483,7 @@ public partial class MatchCvContext : DbContext
 
         modelBuilder.Entity<Skill>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Skills__3214EC07843EDAA5");
-
-            entity.HasIndex(e => e.NormName, "IX_Skills_NormName").IsUnique();
+            entity.HasKey(e => e.Id).HasName("PK__Skills__3214EC07478DECA0");
 
             entity.Property(e => e.Category).HasMaxLength(80);
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
@@ -618,13 +494,9 @@ public partial class MatchCvContext : DbContext
 
         modelBuilder.Entity<User>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__Users__3214EC07B9C7B866");
+            entity.HasKey(e => e.Id).HasName("PK__Users__3214EC07F96EE3D8");
 
-            entity.HasIndex(e => new { e.IsActive, e.IsDeleted }, "IX_Users_IsActive_IsDeleted");
-
-            entity.HasIndex(e => e.Role, "IX_Users_Role").HasFilter("([IsDeleted]=(0))");
-
-            entity.HasIndex(e => e.Email, "UQ__Users__A9D10534A0824C3B").IsUnique();
+            entity.HasIndex(e => e.Email, "UQ_Users_Email").IsUnique();
 
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
             entity.Property(e => e.DisplayName).HasMaxLength(180);
@@ -632,6 +504,28 @@ public partial class MatchCvContext : DbContext
             entity.Property(e => e.IsActive).HasDefaultValue(true);
             entity.Property(e => e.Password).HasMaxLength(100);
             entity.Property(e => e.Role).HasMaxLength(100);
+        });
+
+        modelBuilder.Entity<RecruiterVerification>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+
+            entity.HasOne(d => d.Recruiter)
+                .WithMany(p => p.RecruiterVerificationRecruiters)
+                .HasForeignKey(d => d.RecruiterId)
+                .OnDelete(DeleteBehavior.ClientSetNull);
+
+            entity.HasOne(d => d.ReviewedByAdmin)
+                .WithMany(p => p.RecruiterVerificationReviewedByAdmins)
+                .HasForeignKey(d => d.ReviewedByAdminId);
+
+            entity.HasOne(d => d.BusinessLicenseDocument)
+                .WithMany(p => p.RecruiterVerificationBusinessLicenseDocuments)
+                .HasForeignKey(d => d.BusinessLicenseDocumentId);
+
+            entity.HasOne(d => d.CompanyProofDocument)
+                .WithMany(p => p.RecruiterVerificationCompanyProofDocuments)
+                .HasForeignKey(d => d.CompanyProofDocumentId);
         });
 
         OnModelCreatingPartial(modelBuilder);

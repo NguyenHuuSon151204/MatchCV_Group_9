@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -175,10 +176,32 @@ app.MapControllers();
 // =============================
 // Seed sample data (templates + demo CVs/JD) for local/dev usage
 // =============================
-using (var scope = app.Services.CreateScope())
+try 
 {
-    await TemplateSeedData.InitializeAsync(scope.ServiceProvider);
-    await SampleDataSeed.InitializeAsync(scope.ServiceProvider);
+    using (var scope = app.Services.CreateScope())
+    {
+        var context = scope.ServiceProvider.GetRequiredService<MatchCvContext>();
+        // await context.Database.EnsureDeletedAsync();
+        await context.Database.EnsureCreatedAsync();
+
+        await TemplateSeedData.InitializeAsync(scope.ServiceProvider);
+        await SampleDataSeed.InitializeAsync(scope.ServiceProvider);
+    }
+}
+catch (Exception ex)
+{
+    Console.WriteLine("--------------------------------------------------");
+    Console.WriteLine("CRITICAL ERROR DURING STARTUP SEEDING:");
+    Console.WriteLine(ex.Message);
+    if (ex.InnerException != null)
+    {
+        Console.WriteLine("INNER EXCEPTION:");
+        Console.WriteLine(ex.InnerException.Message);
+        Console.WriteLine(ex.InnerException.StackTrace);
+    }
+    Console.WriteLine(ex.StackTrace);
+    Console.WriteLine("--------------------------------------------------");
+    throw; 
 }
 
 // =============================

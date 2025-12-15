@@ -44,4 +44,6 @@ public partial class User
     public virtual ICollection<RecruiterVerification> RecruiterVerificationReviewedByAdmins { get; set; } = new List<RecruiterVerification>();
 
     public virtual ICollection<SavedCv> SavedCvs { get; set; } = new List<SavedCv>();
+
+    public virtual ICollection<EmailVerificationToken> EmailVerificationTokens { get; set; } = new List<EmailVerificationToken>();
 }

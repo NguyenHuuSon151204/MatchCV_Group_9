@@ -1,4 +1,4 @@
-using ApiRestFul.DTOs;
+﻿using ApiRestFul.DTOs;
 using ApiRestFul.Services;
 using matchCV_Project.Models;
 using iText.Html2pdf;
@@ -240,6 +240,104 @@ namespace matchCV_Project.Services
             ";
         }
 
+        // =================== CUSTOM SECTIONS HELPER ===================
+        private string GenerateCustomSectionsHtml(CVDataDto cvData, string styleType)
+        {
+            if (cvData.CustomSections == null || cvData.CustomSections.Count == 0) return "";
+
+            var sb = new StringBuilder();
+            
+            foreach (var section in cvData.CustomSections)
+            {
+                if (styleType == "professional")
+                {
+                    sb.AppendLine("    <div class='section'>");
+                    sb.AppendLine($"      <h2 class='section-title-lg'>{System.Net.WebUtility.HtmlEncode(section.Title)}</h2>");
+                    if (section.Items != null)
+                    {
+                        foreach (var item in section.Items)
+                        {
+                            sb.AppendLine("      <div class='timeline-item'>");
+                            sb.AppendLine("        <div class='timeline-left'>");
+                            sb.AppendLine($"          {(string.IsNullOrEmpty(item.StartDate) ? "" : DateTime.TryParse(item.StartDate, out var d1) ? d1.ToString("MM/yyyy") : item.StartDate)} - {(string.IsNullOrEmpty(item.EndDate) ? "" : DateTime.TryParse(item.EndDate, out var d2) ? d2.ToString("MM/yyyy") : item.EndDate)}");
+                            sb.AppendLine("        </div>");
+                            sb.AppendLine("        <div class='timeline-right'>");
+                            sb.AppendLine($"          <div class='timeline-title'>{System.Net.WebUtility.HtmlEncode(item.Title)}</div>");
+                            sb.AppendLine($"          <div class='timeline-subtitle'>{System.Net.WebUtility.HtmlEncode(item.Subtitle)}</div>");
+                            if (!string.IsNullOrEmpty(item.Description))
+                                sb.AppendLine($"          <div class='timeline-desc'>{System.Net.WebUtility.HtmlEncode(item.Description)}</div>");
+                            sb.AppendLine("        </div>");
+                            sb.AppendLine("      </div>");
+                        }
+                    }
+                    sb.AppendLine("    </div>");
+                }
+                else if (styleType == "modern")
+                {
+                    sb.AppendLine("      <section>");
+                    sb.AppendLine($"        <h3 class='section-title'>{System.Net.WebUtility.HtmlEncode(section.Title)}</h3>");
+                    if (section.Items != null)
+                    {
+                        foreach (var item in section.Items)
+                        {
+                            sb.AppendLine("        <div class='timeline-item'>");
+                            sb.AppendLine("          <div class='timeline-header'>");
+                            sb.AppendLine($"            <h4 class='timeline-title'>{System.Net.WebUtility.HtmlEncode(item.Title)}</h4>");
+                            string dateStr = "";
+                            if (!string.IsNullOrEmpty(item.StartDate) || !string.IsNullOrEmpty(item.EndDate))
+                            {
+                                var s = string.IsNullOrEmpty(item.StartDate) ? "" : DateTime.TryParse(item.StartDate, out var d1) ? d1.ToString("MM/yyyy") : item.StartDate;
+                                var e = string.IsNullOrEmpty(item.EndDate) ? "" : DateTime.TryParse(item.EndDate, out var d2) ? d2.ToString("MM/yyyy") : item.EndDate;
+                                dateStr = $"{s} - {e}";
+                            }
+                            sb.AppendLine($"            <span class='timeline-date'>{dateStr}</span>");
+                            sb.AppendLine("          </div>");
+                            sb.AppendLine($"          <p class='timeline-subtitle'>{System.Net.WebUtility.HtmlEncode(item.Subtitle)}</p>");
+                            if (!string.IsNullOrEmpty(item.Description))
+                            {
+                                sb.AppendLine("          <p class='job-details'>");
+                                sb.AppendLine($"            {System.Net.WebUtility.HtmlEncode(item.Description)}");
+                                sb.AppendLine("          </p>");
+                            }
+                            sb.AppendLine("        </div>");
+                        }
+                    }
+                    sb.AppendLine("      </section>");
+                }
+                else // Formal
+                {
+                    sb.AppendLine("  <section>");
+                    sb.AppendLine($"    <h3 class='section-title'>{System.Net.WebUtility.HtmlEncode(section.Title).ToUpper()}</h3>");
+                    if (section.Items != null)
+                    {
+                        foreach (var item in section.Items)
+                        {
+                            sb.AppendLine("    <div class='formal-item'>");
+                            sb.AppendLine("      <div class='item-header'>");
+                            sb.AppendLine("        <div>");
+                            sb.AppendLine($"          <h4 class='item-title'>{System.Net.WebUtility.HtmlEncode(item.Title)}</h4>");
+                            sb.AppendLine($"          <p class='item-subtitle'>{System.Net.WebUtility.HtmlEncode(item.Subtitle)}</p>");
+                            sb.AppendLine("        </div>");
+                            string dateStr = "";
+                            if (!string.IsNullOrEmpty(item.StartDate) || !string.IsNullOrEmpty(item.EndDate))
+                            {
+                                var s = string.IsNullOrEmpty(item.StartDate) ? "" : DateTime.TryParse(item.StartDate, out var d1) ? d1.ToString("MM/yyyy") : item.StartDate;
+                                var e = string.IsNullOrEmpty(item.EndDate) ? "" : DateTime.TryParse(item.EndDate, out var d2) ? d2.ToString("MM/yyyy") : item.EndDate;
+                                dateStr = $"{s} - {e}";
+                            }
+                            sb.AppendLine($"        <div class='item-date'>{dateStr}</div>");
+                            sb.AppendLine("      </div>");
+                            if (!string.IsNullOrEmpty(item.Description))
+                                sb.AppendLine($"      <p class='item-description'>{System.Net.WebUtility.HtmlEncode(item.Description)}</p>");
+                            sb.AppendLine("    </div>");
+                        }
+                    }
+                    sb.AppendLine("  </section>");
+                }
+            }
+            return sb.ToString();
+        }
+
         private string GenerateProfessionalTemplate(CVDataDto cvData)
         {
             var sb = new StringBuilder();
@@ -287,6 +385,20 @@ namespace matchCV_Project.Services
                 sb.AppendLine($"          <span>{System.Net.WebUtility.HtmlEncode(cvData.PersonalInfo.Address)}</span>");
                 sb.AppendLine("        </li>");
             }
+
+            if (cvData.PersonalInfo?.CustomContacts != null)
+            {
+                foreach (var contact in cvData.PersonalInfo.CustomContacts)
+                {
+                    if (!string.IsNullOrEmpty(contact.Value))
+                    {
+                        sb.AppendLine("        <li class='contact-item'>");
+                        sb.AppendLine("          <span class='material-icons contact-icon'>link</span>");
+                        sb.AppendLine($"          <span>{System.Net.WebUtility.HtmlEncode(contact.Value)}</span>");
+                        sb.AppendLine("        </li>");
+                    }
+                }
+            }
             
             sb.AppendLine("      </ul>");
             sb.AppendLine("    </div>");
@@ -311,6 +423,38 @@ namespace matchCV_Project.Services
                 
                 sb.AppendLine("      </ul>");
                 sb.AppendLine("    </div>");
+            }
+            
+
+
+            // Sidebar Custom Sections
+            if (cvData.SidebarSections != null)
+            {
+                foreach (var section in cvData.SidebarSections)
+                {
+                    sb.AppendLine("    <div class='section' style='margin-top: 30px;'>");
+                    sb.AppendLine($"      <h2 class='section-title-sm'>{System.Net.WebUtility.HtmlEncode(section.Title)}</h2>");
+                    sb.AppendLine("      <ul class='skill-list'>"); // Reuse skill-list style for consistency
+                    
+                    if (section.Items != null)
+                    {
+                        foreach (var item in section.Items)
+                        {
+                            sb.AppendLine("        <li class='skill-item'>");
+                            // Using Title as the main text, similar to skill name
+                            sb.AppendLine($"          <span class='skill-name'>{System.Net.WebUtility.HtmlEncode(item.Title)}</span>");
+                            // Using Description or Subtitle as secondary text if needed
+                            if (!string.IsNullOrEmpty(item.Subtitle))
+                            {
+                                sb.AppendLine($"          <span class='skill-level'>{System.Net.WebUtility.HtmlEncode(item.Subtitle)}</span>");
+                            }
+                            sb.AppendLine("        </li>");
+                        }
+                    }
+                    
+                    sb.AppendLine("      </ul>");
+                    sb.AppendLine("    </div>");
+                }
             }
             
             sb.AppendLine("  </div>");
@@ -386,6 +530,9 @@ namespace matchCV_Project.Services
                 sb.AppendLine("    </div>");
             }
             
+             // CUSTOM SECTION PROFESSIONAL
+             sb.Append(GenerateCustomSectionsHtml(cvData, "professional"));
+
             sb.AppendLine("  </div>");
             sb.AppendLine("</div>");
             
@@ -634,6 +781,9 @@ namespace matchCV_Project.Services
             
             sb.AppendLine("    </div>");
             
+            // CUSTOM SECTION MODERN
+             sb.Append(GenerateCustomSectionsHtml(cvData, "modern"));
+
             // Skills
             if (cvData.Skills?.Count > 0)
             {
@@ -876,6 +1026,9 @@ namespace matchCV_Project.Services
                 }
                 sb.AppendLine("  </section>");
             }
+
+            // CUSTOM SECTION FORMAL
+            sb.Append(GenerateCustomSectionsHtml(cvData, "formal"));
             
             // Skills
             if (cvData.Skills?.Count > 0)

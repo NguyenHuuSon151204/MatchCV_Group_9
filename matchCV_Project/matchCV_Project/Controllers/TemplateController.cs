@@ -61,14 +61,45 @@ namespace ApiRestFul.Controllers
         }
 
         [HttpPost("export/pdf")]
-        public async Task<IActionResult> ExportToPdf([FromBody] CVDataDto cvData)
+        public async Task<IActionResult> ExportToPdf([FromBody] System.Text.Json.JsonElement rawJson)
         {
             try
             {
+                var json = rawJson.GetRawText();
+                _logger.LogInformation($"Received JSON for PDF Export: {json}");
+
+                var options = new System.Text.Json.JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true,
+                    PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
+                };
+
+                CVDataDto cvData = null;
+                try 
+                {
+                    cvData = System.Text.Json.JsonSerializer.Deserialize<CVDataDto>(json, options);
+                }
+                catch(Exception deserEx)
+                {
+                     _logger.LogError(deserEx, "JSON Deserialization failed.");
+                     return BadRequest(new { message = "Lỗi dữ liệu CV (JSON)", details = deserEx.Message });
+                }
+
                 if (cvData == null)
                 {
-                    return BadRequest(new { message = "Dữ liệu CV không hợp lệ" });
+                    return BadRequest(new { message = "Dữ liệu CV không hợp lệ (NULL)" });
                 }
+
+                 _logger.LogInformation($"Deserialized successfully. CustomSections: {cvData.CustomSections?.Count}");
+                 if (cvData.PersonalInfo != null)
+                 {
+                     _logger.LogInformation($"PersonalInfo present. CustomContacts: {cvData.PersonalInfo.CustomContacts?.Count ?? 0}");
+                     if (cvData.PersonalInfo.CustomContacts != null)
+                     {
+                        foreach(var c in cvData.PersonalInfo.CustomContacts)
+                            _logger.LogInformation($"Contact: {c.Value}");
+                     }
+                 }
 
                 var pdfBytes = await _templateService.ExportToPdfAsync(cvData);
                 var fileName = $"CV_{cvData.PersonalInfo?.FullName?.Replace(" ", "_") ?? "MyCV"}.pdf";

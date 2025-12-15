@@ -1,0 +1,21 @@
+﻿
+> matchcv-frontend@0.1.0 dev
+> next dev
+
+   Γû▓ Next.js 16.0.3 (Turbopack)
+   - Local:         http://localhost:3000
+   - Network:       http://192.168.1.48:3000
+
+ Γ£ô Starting...
+ Γ£ô Ready in 2.5s
+ Γùï Compiling / ...
+API_BASE_URL: http://localhost:5185/api
+ GET / 200 in 8.6s (compile: 7.4s, render: 1186ms)
+ GET /icon.svg 404 in 1528ms (compile: 1416ms, render: 112ms)
+ GET /icon-light-32x32.png 404 in 49ms (compile: 12ms, render: 38ms)
+ GET /auth/login 200 in 1331ms (compile: 1268ms, render: 63ms)
+ GET /auth/google-success 200 in 2.8s (compile: 2.6s, render: 212ms)
+ Γùï Compiling /app/[[...rest]] ...
+ Γùï Compiling /_error ...
+ GET /app 500 in 11.8s (compile: 11.0s, render: 819ms)
+ GET /app 500 in 309ms (compile: 233ms, render: 76ms)

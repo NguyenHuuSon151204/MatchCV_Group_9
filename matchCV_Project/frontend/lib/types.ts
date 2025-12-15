@@ -1,26 +1,5 @@
 export type CVStatus = 'draft' | 'uploaded' | 'analyzed' | 'submitted' | 'activing'
 
-export interface CVPersonalInfo {
-  fullName?: string
-  email?: string
-  phone?: string
-  address?: string
-  summary?: string
-  position?: string
-  avatarBase64?: string
-  website?: string
-  [key: string]: any
-}
-
-export interface CVData {
-  personalInfo?: CVPersonalInfo
-  experiences?: any[]
-  educations?: any[]
-  skills?: any[]
-  templateType?: string
-  [key: string]: any
-}
-
 export interface CV {
   id: string
   name: string
@@ -31,19 +10,18 @@ export interface CV {
   score?: number
   evidence?: string[]
   fileUrl?: string
-  cvData?: CVData
+  cvData?: any
 }
 
 export interface CreateCVInput {
   name: string
   position: string
   description?: string
-  cvData?: CVData
+  cvData?: any
 }
 
 export interface UpdateCVInput extends Partial<CreateCVInput> {
   id: string
-  cvData?: CVData
 }
 
 export interface AnalyzeResult {
@@ -77,9 +55,6 @@ export interface JDAnalysisResult {
   skills: string[]
   priorities: string[]
   suggestions: string[]
-  totalScore?: number
-  label?: string
-  color?: string
 }
 
 export type RewriteSection = 'summary' | 'experience' | 'skills'
@@ -96,15 +71,6 @@ export interface RewriteResponse {
   highlights: string[]
 }
 
-export interface ScoringResult {
-  totalScore: number
-  label: string
-  color: string
-  breakdown: Record<string, number>
-  highlights: string[]
-  warnings: string[]
-}
-
 export interface Job {
   id: number
   userId: number
@@ -113,9 +79,6 @@ export interface Job {
   rawText?: string
   jobDescription?: string
   status: string
-  deadline?: string | null
-  maxApplicants?: number | null
-  applications?: number
   createdAt: string
   updatedAt: string
 }
@@ -125,8 +88,6 @@ export interface CreateJobInput {
   company: string
   jobDescription?: string
   rawText?: string
-  deadline?: string
-  maxApplicants?: number
 }
 
 export interface UpdateJobInput {
@@ -136,8 +97,6 @@ export interface UpdateJobInput {
   jobDescription?: string
   rawText?: string
   status?: string
-  deadline?: string
-  maxApplicants?: number
 }
 
 export interface User {
@@ -150,7 +109,6 @@ export interface User {
   updatedAt?: string
   isActive?: boolean
   isDeleted?: boolean
-  avatarBase64?: string
 }
 
 export interface AuthContextType {
@@ -162,5 +120,6 @@ export interface AuthContextType {
   logout: () => Promise<void>
   forgotpass: (email: string) => Promise<any>
   resetpass: (token: string, newPassword: string) => Promise<any>
-  updateProfile: (payload: Partial<Pick<User, 'displayName' | 'email' | 'avatarBase64'>>) => Promise<any>
+  updateProfile: (payload: { displayName?: string; email?: string }) => Promise<User>
 }
+

@@ -26,68 +26,10 @@ public class CvController : ControllerBase
     /// Endpoint used by frontend upload flow: POST /api/cv/upload?userId={userId}&id={cvId?}
     /// Body: multipart/form-data with a single "file" field.
     /// </remarks>
-    [HttpPost("upload")]
-    [RequestSizeLimit(10 * 1024 * 1024)] // 10MB limit aligned with FileService
-    public async Task<IActionResult> UploadCv(
-        [FromQuery] int userId,
-        [FromQuery] int? id,
-        [FromForm] IFormFile? file)
-    {
-        if (file == null || file.Length == 0)
-        {
-            return BadRequest(BaseResponseDto<DocumentDto>.FailureResponse("File is required"));
-        }
 
-        // Try to infer userId from authenticated user when not provided
-        if (userId <= 0 && User.Identity?.IsAuthenticated == true)
-        {
-            var idClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
-            if (idClaim != null && int.TryParse(idClaim.Value, out int claimUserId))
-            {
-                userId = claimUserId;
-            }
-        }
+    // Method removed to resolve duplicate "upload" route conflict. 
+    // The UploadFile method further down provides more robust validation.
 
-        if (userId <= 0)
-        {
-            return BadRequest(BaseResponseDto<DocumentDto>.FailureResponse("userId is required"));
-        }
-
-        try
-        {
-            DocumentDto result;
-
-            if (id.HasValue && id.Value > 0)
-            {
-                result = await _documentService.UploadFileAsync(id.Value, file, userId);
-            }
-            else
-            {
-                result = await _documentService.CreateAndUploadAsync(file, userId, file.FileName);
-            }
-
-            return Ok(BaseResponseDto<DocumentDto>.SuccessResponse(result, "CV uploaded successfully"));
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            _logger.LogWarning(ex, "Unauthorized upload attempt for CV {CvId} by user {UserId}", id, userId);
-            return StatusCode(
-                StatusCodes.Status403Forbidden,
-                BaseResponseDto<DocumentDto>.FailureResponse("You are not allowed to upload to this CV"));
-        }
-        catch (ArgumentException ex)
-        {
-            _logger.LogWarning(ex, "Invalid upload request for CV {CvId} by user {UserId}", id, userId);
-            return BadRequest(BaseResponseDto<DocumentDto>.FailureResponse(ex.Message));
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error uploading CV file for user {UserId}", userId);
-            return StatusCode(
-                StatusCodes.Status500InternalServerError,
-                BaseResponseDto<DocumentDto>.FailureResponse("An error occurred while uploading the CV"));
-        }
-    }
 
     /// <summary>
     /// Create a new CV record

@@ -81,20 +81,11 @@ export function AIRewritePage() {
 
   const handleRewrite = async () => {
     if (!selectedCV) return
-    const sourceText =
-      selectedCvMeta?.cvData?.personalInfo?.summary ||
-      selectedCvMeta?.description ||
-      'CV summary'
-    try {
-      await rewriteSection({
-        text: sourceText,
-        section,
-        instructions,
-      })
-      toast.success('Rewrite generated', 'Review the suggestion before applying')
-    } catch (error: any) {
-      toast.error('Rewrite failed', error?.message || 'Quota exceeded or server error')
-    }
+    await rewriteSection({
+      cvId: selectedCV,
+      section,
+      instructions,
+    })
   }
 
   const handleApply = async () => {
@@ -133,8 +124,6 @@ export function AIRewritePage() {
         description: `Applied rewrite for ${section} on "${selectedCvMeta?.name || 'CV'}"`,
       })
       toast.success('Rewrite applied', 'Changes saved to CV')
-    } catch (error: any) {
-      toast.error('Apply failed', error?.message || 'Quota exceeded or server error')
     } finally {
       setApplying(false)
     }

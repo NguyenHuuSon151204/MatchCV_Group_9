@@ -6,7 +6,7 @@ namespace matchCV_Project.Interfaces
     public interface IAccountService
     {
         Task<(bool success, string? error)> RegisterAsync(RegisterRequestDto req, string baseUrl);
-        Task<(bool success, string? error)> VerifyEmailAsync(string token);
+        Task<(bool success, string? error)> VerifyEmailAsync(int userId, string token);
         Task<(User? user, string? error)> LoginAsync(LoginRequestDto req);
         Task<User?> GetUserByIdAsync(int id);
 

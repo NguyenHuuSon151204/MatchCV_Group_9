@@ -1,11 +1,13 @@
-﻿using DocumentFormat.OpenXml.Spreadsheet;
+﻿using matchCV_Project.Data;
 using matchCV_Project.Interfaces;
 using matchCV_Project.Models;
 using matchCV_Project.Models.Dtos;
+using matchCV_Project.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.Net;
 using System.Security.Claims;
 
@@ -17,13 +19,11 @@ namespace matchCV_Project.Controllers
     {
         private readonly IAccountService _service;
         private readonly ILogger<AccountController> _logger;
-        private readonly ILicenseService _licenseService;
 
-        public AccountController(IAccountService service, ILogger<AccountController> logger, ILicenseService service1)
+        public AccountController(IAccountService service, ILogger<AccountController> logger)
         {
             _service = service;
             _logger = logger;
-            _licenseService = service1;
         }
 
         // -------------------------
@@ -45,14 +45,14 @@ namespace matchCV_Project.Controllers
         // VERIFY EMAIL
         // -------------------------
         [HttpGet("verify-email")]
-        public async Task<IActionResult> VerifyEmail(string token)
+        public async Task<IActionResult> VerifyEmail(int userId, string token)
         {
-            var (success, error) = await _service.VerifyEmailAsync(token);
+            var (success, error) = await _service.VerifyEmailAsync(userId, token);
 
             if (!success)
                 return BadRequest(new { message = error });
 
-            return Redirect("http://localhost:3000/auth/login?verified=true");
+            return Redirect("http://localhost:3000/auth/login");
         }
 
         // -------------------------
@@ -178,8 +178,6 @@ namespace matchCV_Project.Controllers
 
             var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
             var principal = new ClaimsPrincipal(identity);
-
-            await _licenseService.GetUserPlanAsync(user.Id);
 
             await HttpContext.SignInAsync(
                 CookieAuthenticationDefaults.AuthenticationScheme,
