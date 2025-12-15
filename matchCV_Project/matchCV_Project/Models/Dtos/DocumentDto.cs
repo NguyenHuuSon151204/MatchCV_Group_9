@@ -9,6 +9,7 @@ public class DocumentDto
     public string TemplateType { get; set; } // Added TemplateType
     public string DocType { get; set; }
     public string FileName { get; set; }
+    public string? StoragePath { get; set; }
     public string ContentType { get; set; }
     public long? FileSize { get; set; }
     public float? AiConfidence { get; set; }

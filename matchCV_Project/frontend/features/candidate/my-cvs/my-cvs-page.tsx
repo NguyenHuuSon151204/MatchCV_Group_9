@@ -18,7 +18,7 @@ import type { CVStatus } from '@/lib/types'
 
 export function MyCVsPage() {
   const navigate = useNavigate()
-  const { cvs, loading, createCV, analyzeCV, deleteCV, exportCV, refresh } = useCV()
+  const { cvs, loading, createCV, deleteCV, exportCV, refresh } = useCV()
   const [uploadOpen, setUploadOpen] = useState(false)
   const [createOpen, setCreateOpen] = useState(false)
   const [optionOpen, setOptionOpen] = useState(false)
@@ -77,10 +77,8 @@ export function MyCVsPage() {
     return sorted
   }, [cvs, searchQuery, statusFilter, sortBy])
 
-  const handleAnalyze = async (id: string) => {
-    setBusyId(id)
-    await analyzeCV(id)
-    setBusyId(null)
+  const handleAnalyze = (id: string) => {
+    navigate('/app/jd-analyzer', { state: { cvId: id } })
   }
 
   const handleView = (id: string) => {

@@ -14,7 +14,7 @@ import { useToastContext } from '@/contexts/toast-context'
 
 export function JDAnalyzerPage() {
   const location = useLocation()
-  const preset = (location.state as { jdContent?: string } | null) ?? null
+  const preset = (location.state as { jdContent?: string; cvId?: string } | null) ?? null
   const [jobDescription, setJobDescription] = useState('')
   const [selectedCvId, setSelectedCvId] = useState<string | null>(null)
   const { analyzeJD, jdAnalysis, jdError, analysisLoading } = useAnalyze()
@@ -34,10 +34,12 @@ export function JDAnalyzerPage() {
   }, [preset])
 
   useEffect(() => {
-    if (!selectedCvId && cvs.length === 1) {
+    if (preset?.cvId && cvs.some((cv) => cv.id === preset.cvId)) {
+      setSelectedCvId(preset.cvId)
+    } else if (!selectedCvId && cvs.length === 1) {
       setSelectedCvId(cvs[0].id)
     }
-  }, [cvs, selectedCvId])
+  }, [cvs, selectedCvId, preset])
 
   const handleAnalyze = async () => {
     if (!jobDescription.trim() || !selectedCvId) return

@@ -15,7 +15,9 @@ interface ViewCvDialogProps {
 
 export function ViewCvDialog({ open, onClose, cv }: ViewCvDialogProps) {
     const [blobUrl, setBlobUrl] = useState<string | null>(null)
+    const [isPdf, setIsPdf] = useState(false)
     const [loading, setLoading] = useState(false)
+    const [error, setError] = useState<string | null>(null)
     const downloadName = `${cv?.name || 'CV'}.pdf`
 
     // Clean up blob URL when dialog closes or CV changes
@@ -28,46 +30,94 @@ export function ViewCvDialog({ open, onClose, cv }: ViewCvDialogProps) {
     }, [blobUrl])
 
     useEffect(() => {
-        if (open && cv && !cv.fileUrl) {
-            const fetchPreview = async () => {
-                setLoading(true)
-                try {
-                    // Generate PDF preview for builder CVs
-                    const blob = await cvService.exportCV(cv.id, 'pdf')
-                    const url = URL.createObjectURL(blob)
-                    setBlobUrl(url)
-                } catch (error) {
-                    console.error('Failed to generate preview', error)
-                } finally {
-                    setLoading(false)
-                }
-            }
-            fetchPreview()
-        } else if (!open) {
+        if (!open || !cv) {
             setBlobUrl(null)
+            setError(null)
+            return
         }
+
+        const fetchPreview = async () => {
+            setLoading(true)
+            setError(null)
+            try {
+                let blob: Blob | null = null
+                let lastError: unknown = null
+                const hasFile = !!cv.fileUrl
+                const hasCvData = !!cv.cvData
+
+                const tryExport = async () => {
+                    if (!hasCvData) return
+                    try {
+                        blob = await cvService.exportCV(cv.id, 'pdf')
+                    } catch (err) {
+                        lastError = err
+                        blob = null
+                    }
+                }
+
+                const tryDownload = async () => {
+                    try {
+                        blob = await cvService.downloadCV(cv.id)
+                    } catch (err: any) {
+                        // If server says not found, stop and show re-upload message
+                        const message = err instanceof Error ? err.message : ''
+                        if (message.toLowerCase().includes('not found')) {
+                            lastError = new Error('File CV không còn trên máy chủ. Vui lòng tải lại (re-upload) CV này.')
+                        } else {
+                            lastError = err
+                        }
+                        blob = null
+                    }
+                }
+
+                if (hasFile) {
+                    await tryDownload()
+                    if (!blob && hasCvData) {
+                        await tryExport()
+                    }
+                } else {
+                    await tryExport() // export (builder) or skip if no cvData
+                }
+
+                if (!blob) {
+                    const message =
+                        lastError instanceof Error
+                            ? lastError.message
+                            : 'Unable to load preview. Try re-uploading hoặc lưu lại CV.'
+                    setError(message)
+                    return
+                }
+
+                // If we receive plain text, it's likely an error/fallback from service
+                if (blob.type?.toLowerCase().includes('text/plain')) {
+                    const text = (await blob.text()) || ''
+                    const lower = text.toLowerCase()
+                    if (lower.includes('mock store') || lower.includes('offline')) {
+                        setError('File CV không còn trên máy chủ. Vui lòng tải lại (re-upload) CV này.')
+                        return
+                    }
+                    setError(text || 'Unable to load CV preview')
+                    return
+                }
+
+                const url = URL.createObjectURL(blob)
+                setBlobUrl(url)
+                setIsPdf(blob.type?.toLowerCase().includes('pdf') || cv.fileUrl?.toLowerCase().endsWith('.pdf') || false)
+            } catch (error) {
+                console.error('Failed to generate preview', error)
+                setBlobUrl(null)
+                setError(error instanceof Error ? error.message : 'Unable to load preview')
+            } finally {
+                setLoading(false)
+            }
+        }
+
+        fetchPreview()
     }, [open, cv])
 
     if (!cv) return null
 
-    const backendBaseUrl = 'http://localhost:5185'
-    let viewerUrl = blobUrl
-    let isPdf = !!blobUrl // Blob from export is always PDF
-
-    if (cv.fileUrl && !blobUrl) {
-        // Use the download endpoint instead of static file path to ensuring we get the correct file associated with this ID
-        // and avoid caching issues or filename collisions.
-        const userId = typeof window !== 'undefined' ? window.localStorage.getItem('matchcv-userId') : '1'
-
-        // We can use the relative API path since proxying handles it, or full URL to be safe for iframe
-        // Using backendBaseUrl from above
-        viewerUrl = `${backendBaseUrl}/api/cv/download/${cv.id}?userId=${userId}`
-
-        // Check file extension from fileUrl to determine type
-        if (cv.fileUrl.toLowerCase().endsWith('.pdf')) {
-            isPdf = true
-        }
-    }
+    const viewerUrl = blobUrl
 
     return (
         <Dialog open={open} onOpenChange={onClose}>
@@ -87,6 +137,16 @@ export function ViewCvDialog({ open, onClose, cv }: ViewCvDialogProps) {
                         <div className="flex flex-col items-center justify-center h-full gap-4 text-center p-6">
                             <Loader2 className="h-8 w-8 animate-spin text-primary" />
                             <p className="text-muted-foreground">Generating preview...</p>
+                        </div>
+                    ) : error ? (
+                        <div className="flex flex-col items-center justify-center h-full gap-4 text-center p-6">
+                            <div className="bg-muted p-4 rounded-full">
+                                <FileText className="h-8 w-8 text-muted-foreground" />
+                            </div>
+                            <div className="max-w-md">
+                                <p className="font-medium text-lg">Unable to load preview</p>
+                                <p className="text-muted-foreground mt-1">{error}</p>
+                            </div>
                         </div>
                     ) : viewerUrl ? (
                         isPdf ? (
@@ -121,7 +181,7 @@ export function ViewCvDialog({ open, onClose, cv }: ViewCvDialogProps) {
                 </div>
 
                 <div className="flex justify-end gap-2 mt-4">
-                    {viewerUrl && (
+                    {viewerUrl && !error && (
                         <>
                             <Button variant="outline" asChild>
                                 <a href={viewerUrl} target="_blank" rel="noopener noreferrer">

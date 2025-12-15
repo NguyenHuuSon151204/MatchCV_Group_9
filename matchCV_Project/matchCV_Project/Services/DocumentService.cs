@@ -136,6 +136,7 @@ public class DocumentService : IDocumentService
                 TemplateType = document.CvTemplate?.Key ?? "professional", // Map TemplateType
                 DocType = document.DocType ?? string.Empty,
                 FileName = document.FileName ?? string.Empty,
+                StoragePath = document.StoragePath,
                 ContentType = document.ContentType ?? string.Empty,
                 FileSize = document.FileSize,
                 AiConfidence = document.AiConfidence.HasValue ? (float?)document.AiConfidence.Value : null,

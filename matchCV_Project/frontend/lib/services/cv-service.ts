@@ -119,6 +119,13 @@ function mapDocumentDtoToCV(dto: DocumentDto | any): CV {
     dto.templateType ||
     (cvData?.personalInfo?.position ?? '')
 
+  const storagePath =
+    dto.StoragePath ||
+    dto.storagePath ||
+    dto.FileName && `uploads/${dto.FileName}` ||
+    dto.fileName && `uploads/${dto.fileName}` ||
+    undefined
+
   return {
     id: dto.Id?.toString() || dto.id?.toString() || '',
     name,
@@ -127,7 +134,7 @@ function mapDocumentDtoToCV(dto: DocumentDto | any): CV {
     modifiedAt,
     status: mapBackendStatusToFrontend(dto.Status || dto.status || 'draft'),
     score: dto.TotalScore ?? dto.AiConfidence ?? dto.score,
-    fileUrl: dto.FileName ? `/uploads/${dto.FileName}` : undefined,
+    fileUrl: storagePath ? (storagePath.startsWith('/') ? storagePath : `/${storagePath}`) : undefined,
     cvData,
   }
 }
@@ -153,6 +160,20 @@ async function withFallback<T>(request: () => Promise<T>, fallback: () => Promis
   } catch (error) {
     console.warn('[cvService] falling back to mock data', error)
     return fallback()
+  }
+}
+
+// Derive backend origin (strip /api)
+function getBackendOrigin(): string {
+  const base = apiClient.defaults.baseURL || 'http://localhost:5185/api'
+  try {
+    const url = new URL(base)
+    url.pathname = ''
+    url.search = ''
+    url.hash = ''
+    return url.origin
+  } catch {
+    return 'http://localhost:5185'
   }
 }
 
@@ -419,6 +440,41 @@ export const cvService = {
     )
   },
 
+  async downloadCV(id: string): Promise<Blob> {
+    return withFallback(
+      async () => {
+        // Fetch detail to get fileUrl
+        const detail = await this.getCV(id)
+        const fileUrl = detail?.fileUrl || detail?.description // description may contain FileName
+
+        if (!fileUrl) {
+          throw new Error('CV file not found on server. Please re-upload this CV.')
+        }
+
+        // Build absolute URL to static file (served outside /api)
+        const origin = getBackendOrigin()
+        const normalizedPath = fileUrl.startsWith('/')
+          ? fileUrl
+          : `/${fileUrl.replace(/^api\//, '').replace(/^\/api\//, '')}`
+        const absoluteUrl = fileUrl.startsWith('http') ? fileUrl : `${origin}${normalizedPath}`
+
+        const response = await fetch(absoluteUrl, { credentials: 'include' })
+        if (!response.ok) {
+          if (response.status === 404) {
+            throw new Error('CV file not found on server. Please re-upload this CV.')
+          }
+          throw new Error(`Failed to fetch CV file (status ${response.status})`)
+        }
+        return await response.blob()
+      },
+      async () => {
+        await delay(200)
+        const fallback = 'Download unavailable in offline mode.'
+        return new Blob([fallback], { type: 'text/plain' })
+      }
+    )
+  },
+
   async exportCV(id: string, format: 'pdf' | 'docx' | 'json'): Promise<Blob> {
     return withFallback(
       async () => {
@@ -427,11 +483,17 @@ export const cvService = {
         const cvData = detail?.cvData
         console.info('[cvService.exportCV] detail for export', detail)
 
+        // Try template-based export first; on failure fall back to backend export endpoint
         if (cvData) {
-          const response = await apiClient.post('/Template/export/pdf', cvData, {
-            responseType: 'blob',
-          })
-          return response.data
+          try {
+            const response = await apiClient.post('/Template/export/pdf', cvData, {
+              responseType: 'blob',
+            })
+            return response.data
+          } catch (error) {
+            console.warn('[cvService.exportCV] template export failed, falling back', error)
+            // Continue to fallback below
+          }
         }
 
         // Fallback to backend export endpoint with stored file
