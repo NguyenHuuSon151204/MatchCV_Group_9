@@ -173,8 +173,8 @@ function ProfessionalTemplate({ cvData, onUpdate }) {
                         </button>
                     </h2>
                     <ul className="skill-list">
-                        {cvData.skills?.map((skill) => (
-                            <li key={skill.id} className="skill-item">
+                        {cvData.skills?.map((skill, index) => (
+                            <li key={skill.id ?? `skill-${index}`} className="skill-item">
                                 <div className="skill-item-content">
                                     <EditableField
                                         value={skill.name}

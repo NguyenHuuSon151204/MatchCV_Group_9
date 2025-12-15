@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
+import type { AxiosError } from 'axios'
 import { Loader2, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog'
 import { useCV } from '@/hooks/useCV'
-import type { CV } from '@/lib/types'
 import { useToastContext } from '@/contexts/toast-context'
 import { aiService } from '@/lib/services/ai-service'
 
@@ -40,6 +40,14 @@ export function AnalyzeJDDialog({ open, onOpenChange, job, onAnalysisComplete }:
 
   const handleAnalyze = async () => {
     if (!selectedCV || !job) return
+
+    // Validate job description before calling API to avoid 400 from backend
+    if (!job.jobDescription || job.jobDescription.trim().length === 0) {
+      const message = 'This job has no description. Please add a job description before analyzing.'
+      setErrorMessage(message)
+      toast.error('Analyze failed', message)
+      return
+    }
 
     setAnalyzing(true)
     setErrorMessage(null)
@@ -76,9 +84,13 @@ export function AnalyzeJDDialog({ open, onOpenChange, job, onAnalysisComplete }:
 
       setAnalysisResult(result)
       toast.success('JD analyzed', `Score: ${result.matchScore}%`)
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error analyzing:', error)
-      const message = error instanceof Error ? error.message : 'Quota exceeded or server error'
+      const axiosError = error as AxiosError<any>
+      const message =
+        axiosError?.response?.data?.message ||
+        axiosError?.response?.data?.error ||
+        (error instanceof Error ? error.message : 'Quota exceeded or server error')
       setErrorMessage(message)
       toast.error('Analyze failed', message)
       setAnalysisResult(null)
@@ -91,18 +103,20 @@ export function AnalyzeJDDialog({ open, onOpenChange, job, onAnalysisComplete }:
     if (analysisResult && onAnalysisComplete) {
       onAnalysisComplete(analysisResult)
     }
-    handleClose()
+    handleDialogOpenChange(false)
   }
 
-  const handleClose = () => {
-    setSelectedCV(null)
-    setAnalysisResult(null)
-    setErrorMessage(null)
-    onOpenChange(false)
+  const handleDialogOpenChange = (isOpen: boolean) => {
+    if (!isOpen) {
+      setSelectedCV(null)
+      setAnalysisResult(null)
+      setErrorMessage(null)
+    }
+    onOpenChange(isOpen)
   }
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
+    <Dialog open={open} onOpenChange={handleDialogOpenChange}>
       <DialogContent>
         {!analysisResult ? (
           <>
@@ -162,7 +176,7 @@ export function AnalyzeJDDialog({ open, onOpenChange, job, onAnalysisComplete }:
             </DialogBody>
 
             <DialogFooter>
-              <Button variant="outline" onClick={handleClose} className="rounded-full">
+              <Button variant="outline" onClick={() => handleDialogOpenChange(false)} className="rounded-full">
                 Cancel
               </Button>
               <Button
@@ -224,15 +238,17 @@ export function AnalyzeJDDialog({ open, onOpenChange, job, onAnalysisComplete }:
               <div>
                 <h4 className="font-semibold text-card-foreground mb-3">Breakdown</h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
-                  {Object.entries(analysisResult.breakdown || {}).map(([key, value]: [string, number]) => (
-                    <div
-                      key={key}
-                      className="flex items-center justify-between rounded-xl border border-border/40 bg-background/60 px-3 py-2"
-                    >
-                      <span className="font-medium capitalize">{key}</span>
-                      <span className="text-card-foreground">{value}%</span>
-                    </div>
-                  ))}
+                  {Object.entries((analysisResult.breakdown || {}) as Record<string, number>).map(
+                    ([key, value]) => (
+                      <div
+                        key={key}
+                        className="flex items-center justify-between rounded-xl border border-border/40 bg-background/60 px-3 py-2"
+                      >
+                        <span className="font-medium capitalize">{key}</span>
+                        <span className="text-card-foreground">{value}%</span>
+                      </div>
+                    )
+                  )}
                 </div>
               </div>
 

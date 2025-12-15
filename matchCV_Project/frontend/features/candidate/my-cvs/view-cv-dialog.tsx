@@ -40,7 +40,9 @@ export function ViewCvDialog({ open, onClose, cv }: ViewCvDialogProps) {
             setLoading(true)
             setError(null)
             try {
-                let blob: Blob | null = null
+                // Use a broad type here because the blob is assigned inside helper functions
+                // and TypeScript's control flow analysis can incorrectly infer `never`.
+                let blob: Blob | null | undefined = null
                 let lastError: unknown = null
                 const hasFile = !!cv.fileUrl
                 const hasCvData = !!cv.cvData
@@ -89,8 +91,9 @@ export function ViewCvDialog({ open, onClose, cv }: ViewCvDialogProps) {
                 }
 
                 // If we receive plain text, it's likely an error/fallback from service
-                if (blob.type?.toLowerCase().includes('text/plain')) {
-                    const text = (await blob.text()) || ''
+                const safeBlob: any = blob
+                if (safeBlob?.type && typeof safeBlob.type === 'string' && safeBlob.type.toLowerCase().includes('text/plain')) {
+                    const text = (await safeBlob.text()) || ''
                     const lower = text.toLowerCase()
                     if (lower.includes('mock store') || lower.includes('offline')) {
                         setError('File CV không còn trên máy chủ. Vui lòng tải lại (re-upload) CV này.')
@@ -100,9 +103,10 @@ export function ViewCvDialog({ open, onClose, cv }: ViewCvDialogProps) {
                     return
                 }
 
-                const url = URL.createObjectURL(blob)
+                const url = URL.createObjectURL(safeBlob as Blob)
                 setBlobUrl(url)
-                setIsPdf(blob.type?.toLowerCase().includes('pdf') || cv.fileUrl?.toLowerCase().endsWith('.pdf') || false)
+                const mimeType = typeof safeBlob.type === 'string' ? safeBlob.type.toLowerCase() : ''
+                setIsPdf(mimeType.includes('pdf') || cv.fileUrl?.toLowerCase().endsWith('.pdf') || false)
             } catch (error) {
                 console.error('Failed to generate preview', error)
                 setBlobUrl(null)
