@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useContext } from 'react'
 import { User, Settings, LogOut, ChevronDown } from 'lucide-react'
 import { AuthContext } from '@/contexts/AuthContext'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 export function AccountDropdown() {
     const [isOpen, setIsOpen] = useState(false)
@@ -80,6 +81,35 @@ export function AccountDropdown() {
                         </p>
                     </div>
                     <div className="py-2">
+                        {displayUser.role === 'Admin' ? (
+                            <>
+                                <Link
+                                    href="/admin/account"
+                                    className="w-full px-4 py-2 text-left text-sm hover:bg-accent flex items-center gap-3 text-foreground transition-colors"
+                                    onClick={() => setIsOpen(false)}
+                                >
+                                    <User className="size-4" />
+                                    Account Settings
+                                </Link>
+                                <Link
+                                    href="/admin/config"
+                                    className="w-full px-4 py-2 text-left text-sm hover:bg-accent flex items-center gap-3 text-foreground transition-colors"
+                                    onClick={() => setIsOpen(false)}
+                                >
+                                    <Settings className="size-4" />
+                                    System Config
+                                </Link>
+                            </>
+                        ) : (
+                            <Link
+                                href="/recruiter/settings"
+                                className="w-full px-4 py-2 text-left text-sm hover:bg-accent flex items-center gap-3 text-foreground transition-colors"
+                                onClick={() => setIsOpen(false)}
+                            >
+                                <Settings className="size-4" />
+                                Settings
+                            </Link>
+                        )}
                         <button
                             className="w-full px-4 py-2 text-left text-sm hover:bg-accent flex items-center gap-3 text-destructive transition-colors"
                             onClick={handleLogout}

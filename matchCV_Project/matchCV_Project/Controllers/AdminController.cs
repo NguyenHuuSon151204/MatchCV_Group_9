@@ -178,7 +178,11 @@ public class AdminController : ControllerBase
                 u.CreatedAt,
                 OpenJobsCount = openJobsCount,
                 Plan = license?.Plan ?? "Free",
-                LicenseExpiry = license?.Expiry
+                LicenseExpiry = license?.Expiry,
+                u.IsBanned,
+                u.BanReason,
+                u.BannedAt,
+                u.BannedUntil
             };
         }).ToList();
 
@@ -650,15 +654,110 @@ public class AdminController : ControllerBase
             l.Plan,
             l.OriginalKey,
             l.AssignedUserId,
+            AssignedUser = l.AssignedUserId != null
+                ? new
+                {
+                    Id = l.AssignedUserId,
+                    DisplayName = _db.Users.FirstOrDefault(u => u.Id == l.AssignedUserId)?.DisplayName,
+                    Email = _db.Users.FirstOrDefault(u => u.Id == l.AssignedUserId)?.Email
+                }
+                : null,
             AssignedUserName = l.AssignedUserId != null
                 ? _db.Users.FirstOrDefault(u => u.Id == l.AssignedUserId)?.DisplayName
                 : null,
             l.IsActive,
             l.Expiry,
+            DaysRemaining = l.Expiry.HasValue
+                ? (int)(l.Expiry.Value - DateTime.UtcNow).TotalDays
+                : (int?)null,
             l.CreatedAt
         }).ToList();
 
         return Ok(result);
+    }
+
+    // POST: /api/admin/licenses/generate - Generate a new license key
+    [HttpPost("licenses/generate")]
+    public async Task<IActionResult> GenerateLicense([FromBody] GenerateLicenseDto dto)
+    {
+        if (string.IsNullOrWhiteSpace(dto.Plan))
+            return BadRequest("Plan is required.");
+
+        // Generate a random license key
+        var key = Guid.NewGuid().ToString("N").ToUpper().Substring(0, 16);
+        var formattedKey = $"{dto.Plan.ToUpper()}-{key.Substring(0, 4)}-{key.Substring(4, 4)}-{key.Substring(8, 4)}-{key.Substring(12, 4)}";
+
+        // Calculate expiry date
+        DateTime? expiryDate = null;
+        if (dto.ExpiryDays.HasValue && dto.ExpiryDays.Value > 0)
+        {
+            expiryDate = DateTime.UtcNow.AddDays(dto.ExpiryDays.Value);
+        }
+
+        // Create license key
+        var license = new LicenseKey
+        {
+            KeyHash = formattedKey,
+            OriginalKey = formattedKey,
+            Plan = dto.Plan,
+            Expiry = expiryDate,
+            IsActive = false, // Not active until assigned
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _db.LicenseKeys.Add(license);
+
+        // Log the generation
+        _db.AdminLogs.Add(new AdminLog
+        {
+            Actor = "Admin",
+            Action = "CREATE",
+            Entity = "License",
+            EntityId = null,
+            CreatedAt = DateTime.UtcNow,
+            MetaJson = $"{{\"plan\":\"{dto.Plan}\",\"expiryDays\":{dto.ExpiryDays?.ToString() ?? "null"},\"key\":\"{formattedKey}\"}}"
+        });
+
+        await _db.SaveChangesAsync();
+
+        return Ok(new
+        {
+            Message = "License generated successfully!",
+            License = new
+            {
+                Id = license.Id,
+                Key = formattedKey,
+                Plan = license.Plan,
+                Expiry = license.Expiry,
+                ExpiryDays = dto.ExpiryDays,
+                CreatedAt = license.CreatedAt
+            }
+        });
+    }
+
+    // DELETE: /api/admin/licenses/{id} - Delete a license key
+    [HttpDelete("licenses/{id:int}")]
+    public async Task<IActionResult> DeleteLicense(int id)
+    {
+        var license = await _db.LicenseKeys.FindAsync(id);
+        if (license == null)
+            return NotFound("License not found.");
+
+        // Log the deletion
+        _db.AdminLogs.Add(new AdminLog
+        {
+            Actor = "Admin",
+            Action = "DELETE",
+            Entity = "License",
+            EntityId = id,
+            CreatedAt = DateTime.UtcNow,
+            MetaJson = $"{{\"plan\":\"{license.Plan}\",\"assignedUserId\":{license.AssignedUserId?.ToString() ?? "null"}}}"
+        });
+
+        _db.LicenseKeys.Remove(license);
+        await _db.SaveChangesAsync();
+
+        return Ok(new { Message = "License deleted successfully." });
     }
 
     // GET: /api/admin/verifications - Get all recruiter verifications
@@ -700,6 +799,103 @@ public class AdminController : ControllerBase
         return Ok(result);
     }
 
+    // POST: /api/admin/recruiters/{id}/ban - Ban a recruiter
+    [HttpPost("recruiters/{id:int}/ban")]
+    public async Task<IActionResult> BanRecruiter(int id, [FromBody] BanRecruiterDto dto)
+    {
+        var recruiter = await _db.Users.FindAsync(id);
+        if (recruiter == null || recruiter.Role != "Recruiter")
+            return NotFound("Recruiter not found.");
+
+        if (recruiter.IsBanned)
+            return BadRequest("Recruiter is already banned.");
+
+        if (string.IsNullOrWhiteSpace(dto.Reason))
+            return BadRequest("Ban reason is required.");
+
+        recruiter.IsBanned = true;
+        recruiter.BanReason = dto.Reason.Trim();
+        recruiter.BannedAt = DateTime.UtcNow;
+        
+        // Set ban duration
+        if (dto.DurationDays.HasValue && dto.DurationDays.Value > 0)
+        {
+            recruiter.BannedUntil = DateTime.UtcNow.AddDays(dto.DurationDays.Value);
+        }
+        else
+        {
+            recruiter.BannedUntil = null; // Permanent ban
+        }
+
+        // Log the ban action
+        _db.AdminLogs.Add(new AdminLog
+        {
+            Actor = "Admin",
+            Action = "BAN",
+            Entity = "Recruiter",
+            EntityId = id,
+            CreatedAt = DateTime.UtcNow,
+            MetaJson = $"{{\"reason\":\"{dto.Reason}\",\"durationDays\":{dto.DurationDays?.ToString() ?? "null"},\"bannedUntil\":\"{recruiter.BannedUntil?.ToString("o") ?? "permanent"}\"}}"
+        });
+
+        await _db.SaveChangesAsync();
+
+        return Ok(new { 
+            Message = "Recruiter banned successfully.",
+            Recruiter = new
+            {
+                recruiter.Id,
+                recruiter.DisplayName,
+                recruiter.IsBanned,
+                recruiter.BanReason,
+                recruiter.BannedAt,
+                recruiter.BannedUntil
+            }
+        });
+    }
+
+    // POST: /api/admin/recruiters/{id}/unban - Unban a recruiter
+    [HttpPost("recruiters/{id:int}/unban")]
+    public async Task<IActionResult> UnbanRecruiter(int id)
+    {
+        var recruiter = await _db.Users.FindAsync(id);
+        if (recruiter == null || recruiter.Role != "Recruiter")
+            return NotFound("Recruiter not found.");
+
+        if (!recruiter.IsBanned)
+            return BadRequest("Recruiter is not banned.");
+
+        recruiter.IsBanned = false;
+        recruiter.BanReason = null;
+        recruiter.BannedAt = null;
+        recruiter.BannedUntil = null;
+
+        // Log the unban action
+        _db.AdminLogs.Add(new AdminLog
+        {
+            Actor = "Admin",
+            Action = "UNBAN",
+            Entity = "Recruiter",
+            EntityId = id,
+            CreatedAt = DateTime.UtcNow,
+            MetaJson = $"{{\"recruiterId\":{id}}}"
+        });
+
+        await _db.SaveChangesAsync();
+
+        return Ok(new { 
+            Message = "Recruiter unbanned successfully.",
+            Recruiter = new
+            {
+                recruiter.Id,
+                recruiter.DisplayName,
+                recruiter.IsBanned
+            }
+        });
+    }
+
     public record UpdateUserDto(string? DisplayName, string? Email);
     public record UpdateApplicationStatusDto(string Status, string? AdminNotes);
+    public record BanRecruiterDto(string Reason, int? DurationDays);
+    public record GenerateLicenseDto(string Plan, int? ExpiryDays);
 }

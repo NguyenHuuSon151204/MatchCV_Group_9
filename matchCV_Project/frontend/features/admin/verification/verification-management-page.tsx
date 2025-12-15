@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { adminService } from '@/lib/services/admin-service'
-import { Eye, CheckCircle, X, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react'
+import { Eye, CheckCircle, X, ArrowUp, ArrowDown, ArrowUpDown, Download } from 'lucide-react'
 
 interface Verification {
   id: number
@@ -24,10 +24,12 @@ interface Verification {
   reviewedAt?: string
   createdAt: string
   businessLicense?: {
+    id: number
     originalName: string
     sizeBytes: number
   }
   companyProof?: {
+    id: number
     originalName: string
     sizeBytes: number
   }
@@ -158,6 +160,35 @@ export function VerificationManagementPage() {
       setError(err.message || 'Failed to update verification status.')
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  const handleViewDocument = async (documentId: number) => {
+    try {
+      const response = await adminService.viewDocument(documentId)
+      const blob = new Blob([response.data], { type: response.headers['content-type'] || 'application/pdf' })
+      const url = window.URL.createObjectURL(blob)
+      window.open(url, '_blank')
+      setTimeout(() => window.URL.revokeObjectURL(url), 100)
+    } catch (err: any) {
+      console.error('Failed to view document:', err)
+      setError('Failed to view document. Please try again.')
+    }
+  }
+
+  const handleDownloadDocument = async (documentId: number, filename: string) => {
+    try {
+      const response = await adminService.downloadDocument(documentId)
+      const blob = new Blob([response.data], { type: response.headers['content-type'] || 'application/octet-stream' })
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = filename
+      a.click()
+      window.URL.revokeObjectURL(url)
+    } catch (err: any) {
+      console.error('Failed to download document:', err)
+      setError('Failed to download document. Please try again.')
     }
   }
 
@@ -381,19 +412,65 @@ export function VerificationManagementPage() {
                 <div className="space-y-2">
                   {selectedVerification.businessLicense && (
                     <div className="p-3 bg-muted rounded">
-                      <div className="font-medium">Business License:</div>
-                      <div className="text-sm text-muted-foreground">
-                        {selectedVerification.businessLicense.originalName} (
-                        {(selectedVerification.businessLicense.sizeBytes / 1024).toFixed(2)} KB)
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <div className="font-medium">Business License:</div>
+                          <div className="text-sm text-muted-foreground">
+                            {selectedVerification.businessLicense.originalName} (
+                            {(selectedVerification.businessLicense.sizeBytes / 1024).toFixed(2)} KB)
+                          </div>
+                        </div>
+                        <div className="flex gap-1">
+                          <button
+                            className="p-1 hover:bg-accent rounded"
+                            onClick={() => handleViewDocument(selectedVerification.businessLicense!.id)}
+                            title="View"
+                          >
+                            <Eye size={16} />
+                          </button>
+                          <button
+                            className="p-1 hover:bg-accent rounded"
+                            onClick={() => handleDownloadDocument(
+                              selectedVerification.businessLicense!.id,
+                              selectedVerification.businessLicense!.originalName
+                            )}
+                            title="Download"
+                          >
+                            <Download size={16} />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   )}
                   {selectedVerification.companyProof && (
                     <div className="p-3 bg-muted rounded">
-                      <div className="font-medium">Company Proof:</div>
-                      <div className="text-sm text-muted-foreground">
-                        {selectedVerification.companyProof.originalName} (
-                        {(selectedVerification.companyProof.sizeBytes / 1024).toFixed(2)} KB)
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <div className="font-medium">Company Proof:</div>
+                          <div className="text-sm text-muted-foreground">
+                            {selectedVerification.companyProof.originalName} (
+                            {(selectedVerification.companyProof.sizeBytes / 1024).toFixed(2)} KB)
+                          </div>
+                        </div>
+                        <div className="flex gap-1">
+                          <button
+                            className="p-1 hover:bg-accent rounded"
+                            onClick={() => handleViewDocument(selectedVerification.companyProof!.id)}
+                            title="View"
+                          >
+                            <Eye size={16} />
+                          </button>
+                          <button
+                            className="p-1 hover:bg-accent rounded"
+                            onClick={() => handleDownloadDocument(
+                              selectedVerification.companyProof!.id,
+                              selectedVerification.companyProof!.originalName
+                            )}
+                            title="Download"
+                          >
+                            <Download size={16} />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   )}

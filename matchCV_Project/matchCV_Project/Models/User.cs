@@ -25,6 +25,14 @@ public partial class User
 
     public bool IsDeleted { get; set; }
 
+    public bool IsBanned { get; set; }
+
+    public string? BanReason { get; set; }
+
+    public DateTime? BannedAt { get; set; }
+
+    public DateTime? BannedUntil { get; set; }
+
     public virtual ICollection<Application> Applications { get; set; } = new List<Application>();
 
     public virtual ICollection<Document> Documents { get; set; } = new List<Document>();

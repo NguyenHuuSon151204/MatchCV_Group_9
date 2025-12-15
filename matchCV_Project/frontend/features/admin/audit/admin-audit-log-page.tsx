@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { adminService } from '@/lib/services/admin-service'
 import { Filter, RefreshCw } from 'lucide-react'
+import { formatMetaJson } from '@/lib/utils/format-meta-json'
 
 interface AdminLog {
     id: number
@@ -163,8 +164,10 @@ export function AdminAuditLogPage() {
                                         </td>
                                         <td className="p-3 text-sm">{log.entity}</td>
                                         <td className="p-3 text-sm">{log.entityId || '-'}</td>
-                                        <td className="p-3 text-sm max-w-xs truncate">
-                                            {log.metaJson || '-'}
+                                        <td className="p-3 text-sm max-w-xs">
+                                            <div className="truncate" title={log.metaJson || '-'}>
+                                                {formatMetaJson(log.metaJson)}
+                                            </div>
                                         </td>
                                     </tr>
                                 ))

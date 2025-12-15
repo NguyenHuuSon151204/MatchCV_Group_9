@@ -30,7 +30,7 @@ export const adminService = {
   },
 
   async generateLicense(data: { plan: string; expiryDays?: number }) {
-    return apiClient.post('/license/generate', data)
+    return apiClient.post('/admin/licenses/generate', data)
   },
 
   async deactivateLicense(id: number) {
@@ -86,5 +86,28 @@ export const adminService = {
 
   async getUserLicense(userId: number) {
     return apiClient.get(`/license/user/${userId}`)
+  },
+
+  // Ban/Unban Recruiters
+  async banRecruiter(id: number, data: { reason: string; durationDays?: number | null }) {
+    return apiClient.post(`/admin/recruiters/${id}/ban`, data)
+  },
+
+  async unbanRecruiter(id: number) {
+    return apiClient.post(`/admin/recruiters/${id}/unban`)
+  },
+
+  // License Management
+  async deleteLicense(id: number) {
+    return apiClient.delete(`/admin/licenses/${id}`)
+  },
+
+  // Document Operations
+  async viewDocument(id: number) {
+    return apiClient.get(`/documents/${id}/view`, { responseType: 'blob' })
+  },
+
+  async downloadDocument(id: number) {
+    return apiClient.get(`/documents/${id}/download`, { responseType: 'blob' })
   },
 }

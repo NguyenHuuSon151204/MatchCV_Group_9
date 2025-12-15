@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { adminService } from '@/lib/services/admin-service'
 import { Settings, Eye, Trash, ArrowUp, ArrowDown, ArrowUpDown, FileText, X, Edit } from 'lucide-react'
 import Link from 'next/link'
+import { NotificationModal } from '@/components/common/notification-modal'
 
 interface Job {
   id: number
@@ -40,6 +41,12 @@ export function AdminJobManagementPage() {
   })
   const [sortBy, setSortBy] = useState('createdAt')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
+  const [notification, setNotification] = useState<{
+    isOpen: boolean
+    type: 'success' | 'error' | 'warning' | 'info'
+    title: string
+    message: string
+  }>({ isOpen: false, type: 'success', title: '', message: '' })
 
   useEffect(() => {
     loadJobs()
@@ -165,10 +172,20 @@ export function AdminJobManagementPage() {
       setShowEditModal(false)
       setSelectedJob(null)
       loadJobs()
-      alert('Job updated successfully!')
+      setNotification({
+        isOpen: true,
+        type: 'success',
+        title: 'Success',
+        message: 'Job updated successfully!',
+      })
     } catch (error: any) {
       console.error('Failed to update job:', error)
-      alert('Failed to update job. Please try again.')
+      setNotification({
+        isOpen: true,
+        type: 'error',
+        title: 'Error',
+        message: 'Failed to update job. Please try again.',
+      })
     }
   }
 
@@ -181,7 +198,12 @@ export function AdminJobManagementPage() {
   const handleDelete = async () => {
     if (!selectedJob) return
     if (!deleteReason.trim()) {
-      alert('Please provide a reason for deleting this job.')
+      setNotification({
+        isOpen: true,
+        type: 'warning',
+        title: 'Missing Information',
+        message: 'Please provide a reason for deleting this job.',
+      })
       return
     }
 
@@ -191,35 +213,67 @@ export function AdminJobManagementPage() {
       setDeleteReason('')
       setSelectedJob(null)
       loadJobs()
-      alert('Job deleted successfully!')
+      setNotification({
+        isOpen: true,
+        type: 'success',
+        title: 'Success',
+        message: 'Job deleted successfully!',
+      })
     } catch (error: any) {
       console.error('Failed to delete job:', error)
-      alert('Failed to delete job. Please try again.')
+      setNotification({
+        isOpen: true,
+        type: 'error',
+        title: 'Error',
+        message: 'Failed to delete job. Please try again.',
+      })
     }
   }
 
   const handleBulkDelete = async () => {
-    const reason = window.prompt(`Please provide a reason for deleting ${selectedItems.length} job(s):`)
-    if (!reason || !reason.trim()) {
-      alert('Delete reason is required.')
-      return
-    }
+    if (selectedItems.length === 0) return
 
-    if (!window.confirm(`Are you sure you want to delete ${selectedItems.length} job(s)?`)) {
-      return
-    }
+    setNotification({
+      isOpen: true,
+      type: 'warning',
+      title: 'Bulk Delete',
+      message: `Are you sure you want to delete ${selectedItems.length} job(s)?`,
+      confirmText: 'Delete',
+      onConfirm: async () => {
+        const reason = window.prompt(`Please provide a reason for deleting ${selectedItems.length} job(s):`)
+        if (!reason || !reason.trim()) {
+          setNotification({
+            isOpen: true,
+            type: 'warning',
+            title: 'Missing Information',
+            message: 'Delete reason is required.',
+          })
+          return
+        }
 
-    try {
-      await Promise.all(
-        selectedItems.map((id) => adminService.deleteJob(id, reason))
-      )
-      setSelectedItems([])
-      loadJobs()
-      alert('Selected jobs deleted successfully!')
-    } catch (error) {
-      console.error('Failed to bulk delete:', error)
-      alert('Failed to delete some jobs. Please try again.')
-    }
+        try {
+          await Promise.all(
+            selectedItems.map((id) => adminService.deleteJob(id, reason))
+          )
+          setSelectedItems([])
+          loadJobs()
+          setNotification({
+            isOpen: true,
+            type: 'success',
+            title: 'Success',
+            message: 'Selected jobs deleted successfully!',
+          })
+        } catch (error) {
+          console.error('Failed to bulk delete:', error)
+          setNotification({
+            isOpen: true,
+            type: 'error',
+            title: 'Error',
+            message: 'Failed to delete some jobs. Please try again.',
+          })
+        }
+      },
+    })
   }
 
   const formatDate = (dateString?: string) => {
@@ -683,6 +737,17 @@ export function AdminJobManagementPage() {
           </div>
         </div>
       )}
+
+      {/* Notification Modal */}
+      <NotificationModal
+        isOpen={notification.isOpen}
+        onClose={() => setNotification({ ...notification, isOpen: false })}
+        type={notification.type}
+        title={notification.title}
+        message={notification.message}
+        onConfirm={notification.onConfirm}
+        confirmText={notification.confirmText}
+      />
     </div>
   )
 }

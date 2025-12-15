@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { adminService } from '@/lib/services/admin-service'
-import { Settings, ArrowUp, ArrowDown, ArrowUpDown, Eye, X, Ban, Trash } from 'lucide-react'
+import { Settings, ArrowUp, ArrowDown, ArrowUpDown, Eye, X, Ban, Trash, ShieldOff } from 'lucide-react'
+import { NotificationModal } from '@/components/common/notification-modal'
 
 interface Recruiter {
   id: number
@@ -13,6 +14,10 @@ interface Recruiter {
   plan?: string
   licenseExpiry?: string
   accountType?: string
+  isBanned?: boolean
+  banReason?: string
+  bannedAt?: string
+  bannedUntil?: string
 }
 
 export function RecruiterManagementPage() {
@@ -37,7 +42,15 @@ export function RecruiterManagementPage() {
   const [showBanModal, setShowBanModal] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [banReason, setBanReason] = useState('')
+  const [banDuration, setBanDuration] = useState<string>('permanent')
+  const [customDays, setCustomDays] = useState<number>(30)
   const [deleteReason, setDeleteReason] = useState('')
+  const [notification, setNotification] = useState<{
+    isOpen: boolean
+    type: 'success' | 'error' | 'warning' | 'info'
+    title: string
+    message: string
+  }>({ isOpen: false, type: 'success', title: '', message: '' })
 
   useEffect(() => {
     loadRecruiters()
@@ -67,6 +80,10 @@ export function RecruiterManagementPage() {
         plan: r.plan || r.Plan || 'Free',
         licenseExpiry: r.licenseExpiry || r.LicenseExpiry,
         accountType: r.accountType || r.AccountType,
+        isBanned: r.isBanned || r.IsBanned || false,
+        banReason: r.banReason || r.BanReason,
+        bannedAt: r.bannedAt || r.BannedAt,
+        bannedUntil: r.bannedUntil || r.BannedUntil,
       }))
 
       if (filters.plan) {
@@ -141,23 +158,33 @@ export function RecruiterManagementPage() {
 
     try {
       await adminService.updateRecruiter(selectedRecruiter.id, editForm)
-      alert('Recruiter information updated successfully!')
+      setNotification({
+        isOpen: true,
+        type: 'success',
+        title: 'Success',
+        message: 'Recruiter information updated successfully!',
+      })
       setShowEditModal(false)
       setSelectedRecruiter(null)
       setEditForm({ displayName: '', email: '' })
       loadRecruiters()
     } catch (error: any) {
       console.error('Failed to update recruiter:', error)
-      alert(error.message || 'Failed to update recruiter. Please try again.')
+      setNotification({
+        isOpen: true,
+        type: 'error',
+        title: 'Error',
+        message: error.message || 'Failed to update recruiter. Please try again.',
+      })
     }
   }
 
   const handleExportCSV = () => {
     try {
-      const csvRows = ['ID,Name,Email,Open Jobs,Plan,License Expiry,Joined Date']
+      const csvRows = ['ID,Name,Email,Open Jobs,Plan,License Expiry,Ban Status,Joined Date']
       recruiters.forEach((recruiter) => {
         csvRows.push(
-          `"${recruiter.id}","${recruiter.displayName}","${recruiter.email}",${recruiter.openJobsCount || 0},"${recruiter.plan || 'Free'}","${formatDate(recruiter.licenseExpiry)}","${formatDate(recruiter.createdAt)}"`
+          `"${recruiter.id}","${recruiter.displayName}","${recruiter.email}",${recruiter.openJobsCount || 0},"${recruiter.plan || 'Free'}","${formatDate(recruiter.licenseExpiry)}","${recruiter.isBanned ? 'Banned' : 'Active'}","${formatDate(recruiter.createdAt)}"`
         )
       })
 
@@ -171,7 +198,12 @@ export function RecruiterManagementPage() {
       window.URL.revokeObjectURL(url)
     } catch (error) {
       console.error('Failed to export CSV:', error)
-      alert('Failed to export CSV. Please try again.')
+      setNotification({
+        isOpen: true,
+        type: 'error',
+        title: 'Error',
+        message: 'Failed to export CSV. Please try again.',
+      })
     }
   }
 
@@ -200,39 +232,109 @@ export function RecruiterManagementPage() {
 
   const handleBanRecruiter = async () => {
     if (!selectedRecruiter || !banReason.trim()) {
-      alert('Please provide a reason for banning')
+      setNotification({
+        isOpen: true,
+        type: 'warning',
+        title: 'Missing Information',
+        message: 'Please provide a reason for banning',
+      })
       return
     }
 
     try {
-      // Implement ban API call when backend is ready
-      alert(`Ban recruiter ${selectedRecruiter.displayName}: ${banReason}`)
+      let durationDays: number | null = null
+
+      if (banDuration !== 'permanent') {
+        if (banDuration === 'custom') {
+          durationDays = customDays
+        } else {
+          durationDays = parseInt(banDuration)
+        }
+      }
+
+      await adminService.banRecruiter(selectedRecruiter.id, {
+        reason: banReason,
+        durationDays,
+      })
+
+      setNotification({
+        isOpen: true,
+        type: 'success',
+        title: 'Success',
+        message: `Recruiter ${selectedRecruiter.displayName} has been banned successfully.`,
+      })
+
       setShowBanModal(false)
       setBanReason('')
+      setBanDuration('permanent')
+      setCustomDays(30)
       setSelectedRecruiter(null)
       loadRecruiters()
     } catch (error: any) {
       console.error('Failed to ban recruiter:', error)
-      alert(error.message || 'Failed to ban recruiter')
+      setNotification({
+        isOpen: true,
+        type: 'error',
+        title: 'Error',
+        message: error.response?.data?.message || error.message || 'Failed to ban recruiter',
+      })
+    }
+  }
+
+  const handleUnbanRecruiter = async (recruiter: Recruiter) => {
+    try {
+      await adminService.unbanRecruiter(recruiter.id)
+
+      setNotification({
+        isOpen: true,
+        type: 'success',
+        title: 'Success',
+        message: `Recruiter ${recruiter.displayName} has been unbanned successfully.`,
+      })
+
+      loadRecruiters()
+    } catch (error: any) {
+      console.error('Failed to unban recruiter:', error)
+      setNotification({
+        isOpen: true,
+        type: 'error',
+        title: 'Error',
+        message: error.response?.data?.message || error.message || 'Failed to unban recruiter',
+      })
     }
   }
 
   const handleDeleteRecruiter = async () => {
     if (!selectedRecruiter || !deleteReason.trim()) {
-      alert('Please provide a reason for deletion')
+      setNotification({
+        isOpen: true,
+        type: 'warning',
+        title: 'Missing Information',
+        message: 'Please provide a reason for deletion',
+      })
       return
     }
 
     try {
       // Implement delete API call when backend is ready
-      alert(`Delete recruiter ${selectedRecruiter.displayName}: ${deleteReason}`)
+      setNotification({
+        isOpen: true,
+        type: 'info',
+        title: 'Not Implemented',
+        message: `Delete recruiter functionality: ${selectedRecruiter.displayName}`,
+      })
       setShowDeleteModal(false)
       setDeleteReason('')
       setSelectedRecruiter(null)
       loadRecruiters()
     } catch (error: any) {
       console.error('Failed to delete recruiter:', error)
-      alert(error.message || 'Failed to delete recruiter')
+      setNotification({
+        isOpen: true,
+        type: 'error',
+        title: 'Error',
+        message: error.message || 'Failed to delete recruiter',
+      })
     }
   }
 
@@ -382,6 +484,7 @@ export function RecruiterManagementPage() {
                     </div>
                   </th>
                   <th className="p-3 text-left text-sm font-medium">PLAN</th>
+                  <th className="p-3 text-left text-sm font-medium">STATUS</th>
                   <th className="p-3 text-left text-sm font-medium">LICENSE EXPIRY</th>
                   <th
                     className="p-3 text-left text-sm font-medium cursor-pointer"
@@ -397,7 +500,7 @@ export function RecruiterManagementPage() {
               <tbody>
                 {recruiters.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="p-8 text-center text-muted-foreground">
+                    <td colSpan={10} className="p-8 text-center text-muted-foreground">
                       No recruiters found.
                     </td>
                   </tr>
@@ -432,6 +535,24 @@ export function RecruiterManagementPage() {
                             {recruiter.plan || 'Free'}
                           </span>
                         </td>
+                        <td className="p-3">
+                          {recruiter.isBanned ? (
+                            <div className="flex flex-col gap-1">
+                              <span className="px-2 py-1 rounded text-xs bg-red-100 text-red-800">
+                                Banned
+                              </span>
+                              {recruiter.bannedUntil && (
+                                <span className="text-xs text-muted-foreground">
+                                  Until: {formatDate(recruiter.bannedUntil)}
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="px-2 py-1 rounded text-xs bg-green-100 text-green-800">
+                              Active
+                            </span>
+                          )}
+                        </td>
                         <td className="p-3 text-sm">{formatDate(recruiter.licenseExpiry)}</td>
                         <td className="p-3 text-sm">{formatDate(recruiter.createdAt)}</td>
                         <td className="p-3">
@@ -443,16 +564,26 @@ export function RecruiterManagementPage() {
                             >
                               <Settings size={16} />
                             </button>
-                            <button
-                              className="p-1 hover:bg-orange-100 rounded text-orange-600"
-                              onClick={() => {
-                                setSelectedRecruiter(recruiter)
-                                setShowBanModal(true)
-                              }}
-                              title="Ban"
-                            >
-                              <Ban size={16} />
-                            </button>
+                            {recruiter.isBanned ? (
+                              <button
+                                className="p-1 hover:bg-green-100 rounded text-green-600"
+                                onClick={() => handleUnbanRecruiter(recruiter)}
+                                title="Unban"
+                              >
+                                <ShieldOff size={16} />
+                              </button>
+                            ) : (
+                              <button
+                                className="p-1 hover:bg-orange-100 rounded text-orange-600"
+                                onClick={() => {
+                                  setSelectedRecruiter(recruiter)
+                                  setShowBanModal(true)
+                                }}
+                                title="Ban"
+                              >
+                                <Ban size={16} />
+                              </button>
+                            )}
                             <button
                               className="p-1 hover:bg-destructive/10 rounded text-destructive"
                               onClick={() => {
@@ -566,6 +697,34 @@ export function RecruiterManagementPage() {
                   placeholder="Enter the reason for banning this recruiter..."
                 />
               </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Ban Duration *</label>
+                <select
+                  className="w-full px-3 py-2 border rounded bg-background"
+                  value={banDuration}
+                  onChange={(e) => setBanDuration(e.target.value)}
+                >
+                  <option value="permanent">Permanent</option>
+                  <option value="1">1 Day</option>
+                  <option value="7">7 Days</option>
+                  <option value="30">30 Days</option>
+                  <option value="90">90 Days</option>
+                  <option value="custom">Custom Duration</option>
+                </select>
+              </div>
+              {banDuration === 'custom' && (
+                <div>
+                  <label className="block text-sm font-medium mb-1">Custom Days</label>
+                  <input
+                    type="number"
+                    className="w-full px-3 py-2 border rounded bg-background"
+                    value={customDays}
+                    onChange={(e) => setCustomDays(parseInt(e.target.value) || 1)}
+                    min="1"
+                    placeholder="Enter number of days"
+                  />
+                </div>
+              )}
               <div className="text-xs text-muted-foreground">
                 This action will prevent the recruiter from accessing the platform.
               </div>
@@ -646,6 +805,15 @@ export function RecruiterManagementPage() {
           </div>
         </div>
       )}
+
+      {/* Notification Modal */}
+      <NotificationModal
+        isOpen={notification.isOpen}
+        onClose={() => setNotification({ ...notification, isOpen: false })}
+        type={notification.type}
+        title={notification.title}
+        message={notification.message}
+      />
     </div>
   )
 }

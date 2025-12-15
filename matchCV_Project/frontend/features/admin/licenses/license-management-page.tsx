@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { adminService } from '@/lib/services/admin-service'
-import { Key, X, Plus, Eye, EyeOff, Edit } from 'lucide-react'
+import { Key, X, Plus, Eye, EyeOff, Edit, Trash2 } from 'lucide-react'
+import { NotificationModal } from '@/components/common/notification-modal'
 
 interface License {
   id: number
@@ -47,6 +48,14 @@ export function LicenseManagementPage() {
     plan: 'Pro',
     expiryDays: 365,
   })
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [licenseToDelete, setLicenseToDelete] = useState<License | null>(null)
+  const [notification, setNotification] = useState<{
+    isOpen: boolean
+    type: 'success' | 'error' | 'warning' | 'info'
+    title: string
+    message: string
+  }>({ isOpen: false, type: 'success', title: '', message: '' })
 
   useEffect(() => {
     loadLicenses()
@@ -122,28 +131,76 @@ export function LicenseManagementPage() {
         plan: generateForm.plan,
         expiryDays: generateForm.expiryDays,
       })
-      const responseData = response.data
-      setGeneratedKey(responseData?.key || responseData?.licenseKey || responseData || '')
+
+      // Extract the key from response - backend returns {message, license: {id, key, plan, ...}}
+      const data = response.data
+      const licenseKey = data.license?.key || data.License?.Key || ''
+
+      setGeneratedKey(licenseKey)
       setShowGenerateModal(false)
       setGenerateForm({ plan: 'Pro', expiryDays: 365 })
       loadLicenses()
+
+      setNotification({
+        isOpen: true,
+        type: 'success',
+        title: 'License Generated!',
+        message: `New ${generateForm.plan} license created successfully!`,
+      })
     } catch (error: any) {
       console.error('Failed to generate license:', error)
-      alert('Failed to generate license. Please try again.')
+      setNotification({
+        isOpen: true,
+        type: 'error',
+        title: 'Error',
+        message: error.response?.data?.message || 'Failed to generate license. Please try again.',
+      })
     }
   }
 
   const handleDeactivateLicense = async (id: number) => {
-    if (!window.confirm('Are you sure you want to deactivate this license?')) {
-      return
-    }
-
     try {
       await adminService.deactivateLicense(id)
+      setNotification({
+        isOpen: true,
+        type: 'success',
+        title: 'Success',
+        message: 'License deactivated successfully.',
+      })
       loadLicenses()
     } catch (error) {
       console.error('Failed to deactivate license:', error)
-      alert('Failed to deactivate license. Please try again.')
+      setNotification({
+        isOpen: true,
+        type: 'error',
+        title: 'Error',
+        message: 'Failed to deactivate license. Please try again.',
+      })
+    }
+  }
+
+  const handleDeleteLicense = async () => {
+    if (!licenseToDelete) return
+
+    try {
+      await adminService.deleteLicense(licenseToDelete.id)
+      setNotification({
+        isOpen: true,
+        type: 'success',
+        title: 'Success',
+        message: 'License deleted successfully.',
+      })
+      setShowDeleteModal(false)
+      setLicenseToDelete(null)
+      loadLicenses()
+    } catch (error: any) {
+      console.error('Failed to delete license:', error)
+      setNotification({
+        isOpen: true,
+        type: 'error',
+        title: 'Error',
+        message: error.response?.data?.message || 'Failed to delete license.',
+      })
     }
   }
 
@@ -160,14 +217,24 @@ export function LicenseManagementPage() {
         expiryDays: editPlanForm.expiryDays,
       })
 
-      alert('User plan updated successfully!')
+      setNotification({
+        isOpen: true,
+        type: 'success',
+        title: 'Success',
+        message: 'User plan updated successfully!',
+      })
       setShowEditPlanModal(false)
       setSelectedLicense(null)
       setEditPlanForm({ plan: 'Pro', expiryDays: 365 })
       loadLicenses()
     } catch (error: any) {
       console.error('Failed to update plan:', error)
-      alert(error.message || 'Failed to update plan. Please try again.')
+      setNotification({
+        isOpen: true,
+        type: 'error',
+        title: 'Error',
+        message: error.message || 'Failed to update plan. Please try again.',
+      })
     }
   }
 
@@ -400,6 +467,16 @@ export function LicenseManagementPage() {
                               Deactivate
                             </button>
                           )}
+                          <button
+                            className="p-1 hover:bg-destructive/10 rounded text-destructive"
+                            onClick={() => {
+                              setLicenseToDelete(license)
+                              setShowDeleteModal(true)
+                            }}
+                            title="Delete"
+                          >
+                            <Trash2 size={14} />
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -434,7 +511,7 @@ export function LicenseManagementPage() {
               <div>
                 <label className="block text-sm font-medium mb-1">Plan</label>
                 <select
-                  className="w-full px-3 py-2 border rounded"
+                  className="w-full px-3 py-2 border rounded bg-background"
                   value={generateForm.plan}
                   onChange={(e) => setGenerateForm({ ...generateForm, plan: e.target.value })}
                 >
@@ -447,9 +524,9 @@ export function LicenseManagementPage() {
                 <input
                   type="number"
                   className="w-full px-3 py-2 border rounded"
-                  value={generateForm.expiryDays}
+                  value={generateForm.expiryDays || ''}
                   onChange={(e) =>
-                    setGenerateForm({ ...generateForm, expiryDays: parseInt(e.target.value) })
+                    setGenerateForm({ ...generateForm, expiryDays: parseInt(e.target.value) || 1 })
                   }
                   min="1"
                 />
@@ -580,6 +657,69 @@ export function LicenseManagementPage() {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && licenseToDelete && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+          onClick={() => setShowDeleteModal(false)}
+        >
+          <div
+            className="bg-card border rounded-lg max-w-md w-full mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-6 border-b flex justify-between items-center">
+              <h3 className="text-lg font-semibold text-destructive">Delete License</h3>
+              <button
+                className="text-muted-foreground hover:text-foreground"
+                onClick={() => setShowDeleteModal(false)}
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="p-3 bg-destructive/10 rounded">
+                <p className="text-sm font-medium">License #{licenseToDelete.id}</p>
+                <p className="font-semibold">{licenseToDelete.plan} Plan</p>
+                {licenseToDelete.assignedUser && (
+                  <p className="text-sm text-muted-foreground">
+                    Assigned to: {licenseToDelete.assignedUser.displayName}
+                  </p>
+                )}
+              </div>
+              <div className="p-3 bg-destructive/20 border border-destructive/30 rounded">
+                <p className="text-sm font-semibold text-destructive">⚠️ Warning</p>
+                <p className="text-xs text-destructive mt-1">
+                  This action cannot be undone. The license will be permanently deleted.
+                </p>
+              </div>
+            </div>
+            <div className="p-6 border-t flex justify-end gap-2">
+              <button
+                className="px-4 py-2 border rounded hover:bg-accent"
+                onClick={() => setShowDeleteModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-4 py-2 bg-destructive text-destructive-foreground rounded hover:bg-destructive/90"
+                onClick={handleDeleteLicense}
+              >
+                Delete Permanently
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Notification Modal */}
+      <NotificationModal
+        isOpen={notification.isOpen}
+        onClose={() => setNotification({ ...notification, isOpen: false })}
+        type={notification.type}
+        title={notification.title}
+        message={notification.message}
+      />
     </div>
   )
 }
