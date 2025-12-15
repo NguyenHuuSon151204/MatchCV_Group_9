@@ -1,0 +1,211 @@
+using System.Text;
+using ApiRestFul.DTOs;
+using ApiRestFul.Services;
+using iText.Html2pdf;
+using matchCV_Project.Data;
+using Microsoft.EntityFrameworkCore;
+
+namespace matchCV_Project.Services
+{
+    // Renders CV HTML to PDF/preview. Templates are single-column (no sidebar) to match export design.
+    public class TemplateService : ITemplateService
+    {
+        private readonly MatchCvContext _context;
+
+        public TemplateService(MatchCvContext context)
+        {
+            _context = context;
+        }
+
+        public async Task<List<CVTemplateDto>> GetAvailableTemplatesAsync()
+        {
+            var templates = await _context.Cvtemplates
+                .Where(t => t.IsActive)
+                .OrderBy(t => t.CreatedAt)
+                .ToListAsync();
+
+            return templates.Select(t => new CVTemplateDto
+            {
+                Id = t.Id,
+                Key = t.Key,
+                Name = t.Name,
+                Description = t.Description,
+                ThumbnailUrl = t.ThumbnailUrl,
+                TemplateType = t.Key
+            }).ToList();
+        }
+
+        public async Task<byte[]> ExportToPdfAsync(CVDataDto cvData)
+        {
+            var htmlContent = GenerateHtmlContent(cvData);
+            using var memoryStream = new MemoryStream();
+            HtmlConverter.ConvertToPdf(htmlContent, memoryStream);
+            return memoryStream.ToArray();
+        }
+
+        public async Task<byte[]> GenerateCVPreviewAsync(CVDataDto cvData)
+        {
+            var htmlContent = GenerateHtmlContent(cvData);
+            return Encoding.UTF8.GetBytes(htmlContent);
+        }
+
+        private string GenerateHtmlContent(CVDataDto cvData)
+        {
+            var templateType = cvData.TemplateType?.ToLower() ?? "professional";
+            var sb = new StringBuilder();
+
+            sb.AppendLine("<!DOCTYPE html>");
+            sb.AppendLine("<html>");
+            sb.AppendLine("<head>");
+            sb.AppendLine("  <meta charset='UTF-8'>");
+            sb.AppendLine("  <link href='https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap' rel='stylesheet'>");
+            sb.AppendLine("  <style>");
+
+            if (templateType == "modern")
+                sb.AppendLine(GetModernStyles());
+            else if (templateType == "formal")
+                sb.AppendLine(GetFormalStyles());
+            else
+                sb.AppendLine(GetProfessionalStyles());
+
+            sb.AppendLine("  </style>");
+            sb.AppendLine("</head>");
+            sb.AppendLine("<body>");
+
+            if (templateType == "modern")
+                sb.AppendLine(GenerateModernTemplate(cvData));
+            else if (templateType == "formal")
+                sb.AppendLine(GenerateFormalTemplate(cvData));
+            else
+                sb.AppendLine(GenerateProfessionalTemplate(cvData));
+
+            sb.AppendLine("</body>");
+            sb.AppendLine("</html>");
+
+            return sb.ToString();
+        }
+
+        // ---------- Styles ----------
+        private string GetProfessionalStyles()
+        {
+            return @"
+                body { margin: 0; padding: 32px; font-family: 'Inter', 'Segoe UI', sans-serif; background: #f8fafc; color: #0f172a; }
+                * { box-sizing: border-box; }
+                .cv-container { max-width: 900px; margin: 0 auto; background: #ffffff; border-radius: 12px; padding: 32px; box-shadow: 0 10px 40px rgba(15,23,42,0.12); }
+                .header { border-bottom: 1px solid #e5e7eb; padding-bottom: 16px; margin-bottom: 24px; }
+                .name { font-size: 32px; font-weight: 800; color: #dc2626; margin: 0 0 6px 0; }
+                .position { font-size: 18px; font-weight: 600; color: #475569; margin: 0; }
+                .section-title { font-size: 18px; font-weight: 700; color: #1f2937; margin: 28px 0 14px 0; border-bottom: 2px solid #dc2626; padding-bottom: 6px; text-transform: uppercase; }
+                .summary { color: #475569; font-size: 14px; line-height: 1.7; text-align: justify; }
+                .timeline { display: grid; grid-template-columns: 180px 1fr; gap: 16px; margin-bottom: 16px; padding: 12px 0; border-bottom: 1px solid #f1f5f9; }
+                .timeline-date { font-size: 13px; color: #64748b; font-weight: 600; }
+                .timeline-title { font-size: 16px; font-weight: 700; color: #0f172a; margin: 0 0 4px 0; }
+                .timeline-sub { font-size: 14px; font-weight: 600; color: #dc2626; margin: 0 0 6px 0; }
+                .timeline-desc { font-size: 14px; color: #475569; line-height: 1.6; text-align: justify; margin: 0; }
+                .contact-list, .skills-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
+                .contact-item { font-size: 14px; color: #334155; }
+                .skills-list { grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); }
+                .skill { font-size: 14px; color: #0f172a; padding: 6px 10px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; }
+            ";
+        }
+
+        private string GetModernStyles() => GetProfessionalStyles();
+        private string GetFormalStyles() => GetProfessionalStyles();
+
+        // ---------- Templates ----------
+        private string GenerateProfessionalTemplate(CVDataDto cvData)
+        {
+            var sb = new StringBuilder();
+            var defaultName = "Nguyen Van An";
+            var defaultPosition = "Software Engineer";
+
+            sb.AppendLine("<div class='cv-container'>");
+            sb.AppendLine("  <div class='header'>");
+            sb.AppendLine($"    <h1 class='name'>{System.Net.WebUtility.HtmlEncode(cvData.PersonalInfo?.FullName ?? defaultName)}</h1>");
+            var position = cvData.PersonalInfo?.Position ??
+                           cvData.Experiences?.FirstOrDefault()?.Position ??
+                           defaultPosition;
+            sb.AppendLine($"    <p class='position'>{System.Net.WebUtility.HtmlEncode(position)}</p>");
+            sb.AppendLine("  </div>");
+
+            // Contact
+            sb.AppendLine("  <ul class='contact-list'>");
+            if (!string.IsNullOrEmpty(cvData.PersonalInfo?.Email))
+                sb.AppendLine($"    <li class='contact-item'>Email: {System.Net.WebUtility.HtmlEncode(cvData.PersonalInfo.Email)}</li>");
+            if (!string.IsNullOrEmpty(cvData.PersonalInfo?.Phone))
+                sb.AppendLine($"    <li class='contact-item'>Phone: {System.Net.WebUtility.HtmlEncode(cvData.PersonalInfo.Phone)}</li>");
+            if (!string.IsNullOrEmpty(cvData.PersonalInfo?.Address))
+                sb.AppendLine($"    <li class='contact-item'>Address: {System.Net.WebUtility.HtmlEncode(cvData.PersonalInfo.Address)}</li>");
+            sb.AppendLine("  </ul>");
+
+            // Summary
+            if (!string.IsNullOrEmpty(cvData.PersonalInfo?.Summary))
+            {
+                sb.AppendLine("  <div>");
+                sb.AppendLine("    <h3 class='section-title'>Summary</h3>");
+                sb.AppendLine($"    <p class='summary'>{System.Net.WebUtility.HtmlEncode(cvData.PersonalInfo.Summary)}</p>");
+                sb.AppendLine("  </div>");
+            }
+
+            // Experience
+            if (cvData.Experiences?.Count > 0)
+            {
+                sb.AppendLine("  <div>");
+                sb.AppendLine("    <h3 class='section-title'>Experience</h3>");
+                foreach (var exp in cvData.Experiences)
+                {
+                    sb.AppendLine("    <div class='timeline'>");
+                    sb.AppendLine($"      <div class='timeline-date'>{(exp.StartDate.HasValue ? exp.StartDate.Value.ToString(\"MM/yyyy\") : "")} - {(exp.EndDate.HasValue ? exp.EndDate.Value.ToString(\"MM/yyyy\") : \"Present\")}</div>");
+                    sb.AppendLine("      <div>");
+                    sb.AppendLine($"        <p class='timeline-title'>{System.Net.WebUtility.HtmlEncode(exp.Position)}</p>");
+                    sb.AppendLine($"        <p class='timeline-sub'>{System.Net.WebUtility.HtmlEncode(exp.Company)}</p>");
+                    if (!string.IsNullOrEmpty(exp.Description))
+                        sb.AppendLine($"        <p class='timeline-desc'>{System.Net.WebUtility.HtmlEncode(exp.Description)}</p>");
+                    sb.AppendLine("      </div>");
+                    sb.AppendLine("    </div>");
+                }
+                sb.AppendLine("  </div>");
+            }
+
+            // Education
+            if (cvData.Educations?.Count > 0)
+            {
+                sb.AppendLine("  <div>");
+                sb.AppendLine("    <h3 class='section-title'>Education</h3>");
+                foreach (var edu in cvData.Educations)
+                {
+                    sb.AppendLine("    <div class='timeline'>");
+                    sb.AppendLine($"      <div class='timeline-date'>{edu.StartYear} - {edu.EndYear?.ToString() ?? "Present"}</div>");
+                    sb.AppendLine("      <div>");
+                    sb.AppendLine($"        <p class='timeline-title'>{System.Net.WebUtility.HtmlEncode(edu.Degree)}</p>");
+                    sb.AppendLine($"        <p class='timeline-sub'>{System.Net.WebUtility.HtmlEncode(edu.Institution)}</p>");
+                    if (!string.IsNullOrEmpty(edu.FieldOfStudy))
+                        sb.AppendLine($"        <p class='timeline-desc'>Major: {System.Net.WebUtility.HtmlEncode(edu.FieldOfStudy)}</p>");
+                    sb.AppendLine("      </div>");
+                    sb.AppendLine("    </div>");
+                }
+                sb.AppendLine("  </div>");
+            }
+
+            // Skills
+            if (cvData.Skills?.Count > 0)
+            {
+                sb.AppendLine("  <div>");
+                sb.AppendLine("    <h3 class='section-title'>Skills</h3>");
+                sb.AppendLine("    <div class='skills-list'>");
+                foreach (var skill in cvData.Skills)
+                {
+                    sb.AppendLine($"      <div class='skill'>{System.Net.WebUtility.HtmlEncode(skill.Name)}{(string.IsNullOrEmpty(skill.Level) ? "" : " - " + System.Net.WebUtility.HtmlEncode(skill.Level))}</div>");
+                }
+                sb.AppendLine("    </div>");
+                sb.AppendLine("  </div>");
+            }
+
+            sb.AppendLine("</div>");
+            return sb.ToString();
+        }
+
+        private string GenerateModernTemplate(CVDataDto cvData) => GenerateProfessionalTemplate(cvData);
+        private string GenerateFormalTemplate(CVDataDto cvData) => GenerateProfessionalTemplate(cvData);
+    }
+}

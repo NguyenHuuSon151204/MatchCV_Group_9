@@ -6,7 +6,6 @@ import {
   FileText,
   Sparkles,
   BarChart3,
-  Download,
   Settings,
   Briefcase,
   Plus,
@@ -21,8 +20,16 @@ const candidateNav = [
   { label: 'My CVs', path: '/app/my-cvs', icon: FileText },
   { label: 'JD Analyzer', path: '/app/jd-analyzer', icon: BarChart3 },
   { label: 'AI Rewrite', path: '/app/ai-rewrite', icon: Sparkles },
-  { label: 'Export', path: '/app/export', icon: Download },
-  { label: 'Find Jobs', path: '/app/jobs', icon: Briefcase },
+  {
+    label: 'Jobs',
+    path: '/app/jobs',
+    icon: Briefcase,
+    children: [
+      { label: 'Find Jobs', path: '/app/jobs/find' },
+      { label: 'Saved Jobs', path: '/app/jobs/saved' },
+      { label: 'Applied Jobs', path: '/app/jobs/applied' },
+    ],
+  },
   { label: 'Settings', path: '/app/settings', icon: Settings },
 ]
 
@@ -74,23 +81,67 @@ export function Sidebar({ isMobileOpen, onClose }: SidebarProps) {
           <nav className="flex-1 space-y-1 px-4 py-6">
             {navItems.map((item) => {
               const Icon = item.icon
+
+              if (!('children' in item)) {
+                return (
+                  <NavLink
+                    key={item.path}
+                    to={item.path}
+                    className={({ isActive }) =>
+                      cn(
+                        'flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold transition-all',
+                        isActive
+                          ? 'bg-sidebar-accent text-sidebar-accent-foreground shadow-lg shadow-primary/20'
+                          : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground'
+                      )
+                    }
+                    onClick={onClose}
+                  >
+                    <Icon className="size-5" />
+                    {item.label}
+                  </NavLink>
+                )
+              }
+
               return (
-                <NavLink
-                  key={item.path}
-                  to={item.path}
-                  className={({ isActive }) =>
-                    cn(
-                      'flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-semibold transition-all',
-                      isActive
-                        ? 'bg-sidebar-accent text-sidebar-accent-foreground shadow-lg shadow-primary/20'
-                        : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground'
-                    )
-                  }
-                  onClick={onClose}
-                >
-                  <Icon className="size-5" />
-                  {item.label}
-                </NavLink>
+                <div key={item.path} className="space-y-1">
+                  <NavLink
+                    to={item.path}
+                    className={({ isActive }) =>
+                      cn(
+                        'flex items-center justify-between gap-3 rounded-2xl px-4 py-3 text-sm font-semibold transition-all',
+                        isActive
+                          ? 'bg-sidebar-accent text-sidebar-accent-foreground shadow-lg shadow-primary/20'
+                          : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground'
+                      )
+                    }
+                    onClick={onClose}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Icon className="size-5" />
+                      {item.label}
+                    </div>
+                  </NavLink>
+                  <div className="ml-4 space-y-1 border-l border-sidebar-border pl-4">
+                    {item.children.map((child) => (
+                      <NavLink
+                        key={child.path}
+                        to={child.path}
+                        className={({ isActive }) =>
+                          cn(
+                            'flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold transition-all',
+                            isActive
+                              ? 'bg-sidebar-accent/80 text-sidebar-accent-foreground shadow-md shadow-primary/10'
+                              : 'text-sidebar-foreground/60 hover:bg-sidebar-accent/40 hover:text-sidebar-accent-foreground'
+                          )
+                        }
+                        onClick={onClose}
+                      >
+                        {child.label}
+                      </NavLink>
+                    ))}
+                  </div>
+                </div>
               )
             })}
           </nav>
@@ -115,4 +166,3 @@ export function Sidebar({ isMobileOpen, onClose }: SidebarProps) {
     </>
   )
 }
-

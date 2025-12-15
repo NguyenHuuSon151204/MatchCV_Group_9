@@ -1,4 +1,4 @@
-﻿using ApiRestFul.DTOs;
+using ApiRestFul.DTOs;
 using ApiRestFul.Services;
 using matchCV_Project.Models;
 using iText.Html2pdf;

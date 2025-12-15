@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { cvService } from '@/lib/services/cv-service'
-import type { AnalyzeResult, CreateCVInput, CV } from '@/lib/types'
+import type { AnalyzeResult, CreateCVInput, CV, UpdateCVInput } from '@/lib/types'
 import { useToastContext } from '@/contexts/toast-context'
 
 export function useCV() {
@@ -15,7 +15,9 @@ export function useCV() {
     setLoading(true)
     setError(null)
     try {
+      console.info('[useCV] fetchCVs start')
       const data = await cvService.getCVs()
+      console.info('[useCV] fetchCVs success count', data.length)
       setCvs(data)
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unable to load CVs'
@@ -62,6 +64,22 @@ export function useCV() {
     [toast]
   )
 
+  const updateCV = useCallback(
+    async (payload: UpdateCVInput) => {
+      try {
+        const updated = await cvService.updateCV(payload)
+        setCvs((prev) => prev.map((cv) => (cv.id === payload.id ? { ...cv, ...updated } : cv)))
+        toast.success('CV updated', `"${updated.name}" has been updated`)
+        return updated
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Failed to update CV'
+        toast.error('Failed to update CV', message)
+        throw err
+      }
+    },
+    [toast]
+  )
+
   const analyzeCV = useCallback(
     async (id: string): Promise<AnalyzeResult> => {
       try {
@@ -86,8 +104,11 @@ export function useCV() {
         const blob = await cvService.exportCV(id, format)
         const url = URL.createObjectURL(blob)
         const link = document.createElement('a')
+        const cvName = cvs.find((cv) => cv.id === id)?.name || 'CV'
+        const safeName = cvName.replace(/[^a-zA-Z0-9-_]+/g, '_').replace(/_{2,}/g, '_')
+        const ext = format === 'json' ? 'json' : format
         link.href = url
-        link.download = `cv-${id}.${format === 'json' ? 'json' : format}`
+        link.download = `${safeName}.${ext}`
         link.click()
         URL.revokeObjectURL(url)
         toast.success('CV exported', `Downloaded as ${format.toUpperCase()}`)
@@ -97,7 +118,7 @@ export function useCV() {
         throw err
       }
     },
-    [toast]
+    [toast, cvs]
   )
 
   return {
@@ -110,6 +131,6 @@ export function useCV() {
     analyzeCV,
     exportCV,
     setCvs,
+    updateCV,
   }
 }
-

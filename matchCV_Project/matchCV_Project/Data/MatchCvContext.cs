@@ -348,7 +348,8 @@ public partial class MatchCvContext : DbContext
 
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysutcdatetime())");
             entity.Property(e => e.KeyHash).HasMaxLength(200);
-            entity.Property(e => e.OriginalKey).HasMaxLength(100);
+            // Some databases may not have OriginalKey column; ignore to avoid runtime errors
+            entity.Ignore(e => e.OriginalKey);
             entity.Property(e => e.Plan)
                 .HasMaxLength(30)
                 .HasDefaultValue("Free");

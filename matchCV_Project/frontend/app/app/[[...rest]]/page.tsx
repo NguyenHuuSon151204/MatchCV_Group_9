@@ -4,7 +4,7 @@ import { RouterProvider } from 'react-router-dom'
 import { appRouter } from '@/routes/app-router'
 import { AuthProvider } from '@/contexts/AuthContext'
 
-export default function AppPage() {
+export default function AppCatchAllPage() {
   const Router = appRouter()
   return (
     <AuthProvider>
@@ -12,5 +12,3 @@ export default function AppPage() {
     </AuthProvider>
   )
 }
-
-

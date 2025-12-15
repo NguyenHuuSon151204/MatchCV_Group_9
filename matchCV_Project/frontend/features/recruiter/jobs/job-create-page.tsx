@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { recruiterService } from '@/lib/services/recruiter-service'
 import { SkillChipsInput } from '@/components/ui/skill-chips-input'
+import { useEffect } from 'react'
 
 export function JobCreatePage() {
   const router = useRouter()
@@ -16,6 +17,32 @@ export function JobCreatePage() {
   })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [blocked, setBlocked] = useState(false)
+  const [statusText, setStatusText] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchStatus = async () => {
+      try {
+        const recruiterId =
+          typeof window !== 'undefined'
+            ? parseInt(localStorage.getItem('matchcv-userId') || localStorage.getItem('userId') || '0')
+            : 0
+        if (!recruiterId) return
+        const statusRes = await recruiterService.getVerificationStatus(recruiterId)
+        const status =
+          statusRes?.status || statusRes?.Status || statusRes?.verificationStatus || statusRes?.VerificationStatus
+        if (status) {
+          setStatusText(status.toString())
+          if (status.toString().toLowerCase() !== 'approved') {
+            setBlocked(true)
+          }
+        }
+      } catch (err) {
+        // ignore
+      }
+    }
+    fetchStatus()
+  }, [])
 
   const handleChange = (field: string, value: string | string[]) => {
     setForm((prev) => ({ ...prev, [field]: value }))
@@ -23,6 +50,10 @@ export function JobCreatePage() {
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
+    if (blocked) {
+      setError('Verification pending or not approved. You cannot post a JD yet.')
+      return
+    }
     setSaving(true)
     setError(null)
 
@@ -78,8 +109,11 @@ export function JobCreatePage() {
         </p>
       </div>
 
-      {error && (
-        <div className="mb-4 p-4 bg-destructive/10 text-destructive rounded-lg">{error}</div>
+      {(error || blocked) && (
+        <div className="mb-4 p-4 bg-destructive/10 text-destructive rounded-lg">
+          {error || 'Verification pending or not approved. You cannot post a JD yet.'}
+          {statusText && <div className="text-xs text-muted-foreground mt-1">Status: {statusText}</div>}
+        </div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">

@@ -5,7 +5,9 @@ import { ActivityList } from '@/components/common/activity-list'
 import { ScoreCircle } from '@/components/common/score-circle'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { dashboardService } from '@/lib/services/dashboard-service'
-import type { DashboardMetrics } from '@/lib/types'
+import { activityService } from '@/lib/services/activity-service'
+import { useCV } from '@/hooks/useCV'
+import type { ActivityItem, DashboardMetrics } from '@/lib/types'
 
 const metricConfig = [
   { key: 'totalCVs', label: 'Total CVs', accent: 'from-purple-500 to-indigo-500' },
@@ -15,15 +17,43 @@ const metricConfig = [
 ] as const
 
 export function DashboardPage() {
+  const { cvs, loading: cvsLoading } = useCV()
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null)
   const [loading, setLoading] = useState(true)
+  const [activity, setActivity] = useState<ActivityItem[]>([])
 
   useEffect(() => {
+    setActivity(activityService.list())
+  }, [])
+
+  useEffect(() => {
+    if (cvsLoading) return
+
+    // If we already have CVs loaded, derive metrics locally to avoid 404s from dashboard API
+    if (cvs.length > 0) {
+      const totalCVs = cvs.length
+      const analyzedCVs = cvs.filter((cv) => cv.status === 'analyzed').length
+      const exportedCVs = cvs.filter((cv) => cv.status === 'submitted').length
+      const scored = cvs.map((cv) => cv.score).filter((s): s is number => typeof s === 'number')
+      const averageScore = scored.length ? Math.round((scored.reduce((a, b) => a + b, 0) / scored.length) * 10) / 10 : 0
+
+      setMetrics({
+        totalCVs,
+        analyzedCVs,
+        averageScore,
+        exportedCVs,
+        activity: activityService.list(),
+      })
+      setLoading(false)
+      return
+    }
+
+    // Fallback to API if no CVs locally
     dashboardService
       .getMetrics()
       .then(setMetrics)
       .finally(() => setLoading(false))
-  }, [])
+  }, [cvs, cvsLoading])
 
   return (
     <div className="space-y-6">
@@ -41,7 +71,7 @@ export function DashboardPage() {
             </CardHeader>
             <CardContent className="flex items-center justify-between">
               <p className="text-3xl font-bold tracking-tight">
-                {loading ? 'ΓÇö' : metrics ? metrics[metric.key] : 'ΓÇö'}
+                {loading ? '...' : metrics ? metrics[metric.key] ?? 0 : '0'}
               </p>
               <div
                 className={`rounded-full bg-gradient-to-br ${metric.accent} p-3 text-white shadow-lg shadow-black/30`}
@@ -60,7 +90,7 @@ export function DashboardPage() {
               <CardTitle className="text-xl">AI Insights</CardTitle>
               <CardDescription>Top strengths extracted from latest analyses.</CardDescription>
             </div>
-            <ScoreCircle score={metrics?.averageScore} size={96} />
+            <ScoreCircle score={metrics?.averageScore ?? 0} size={96} />
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-3 md:grid-cols-3">
@@ -86,7 +116,7 @@ export function DashboardPage() {
             <CardDescription>Track how you interact with AI workflows.</CardDescription>
           </CardHeader>
           <CardContent>
-            <ActivityList items={metrics?.activity ?? []} />
+            <ActivityList items={activity} />
           </CardContent>
         </Card>
       </div>

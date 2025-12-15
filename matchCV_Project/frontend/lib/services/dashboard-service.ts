@@ -37,12 +37,17 @@ const mockMetrics: DashboardMetrics = {
 export const dashboardService = {
   async getMetrics(): Promise<DashboardMetrics> {
     try {
-      const response = await apiClient.get<DashboardMetrics>('/candidate/dashboard')
+      // Backend only has recruiter dashboard route; call it and tolerate 401/404
+      const response = await apiClient.get<DashboardMetrics>('/recruiter/dashboard')
       return response.data
-    } catch (error) {
-      console.warn('[dashboardService] fallback to mock metrics', error)
+    } catch (error: any) {
+      const status = error?.response?.status
+      if (status === 401 || status === 404) {
+        console.info('[dashboardService] dashboard endpoint unavailable, using mock metrics')
+      } else {
+        console.warn('[dashboardService] fallback to mock metrics', error)
+      }
       return mockMetrics
     }
   },
 }
-

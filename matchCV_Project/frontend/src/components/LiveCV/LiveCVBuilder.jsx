@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import { useToastContext } from '@/contexts/toast-context';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,6 +22,7 @@ function LiveCVBuilder() {
     const [currentCvId, setCurrentCvId] = useState(0);
     const fileInputRef = useRef(null);
     const [searchParams] = useSearchParams();
+    const location = useLocation();
     const navigate = useNavigate();
     const toast = useToastContext();
 
@@ -66,7 +67,7 @@ function LiveCVBuilder() {
 
     const [cvData, setCvData] = useState(initialCvData);
 
-    // Load templates and check for ID in URL
+    // Load templates and check for ID in URL or navigation state
     useEffect(() => {
         const fetchTemplates = async () => {
             try {
@@ -77,6 +78,16 @@ function LiveCVBuilder() {
                 const cvId = searchParams.get('id');
                 if (cvId) {
                     await loadCVFromHistory(cvId);
+                } else if (location.state && location.state.initialData) {
+                    const initial = location.state.initialData;
+                    setCvTitle(initial.title || '');
+                    setCvData(prev => ({
+                        ...prev,
+                        personalInfo: {
+                            ...prev.personalInfo,
+                            ...(initial.personalInfo || {})
+                        }
+                    }));
                 } else if (typeof window !== 'undefined') {
                     const savedCvData = localStorage.getItem('liveCvData');
                     if (savedCvData) {
@@ -92,7 +103,7 @@ function LiveCVBuilder() {
         };
 
         fetchTemplates();
-    }, [searchParams]);
+    }, [searchParams, location.state]);
 
     const loadCVFromHistory = async (id) => {
         try {
@@ -124,7 +135,7 @@ function LiveCVBuilder() {
                 setCvData(initialCvData);
                 setCvTitle('');
                 setCurrentCvId(0);
-                navigate('/cv-builder', { replace: true });
+                navigate('/app/cv-builder', { replace: true });
             } else {
                 toast.error('Không thể tải CV từ lịch sử.');
             }
@@ -196,7 +207,12 @@ function LiveCVBuilder() {
             }))
         };
 
-        console.log('Saving CV Data:', formattedCvData);
+        console.log('[LiveCVBuilder] Saving CV Data payload', {
+            id: currentCvId,
+            title: titleToUse,
+            templateType: cvData.templateType,
+            cvData: formattedCvData
+        });
 
         return await saveCV({
             id: currentCvId,
@@ -208,37 +224,36 @@ function LiveCVBuilder() {
 
     const handleSaveCV = async () => {
         if (!cvTitle.trim()) {
-            toast.warning('Vui lòng nhập tên cho CV của bạn');
+            toast.warning("Vui lòng nhập tên cho CV của bạn");
             return;
         }
 
         try {
             const result = await saveCvToBackend(cvTitle);
-            console.log('Save result:', result);
+            console.log("Save result:", result);
 
-            // Handle both camelCase (id) and PascalCase (Id)
             const savedId = result ? (result.id || result.Id) : null;
+            const savedTitle = result?.title || result?.Title || cvTitle;
 
             if (savedId) {
                 setCurrentCvId(savedId);
-                toast.success('CV đã được lưu thành công!');
+                setCvTitle(savedTitle || cvTitle);
+                window.dispatchEvent(new Event("cv-saved"));
+                toast.success("CV đã được lưu thành công!");
                 setShowSaveDialog(false);
-
-                // Update URL without reloading
-                if (currentCvId === 0) {
-                    navigate(`/cv-builder?id=${savedId}`, { replace: true });
-                }
+                navigate('/app/my-cvs', { replace: true });
             } else {
-                console.error('Saved CV but no ID returned:', result);
-                toast.error('Lưu CV thành công nhưng không nhận được ID.');
+                console.error("Saved CV but no ID returned:", result);
+                toast.error("Lưu CV thành công nhưng không nhận được ID.");
             }
         } catch (error) {
-            console.error('Error saving CV:', error);
+            console.error("Error saving CV:", error);
             if (error.response) {
-                console.error('Server Error Details:', error.response.data);
-                toast.error(`Lỗi lưu CV: ${error.response.data.message || 'Dữ liệu không hợp lệ'}`);
+                console.error("Server Error Details:", error.response.data);
+                const message = error.response.data.message || "Dữ liệu không hợp lệ";
+                toast.error("Lỗi lưu CV: " + message);
             } else {
-                toast.error('Không thể lưu CV. Vui lòng thử lại.');
+                toast.error("Không thể lưu CV. Vui lòng thử lại.");
             }
         }
     };
@@ -263,7 +278,7 @@ function LiveCVBuilder() {
                     if (savedId) {
                         setCurrentCvId(savedId);
                         setCvTitle(titleToSave);
-                        navigate(`/cv-builder?id=${savedId}`, { replace: true });
+                        navigate(`/app/cv-builder?id=${savedId}`, { replace: true });
                     }
                 }
             } catch (saveError) {
@@ -348,7 +363,7 @@ function LiveCVBuilder() {
             setCvData(initialCvData);
             setCvTitle('');
             setCurrentCvId(0);
-            navigate('/cv-builder'); // Clear ID from URL
+            navigate('/app/cv-builder'); // Clear ID from URL
         }
     };
 
@@ -357,7 +372,7 @@ function LiveCVBuilder() {
             setCvData(initialCvData);
             setCvTitle('');
             setCurrentCvId(0);
-            navigate('/cv-builder');
+            navigate('/app/cv-builder');
         }
     };
 

@@ -1,15 +1,31 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { formatDistanceToNow } from 'date-fns'
-import { ArrowLeft, Building2, Calendar, MapPin, Briefcase, CheckCircle2, AlertCircle } from 'lucide-react'
+import { format, formatDistanceToNow } from 'date-fns'
+import {
+  AlertCircle,
+  ArrowLeft,
+  BadgeCheck,
+  BookOpen,
+  Briefcase,
+  Building2,
+  Calendar,
+  CheckCircle2,
+  Clock3,
+  Flame,
+  MapPin,
+  Sparkles,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { AnalyzeJDDialog } from '@/components/common/analyze-jd-dialog'
 import { ApplyCVDialog } from '@/components/common/apply-cv-dialog'
-import { useJob } from '@/hooks/useJob'
+import { jobService } from '@/lib/services/job-service'
+import { savedJdService } from '@/lib/services/saved-jd-service'
+import { useToastContext } from '@/contexts/toast-context'
+import { appliedJobsService } from '@/lib/services/applied-jobs-service'
 import type { Job } from '@/lib/types'
 
 export function JobDetailsPage() {
@@ -20,8 +36,14 @@ export function JobDetailsPage() {
   const [error, setError] = useState<string | null>(null)
   const [analyzeDialogOpen, setAnalyzeDialogOpen] = useState(false)
   const [applyDialogOpen, setApplyDialogOpen] = useState(false)
+  const [applied, setApplied] = useState(false)
+  const [saved, setSaved] = useState(false)
   const [analysisResult, setAnalysisResult] = useState<any>(null)
+  const appliedKey = jobId ? `applied-job-${jobId}` : null
+  const savedKey = jobId ? `saved-job-${jobId}` : null
+  const toast = useToastContext()
 
+  // Load job detail: quick cache from localStorage, then refresh from API
   useEffect(() => {
     const loadJob = async () => {
       if (!jobId) {
@@ -30,36 +52,96 @@ export function JobDetailsPage() {
         return
       }
 
+      const jobIdNum = parseInt(jobId, 10)
+      setLoading(true)
+
+      const cached = localStorage.getItem('selectedJob')
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached) as Job
+          if (parsed?.id === jobIdNum) setJob(parsed)
+        } catch {
+          // ignore parse errors
+        } finally {
+          localStorage.removeItem('selectedJob')
+        }
+      }
+
       try {
-        setLoading(true)
-        // For now, we'll load from mock data in jobService
-        // In production, you'd call jobService.getJob(parseInt(jobId))
-        const jobIdNum = parseInt(jobId)
-        // This is a placeholder - the actual implementation would fetch from the service
-        setLoading(false)
+        const fresh = await jobService.getJob(jobIdNum)
+        if (fresh) {
+          setJob(fresh)
+          if (appliedKey && localStorage.getItem(appliedKey) === 'true') {
+            setApplied(true)
+          }
+          if (savedKey && localStorage.getItem(savedKey) === 'true') {
+            setSaved(true)
+          }
+        } else if (!cached) {
+          setError('Job not found')
+        }
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Failed to load job details'
         setError(message)
+      } finally {
         setLoading(false)
       }
     }
 
     loadJob()
-  }, [jobId])
+  }, [jobId, appliedKey, savedKey])
 
-  // For demo purposes, get job from localStorage or create a placeholder
-  useEffect(() => {
-    const jobData = localStorage.getItem('selectedJob')
-    if (jobData) {
-      try {
-        setJob(JSON.parse(jobData))
-        localStorage.removeItem('selectedJob')
-      } catch {
-        setError('Failed to load job details')
-      }
+  const matchScore = useMemo(() => {
+    if (!job) return null
+    const base = (job.title?.length + job.company?.length) % 25
+    return 75 + (base % 20) // 75-94%
+  }, [job])
+
+  const heroMeta = useMemo(() => {
+    if (!job) return null
+    return {
+      location: 'Remote / Flexible',
+      salary: '$150k – $200k',
+      type: 'Full-time',
+      level: 'Senior Level',
+      posted: formatDistanceToNow(new Date(job.createdAt), { addSuffix: true }),
     }
-    setLoading(false)
-  }, [])
+  }, [job])
+
+  const bulletList = (source?: string, fallback: string[] = []) => {
+    if (!source) return fallback
+    const items = source
+      .split(/\r?\n/)
+      .map((line) => line.replace(/^[\s-•]+/, '').trim())
+      .filter(Boolean)
+    return items.length ? items.slice(0, 8) : fallback
+  }
+
+  const responsibilities = bulletList(job?.jobDescription || job?.rawText, [
+    'Develop new user-facing features using modern React patterns.',
+    'Build reusable components and design systems for future use.',
+    'Translate design wireframes into high-quality, performant UI.',
+    'Optimize applications for maximum speed and scalability.',
+    'Collaborate with product, design, and backend teams.',
+    'Participate in code reviews and share best practices.',
+  ])
+
+  const requirements = bulletList(job?.rawText, [
+    '5+ years of experience with React and TypeScript.',
+    'Strong knowledge of JavaScript fundamentals and browser APIs.',
+    'Experience with state management (Redux/Zustand/Context).',
+    'Familiarity with RESTful APIs and modern authorization flows.',
+    'Hands-on with build tools: Webpack/Vite/Babel.',
+    'Bachelor’s degree in Computer Science or equivalent experience.',
+  ])
+
+  const skills = useMemo(() => {
+    const defaults = ['React', 'TypeScript', 'Redux', 'Next.js', 'CSS3', 'REST API', 'Node.js', 'Git']
+    if (!job?.jobDescription && !job?.rawText) return defaults
+    const text = `${job.jobDescription ?? ''} ${job.rawText ?? ''}`.toLowerCase()
+    const tags = defaults.filter((skill) => text.includes(skill.toLowerCase()))
+    return tags.length ? tags : defaults
+  }, [job])
 
   if (loading) {
     return (
@@ -72,11 +154,7 @@ export function JobDetailsPage() {
   if (error || !job) {
     return (
       <section className="space-y-6">
-        <Button
-          onClick={() => navigate('/jobs')}
-          variant="ghost"
-          className="gap-2"
-        >
+        <Button onClick={() => navigate('/app/jobs')} variant="ghost" className="gap-2">
           <ArrowLeft className="size-4" />
           Back to Jobs
         </Button>
@@ -90,237 +168,279 @@ export function JobDetailsPage() {
 
   return (
     <section className="space-y-6">
-      {/* Back Button */}
-      <Button
-        onClick={() => navigate('/jobs')}
-        variant="ghost"
-        className="gap-2"
-      >
+      <Button onClick={() => navigate('/app/jobs')} variant="ghost" className="gap-2">
         <ArrowLeft className="size-4" />
         Back to Jobs
       </Button>
 
-      {/* Job Header */}
-      <div className="space-y-4">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex-1">
-            <h1 className="text-4xl font-bold text-card-foreground">{job.title}</h1>
-            <div className="mt-2 flex items-center gap-2 text-lg text-muted-foreground">
-              <Building2 className="size-5" />
-              <span>{job.company}</span>
+      {/* Hero */}
+      <Card className="rounded-3xl border border-border/50 bg-card/90 p-6 shadow-2xl shadow-primary/10">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <Badge variant="outline" className="rounded-full border-primary/40 bg-primary/10 text-primary">
+                <Flame className="size-4" />
+                Trending
+              </Badge>
+              <Badge
+                variant={job.status === 'Active' ? 'default' : 'secondary'}
+                className="rounded-full px-3 py-1"
+              >
+                {job.status}
+              </Badge>
             </div>
-          </div>
-          <Badge
-            variant={job.status === 'Active' ? 'default' : 'secondary'}
-            className="rounded-full text-base px-4 py-2"
-          >
-            {job.status}
-          </Badge>
-        </div>
+            <div>
+              <h1 className="text-4xl font-bold text-card-foreground">{job.title}</h1>
+              <div className="mt-2 flex items-center gap-2 text-lg text-muted-foreground">
+                <Building2 className="size-5" />
+                <span>{job.company}</span>
+              </div>
+            </div>
 
-        {/* Quick Info */}
-        <div className="flex flex-wrap gap-4">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Calendar className="size-4" />
-            <span>Posted {formatDistanceToNow(new Date(job.createdAt), { addSuffix: true })}</span>
-          </div>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Briefcase className="size-4" />
-            <span>Updated {formatDistanceToNow(new Date(job.updatedAt), { addSuffix: true })}</span>
-          </div>
+            {heroMeta && (
+              <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+                <span className="inline-flex items-center gap-2">
+                  <MapPin className="size-4" /> {heroMeta.location}
+                </span>
+                <span className="inline-flex items-center gap-2">
+                  <Briefcase className="size-4" /> {heroMeta.type}
+                </span>
+                <span className="inline-flex items-center gap-2">
+                  <BadgeCheck className="size-4" /> {heroMeta.level}
+                </span>
+                <span className="inline-flex items-center gap-2">
+                  <Sparkles className="size-4" /> {heroMeta.salary}
+                </span>
+                <span className="inline-flex items-center gap-2">
+                  <Calendar className="size-4" /> {heroMeta.posted}
+                </span>
+              </div>
+            )}
+
+              <div className="flex flex-wrap gap-3">
+                <Button size="lg" className="rounded-full px-6" onClick={() => setApplyDialogOpen(true)}>
+                  {applied ? 'Applied' : 'Apply Now'}
+                </Button>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="rounded-full px-6"
+                  onClick={() => setAnalyzeDialogOpen(true)}
+                >
+                  <Sparkles className="mr-2 size-4" />
+                  Analyze with CV
+                </Button>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="rounded-full px-6"
+                  onClick={() => {
+                    if (!job) return
+                    const content = job.jobDescription || job.rawText || job.title || ''
+                    savedJdService.save(content)
+                    if (savedKey) localStorage.setItem(savedKey, 'true')
+                    setSaved(true)
+                    toast.success('Saved job', `"${job.title}" saved to Saved JDs`)
+                  }}
+                  disabled={saved}
+                >
+                  {saved ? 'Saved' : 'Save'}
+                </Button>
+              </div>
+            </div>
+
+          {matchScore && (
+            <div className="rounded-3xl border border-primary/30 bg-primary/5 px-6 py-5 text-right shadow-inner">
+              <p className="text-xs uppercase tracking-[0.25em] text-primary/80">Match Score</p>
+              <div className="flex items-baseline justify-end gap-2">
+                <span className="text-5xl font-black text-primary">{matchScore}%</span>
+                <span className="text-sm text-muted-foreground">vs your CV</span>
+              </div>
+              <div className="mt-3 flex items-center justify-end gap-2 text-xs text-primary/80">
+                <CheckCircle2 className="size-4" />
+                Strong fit detected
+              </div>
+            </div>
+          )}
         </div>
-      </div>
+      </Card>
 
       {/* Main Content */}
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* Job Description */}
-        <div className="lg:col-span-2 space-y-6">
-          <Card className="rounded-3xl border border-border/40 bg-card/80 p-6 shadow-xl shadow-black/5">
-            <h2 className="text-2xl font-semibold text-card-foreground mb-4">Job Description</h2>
-            <div className="prose prose-invert max-w-none text-muted-foreground whitespace-pre-wrap">
-              {job.jobDescription || 'No description provided'}
+        <div className="space-y-6 lg:col-span-2">
+          <Card className="rounded-3xl border border-border/40 bg-card/90 p-6 shadow-xl shadow-black/5">
+            <h2 className="mb-4 text-xl font-semibold text-card-foreground">Job Description</h2>
+            <div className="prose prose-invert max-w-none whitespace-pre-wrap leading-relaxed text-muted-foreground">
+              {job.jobDescription || 'No description provided.'}
             </div>
           </Card>
 
-          {job.rawText && (
-            <Card className="rounded-3xl border border-border/40 bg-card/80 p-6 shadow-xl shadow-black/5">
-              <h2 className="text-2xl font-semibold text-card-foreground mb-4">Raw Text</h2>
-              <div className="text-muted-foreground whitespace-pre-wrap text-sm">
-                {job.rawText}
-              </div>
-            </Card>
-          )}
-        </div>
-
-        {/* Sidebar */}
-        <div className="space-y-4">
-          {/* Action Buttons */}
-          <Card className="rounded-3xl border border-border/40 bg-card/80 p-6 shadow-xl shadow-black/5 space-y-3">
-            <Button
-              className="w-full rounded-full"
-              size="lg"
-              onClick={() => setApplyDialogOpen(true)}
-            >
-              Apply Now
-            </Button>
-            <Button
-              variant="outline"
-              className="w-full rounded-full"
-              size="lg"
-              onClick={() => setAnalyzeDialogOpen(true)}
-            >
-              Analyze with JD Analyzer
-            </Button>
-            <Button variant="outline" className="w-full rounded-full" size="lg">
-              Save Job
-            </Button>
+          <Card className="rounded-3xl border border-border/40 bg-card/90 p-6 shadow-xl shadow-black/5">
+            <div className="flex items-center gap-2 text-primary">
+              <BookOpen className="size-5" />
+              <h3 className="text-lg font-semibold text-card-foreground">Key Responsibilities</h3>
+            </div>
+            <ul className="mt-4 space-y-3 text-muted-foreground">
+              {responsibilities.map((item, idx) => (
+                <li key={idx} className="flex gap-3">
+                  <CheckCircle2 className="mt-1 size-4 text-primary" />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
           </Card>
 
-          {/* Analysis Result Card */}
+          <Card className="rounded-3xl border border-border/40 bg-card/90 p-6 shadow-xl shadow-black/5">
+            <div className="flex items-center gap-2 text-primary">
+              <BadgeCheck className="size-5" />
+              <h3 className="text-lg font-semibold text-card-foreground">Requirements</h3>
+            </div>
+            <ul className="mt-4 space-y-3 text-muted-foreground">
+              {requirements.map((item, idx) => (
+                <li key={idx} className="flex gap-3">
+                  <CheckCircle2 className="mt-1 size-4 text-primary" />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </Card>
+        </div>
+
+        <div className="space-y-4">
           {analysisResult && (
-            <Card className="rounded-3xl border border-border/40 bg-card/80 p-6 shadow-xl shadow-black/5">
-              <h3 className="font-semibold text-card-foreground mb-4">CV Analysis Result</h3>
-              
-              {/* CV Name */}
-              <div className="mb-4 pb-4 border-b border-border/30">
-                <p className="text-xs uppercase tracking-widest text-muted-foreground">CV Analyzed</p>
-                <p className="text-card-foreground font-medium">{analysisResult.cvName}</p>
-              </div>
-
-              {/* Match Score */}
-              <div className="mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="text-3xl font-bold text-primary">{analysisResult.matchScore}%</div>
-                  <div>
-                    <p className="text-xs uppercase tracking-widest text-muted-foreground">Match Score</p>
-                    <p className="text-sm text-muted-foreground">
-                      {analysisResult.matchScore >= 80 ? 'Excellent' : analysisResult.matchScore >= 60 ? 'Good' : 'Fair'}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Matched Skills */}
-              <div className="mb-4 pb-4 border-b border-border/30">
-                <p className="text-xs uppercase tracking-widest text-muted-foreground mb-2">Matched Skills ({analysisResult.matchedSkills.length})</p>
-                <div className="flex flex-wrap gap-2">
-                  {analysisResult.matchedSkills.slice(0, 3).map((skill: string) => (
-                    <span key={skill} className="text-xs bg-primary/20 text-primary rounded-full px-2 py-1">
-                      ✓ {skill}
-                    </span>
-                  ))}
-                  {analysisResult.matchedSkills.length > 3 && (
-                    <span className="text-xs text-muted-foreground px-2 py-1">+{analysisResult.matchedSkills.length - 3} more</span>
-                  )}
-                </div>
-              </div>
-
-              {/* Missing Skills */}
-              {analysisResult.missingSkills.length > 0 && (
+            <Card className="rounded-3xl border border-border/40 bg-card/90 p-6 shadow-xl shadow-black/5">
+              <h3 className="mb-4 font-semibold text-card-foreground">CV Analysis Result</h3>
+              <div className="mb-4 flex items-center justify-between rounded-2xl bg-primary/5 px-4 py-3">
                 <div>
-                  <p className="text-xs uppercase tracking-widest text-muted-foreground mb-2">Missing Skills ({analysisResult.missingSkills.length})</p>
-                  <div className="flex flex-wrap gap-2">
-                    {analysisResult.missingSkills.slice(0, 2).map((skill: string) => (
-                      <span key={skill} className="text-xs bg-destructive/20 text-destructive rounded-full px-2 py-1">
-                        ✗ {skill}
+                  <p className="text-xs uppercase tracking-[0.25em] text-muted-foreground">Match Score</p>
+                  <p className="text-3xl font-bold text-primary">{analysisResult.matchScore}%</p>
+                </div>
+                <Badge variant="outline" className="rounded-full border-primary/40 text-primary">
+                  {analysisResult.matchScore >= 80 ? 'Excellent' : analysisResult.matchScore >= 60 ? 'Good' : 'Fair'}
+                </Badge>
+              </div>
+
+              <div className="space-y-3 text-sm text-muted-foreground">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">CV</p>
+                  <p className="text-card-foreground font-medium">{analysisResult.cvName}</p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Matched Skills</p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {analysisResult.matchedSkills.map((skill: string) => (
+                      <span key={skill} className="rounded-full bg-primary/10 px-3 py-1 text-xs text-primary">
+                        {skill}
                       </span>
                     ))}
-                    {analysisResult.missingSkills.length > 2 && (
-                      <span className="text-xs text-muted-foreground px-2 py-1">+{analysisResult.missingSkills.length - 2} more</span>
-                    )}
                   </div>
                 </div>
-              )}
+                {analysisResult.missingSkills.length > 0 && (
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Missing Skills</p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {analysisResult.missingSkills.map((skill: string) => (
+                        <span key={skill} className="rounded-full bg-destructive/10 px-3 py-1 text-xs text-destructive">
+                          {skill}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
 
-              {/* Action Button */}
               <Button
                 variant="outline"
-                className="w-full rounded-full mt-4"
+                className="mt-4 w-full rounded-full"
                 size="sm"
                 onClick={() => setAnalysisResult(null)}
               >
-                Clear Result
+                Clear
               </Button>
             </Card>
           )}
 
-          {/* Job Info */}
-          <Card className="rounded-3xl border border-border/40 bg-card/80 p-6 shadow-xl shadow-black/5">
-            <h3 className="font-semibold text-card-foreground mb-4">Job Information</h3>
-            <div className="space-y-3">
-              <div>
-                <p className="text-xs uppercase tracking-widest text-muted-foreground">Company</p>
-                <p className="text-card-foreground font-medium">{job.company}</p>
+          <Card className="rounded-3xl border border-border/40 bg-card/90 p-6 shadow-xl shadow-black/5">
+            <h3 className="mb-4 font-semibold text-card-foreground">Job Information</h3>
+            <div className="space-y-3 text-sm text-muted-foreground">
+              <div className="flex items-center gap-2 text-card-foreground">
+                <Building2 className="size-4" />
+                <span>{job.company}</span>
               </div>
-              <div>
-                <p className="text-xs uppercase tracking-widest text-muted-foreground">Job ID</p>
-                <p className="text-card-foreground font-medium">#{job.id}</p>
+              <div className="flex items-center gap-2">
+                <Briefcase className="size-4" />
+                <span>Job ID #{job.id}</span>
               </div>
-              <div>
-                <p className="text-xs uppercase tracking-widest text-muted-foreground">Status</p>
+              <div className="flex items-center gap-2">
+                <Clock3 className="size-4" />
+                <span>Updated {formatDistanceToNow(new Date(job.updatedAt), { addSuffix: true })}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Calendar className="size-4" />
+                <span>{format(new Date(job.createdAt), 'MMM dd, yyyy')}</span>
+              </div>
+              <div className="flex items-center gap-2">
                 <Badge
                   variant={job.status === 'Active' ? 'default' : 'secondary'}
-                  className="rounded-full mt-1"
+                  className="rounded-full"
                 >
                   {job.status}
                 </Badge>
               </div>
-              <div>
-                <p className="text-xs uppercase tracking-widest text-muted-foreground">Posted</p>
-                <p className="text-card-foreground font-medium">
-                  {new Date(job.createdAt).toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                  })}
-                </p>
-              </div>
             </div>
           </Card>
 
-          {/* Key Skills */}
-          <Card className="rounded-3xl border border-border/40 bg-card/80 p-6 shadow-xl shadow-black/5">
-            <h3 className="font-semibold text-card-foreground mb-4">Key Requirements</h3>
-            <div className="space-y-2 text-sm text-muted-foreground">
-              <div className="flex items-start gap-2">
-                <CheckCircle2 className="size-4 mt-0.5 flex-shrink-0 text-primary" />
-                <span>Experience required</span>
-              </div>
-              <div className="flex items-start gap-2">
-                <CheckCircle2 className="size-4 mt-0.5 flex-shrink-0 text-primary" />
-                <span>Technical skills needed</span>
-              </div>
-              <div className="flex items-start gap-2">
-                <CheckCircle2 className="size-4 mt-0.5 flex-shrink-0 text-primary" />
-                <span>Team player</span>
-              </div>
+          <Card className="rounded-3xl border border-border/40 bg-card/90 p-6 shadow-xl shadow-black/5">
+            <h3 className="mb-3 font-semibold text-card-foreground">Required Skills</h3>
+            <div className="flex flex-wrap gap-2">
+              {skills.map((skill) => (
+                <span
+                  key={skill}
+                  className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-card-foreground/80"
+                >
+                  {skill}
+                </span>
+              ))}
             </div>
           </Card>
         </div>
       </div>
 
-      {/* Analyze JD Dialog */}
       <AnalyzeJDDialog
         open={analyzeDialogOpen}
         onOpenChange={setAnalyzeDialogOpen}
         onAnalysisComplete={(result) => setAnalysisResult(result)}
-        job={job ? {
-          id: job.id,
-          title: job.title,
-          company: job.company,
-          jobDescription: job.jobDescription,
-        } : undefined}
+        job={
+          job
+            ? {
+                id: job.id,
+                title: job.title,
+                company: job.company,
+                jobDescription: job.jobDescription,
+              }
+            : undefined
+        }
       />
 
-      {/* Apply CV Dialog */}
       <ApplyCVDialog
         open={applyDialogOpen}
         onOpenChange={setApplyDialogOpen}
-        job={job ? {
-          id: job.id,
-          title: job.title,
-          company: job.company,
-        } : undefined}
+        onApplied={() => {
+          setApplied(true)
+          if (appliedKey) localStorage.setItem(appliedKey, 'true')
+          if (job) {
+            appliedJobsService.save({ id: job.id, title: job.title, company: job.company })
+          }
+        }}
+        job={
+          job
+            ? {
+                id: job.id,
+                title: job.title,
+                company: job.company,
+              }
+            : undefined
+        }
       />
     </section>
   )

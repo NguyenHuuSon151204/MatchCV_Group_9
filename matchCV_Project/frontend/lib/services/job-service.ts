@@ -67,33 +67,26 @@ export const jobService = {
   async getJobs(searchTerm?: string, status?: string, userId?: number): Promise<Job[]> {
     return withFallback(
       async () => {
+        console.info('[jobService.getJobs] request', { searchTerm, status, userId })
         const params: any = {}
         if (searchTerm) params.searchTerm = searchTerm
         if (status) params.status = status
         if (userId) params.userId = userId
 
-        const response = await apiClient.get<JobDto[]>(`/job/search`, { params })
-        return Array.isArray(response.data) ? response.data.map(mapJobDtoToJob) : []
+        const response = await apiClient.get<JobDto[] | { items?: JobDto[] }>(`/job/search`, {
+          params,
+          headers: { 'X-Skip-UserId': 'true' },
+        })
+        const payload = response.data as any
+        const raw = Array.isArray(payload) ? payload : Array.isArray(payload?.items) ? payload.items : []
+        const mapped = raw.map(mapJobDtoToJob)
+        console.info('[jobService.getJobs] response', { count: mapped.length })
+        return mapped
       },
       async () => {
         await delay(300)
-        let filtered = [...jobStore]
-        if (searchTerm) {
-          const term = searchTerm.toLowerCase()
-          filtered = filtered.filter(
-            (job) =>
-              job.title.toLowerCase().includes(term) ||
-              job.company.toLowerCase().includes(term) ||
-              job.jobDescription?.toLowerCase().includes(term)
-          )
-        }
-        if (status) {
-          filtered = filtered.filter((job) => job.status === status)
-        }
-        if (userId) {
-          filtered = filtered.filter((job) => job.userId === userId)
-        }
-        return filtered
+        // On failure, return empty to avoid showing mock data
+        return []
       }
     )
   },
@@ -101,12 +94,17 @@ export const jobService = {
   async getUserJobs(userId: number): Promise<Job[]> {
     return withFallback(
       async () => {
-        const response = await apiClient.get<JobDto[]>(`/job/user/${userId}`)
-        return Array.isArray(response.data) ? response.data.map(mapJobDtoToJob) : []
+        console.info('[jobService.getUserJobs] request', { userId })
+        const response = await apiClient.get<JobDto[] | { items?: JobDto[] }>(`/job/user/${userId}`)
+        const payload = response.data as any
+        const raw = Array.isArray(payload) ? payload : Array.isArray(payload?.items) ? payload.items : []
+        const mapped = raw.map(mapJobDtoToJob)
+        console.info('[jobService.getUserJobs] response', { count: mapped.length })
+        return mapped
       },
       async () => {
         await delay(300)
-        return jobStore.filter((job) => job.userId === userId)
+        return []
       }
     )
   },
@@ -245,4 +243,3 @@ export const jobService = {
     )
   },
 }
-

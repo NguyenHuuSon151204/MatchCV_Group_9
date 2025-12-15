@@ -60,6 +60,9 @@ public class CvController : ControllerBase
     {
         try
         {
+            _logger.LogInformation("SaveCv called for user {UserId} with Id={Id}, Title={Title}, TemplateType={TemplateType}, CvData null? {CvDataNull}",
+                userId, dto.Id, dto.Title, dto.TemplateType, dto.CvData == null);
+
             if (dto.Id > 0)
             {
                 var updateDto = new UpdateDocumentDto
@@ -126,7 +129,7 @@ public class CvController : ControllerBase
     {
         try
         {
-            var document = await _documentService.GetDocumentAsync(id, userId);
+            var document = await _documentService.GetDocumentWithCvDataAsync(id, userId);
             return Ok(BaseResponseDto<DocumentDto>.SuccessResponse(document, "CV retrieved successfully"));
         }
         catch (ArgumentException ex)

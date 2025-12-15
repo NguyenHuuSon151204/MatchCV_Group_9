@@ -12,6 +12,7 @@ import type { CV } from '@/lib/types'
 interface ApplyCVDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  onApplied?: (payload: { jobId: number; cvId: string }) => void
   job?: {
     id: number
     title: string
@@ -19,12 +20,13 @@ interface ApplyCVDialogProps {
   }
 }
 
-export function ApplyCVDialog({ open, onOpenChange, job }: ApplyCVDialogProps) {
+export function ApplyCVDialog({ open, onOpenChange, job, onApplied }: ApplyCVDialogProps) {
   const { cvs, loading: cvsLoading } = useCV()
   const [selectedCV, setSelectedCV] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const handleApplyClick = async () => {
     if (!selectedCV || !job) return
@@ -36,15 +38,22 @@ export function ApplyCVDialog({ open, onOpenChange, job }: ApplyCVDialogProps) {
     setSubmitting(true)
     try {
       // Call API to submit application
-      await apiClient.post('/job/apply', {
-        jobId: job?.id,
-        cvId: selectedCV,
-        userId: 1 // Mock userId - would come from auth context in production
+      const userIdStr = typeof window !== 'undefined' ? window.localStorage.getItem('matchcv-userId') : null
+      const candidateId = userIdStr ? parseInt(userIdStr, 10) : undefined
+      if (!candidateId) {
+        throw new Error('User not logged in')
+      }
+
+      await apiClient.post(`/recruiter/jobs/${job?.id}/apply`, {
+        documentId: parseInt(selectedCV, 10),
+        candidateId,
       })
+      onApplied?.({ jobId: job.id, cvId: selectedCV })
       setSubmitted(true)
     } catch (error) {
       console.error('Error applying:', error)
-      // Still show success even if API fails, as a fallback
+      onApplied?.({ jobId: job!.id, cvId: selectedCV! })
+      setError(error instanceof Error ? error.message : 'Failed to apply')
       setSubmitted(true)
     } finally {
       setSubmitting(false)
@@ -153,6 +162,7 @@ export function ApplyCVDialog({ open, onOpenChange, job }: ApplyCVDialogProps) {
               </DialogBody>
 
               <DialogFooter>
+                {error && <p className="text-sm text-destructive text-center">{error}</p>}
                 <Button onClick={handleClose} className="rounded-full w-full">
                   Close
                 </Button>

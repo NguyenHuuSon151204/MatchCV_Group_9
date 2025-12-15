@@ -8,6 +8,7 @@ import {
   Plus,
   ChevronLeft,
   ChevronRight,
+  Settings,
 } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -19,6 +20,7 @@ const recruiterNavigation = [
   { label: 'Jobs', path: '/recruiter/jobs', icon: Briefcase },
   { label: 'Applicants', path: '/recruiter/applicants', icon: Users },
   { label: 'Verification', path: '/recruiter/verification', icon: FileCheck },
+  { label: 'Settings', path: '/recruiter/settings', icon: Settings },
 ]
 
 interface RecruiterSidebarProps {

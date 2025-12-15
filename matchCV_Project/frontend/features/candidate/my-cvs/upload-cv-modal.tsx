@@ -1,7 +1,11 @@
 import { useState } from 'react'
 import { Modal } from '@/components/common/modal'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { useUpload } from '@/hooks/useUpload'
+import { cvService } from '@/lib/services/cv-service'
+import { useToastContext } from '@/contexts/toast-context'
 
 interface UploadCvModalProps {
   open: boolean
@@ -11,9 +15,27 @@ interface UploadCvModalProps {
 }
 
 export function UploadCvModal({ open, onClose, cvId, onUploadSuccess }: UploadCvModalProps) {
-  const { upload, uploading, lastUpload } = useUpload(onUploadSuccess)
+  const { upload, uploading } = useUpload(onUploadSuccess)
   const [file, setFile] = useState<File | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const toast = useToastContext()
+
+  // Only show form if creating new CV (cvId is null)
+  const [formData, setFormData] = useState({
+    name: '',
+    fullName: '',
+    position: '',
+    description: ''
+  })
+
+  // Pre-fill CV name if file selected and name is empty
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = e.target.files?.[0] || null
+    setFile(selected)
+    if (selected && !cvId && !formData.name) {
+      setFormData(prev => ({ ...prev, name: selected.name.replace(/\.[^/.]+$/, "") }))
+    }
+  }
 
   const handleUpload = async () => {
     if (!file) {
@@ -21,41 +43,89 @@ export function UploadCvModal({ open, onClose, cvId, onUploadSuccess }: UploadCv
       return
     }
     setError(null)
+
     try {
-      // cvId can be null - backend will create new CV if id is not provided
-      await upload(cvId, file)
+      let targetId = cvId
+
+      // If creating new CV, create metadata first
+      if (!targetId) {
+        if (!formData.name) {
+          setError('Please fill in CV Name.')
+          return
+        }
+
+        const newCv = await cvService.createCV({
+          name: formData.name,
+          position: '',
+          description: '',
+          cvData: {
+            personalInfo: {
+              fullName: '',
+              position: '',
+              summary: ''
+            }
+          }
+        })
+        targetId = newCv.id
+      }
+
+      await upload(targetId, file)
       setFile(null)
+      setFormData({ name: '', fullName: '', position: '', description: '' })
       onClose()
+
+      // If we created a new one, we need to trigger success callback to refresh list
+      if (!cvId && onUploadSuccess) {
+        onUploadSuccess()
+      }
+
     } catch (err) {
-      // Error is handled by useUpload hook
       setError(err instanceof Error ? err.message : 'Upload failed')
+      toast.error('Error', err instanceof Error ? err.message : 'Upload failed')
     }
   }
+
+  const isFormValid = cvId ? true : (formData.name)
 
   return (
     <Modal
       open={open}
       onClose={onClose}
-      title="Upload CV"
-      description="Attach a PDF or DOCX file to power richer AI analysis."
+      title={cvId ? "Upload New Version" : "Create & Upload CV"}
+      description="Fill in the details and attach your CV file."
       footer={
         <>
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button onClick={handleUpload} disabled={uploading || !file}>
-            {uploading ? 'Uploading...' : 'Upload'}
+          <Button onClick={handleUpload} disabled={uploading || !file || !isFormValid}>
+            {uploading ? 'Processing...' : (cvId ? 'Upload' : 'Create & Upload')}
           </Button>
         </>
       }
     >
       <div className="space-y-4">
-        <label className="block cursor-pointer rounded-2xl border border-dashed border-border/60 px-4 py-6 text-center text-sm text-muted-foreground hover:border-primary/50">
+        {/* Only show form inputs when creating new CV */}
+        {!cvId && (
+          <>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">CV Name</label>
+              <Input
+                placeholder="e.g. My Fullstack CV"
+                value={formData.name}
+                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+              />
+            </div>
+            <div className="border-t border-border/50 my-4" />
+          </>
+        )}
+
+        <label className="block cursor-pointer rounded-2xl border border-dashed border-border/60 px-4 py-6 text-center text-sm text-muted-foreground hover:border-primary/50 bg-muted/10">
           <input
             type="file"
             accept=".pdf,.doc,.docx"
             className="hidden"
-            onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+            onChange={handleFileChange}
           />
           {file ? (
             <>
@@ -70,11 +140,6 @@ export function UploadCvModal({ open, onClose, cvId, onUploadSuccess }: UploadCv
           )}
         </label>
         {error && <p className="text-sm text-destructive">{error}</p>}
-        {lastUpload && (
-          <div className="rounded-2xl border border-border/40 bg-muted/20 p-3 text-xs text-muted-foreground">
-            Last upload: {lastUpload.fileName} • {(lastUpload.fileSize / 1024).toFixed(1)} KB
-          </div>
-        )}
       </div>
     </Modal>
   )

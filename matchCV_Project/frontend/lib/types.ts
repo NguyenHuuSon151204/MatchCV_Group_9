@@ -1,5 +1,26 @@
 export type CVStatus = 'draft' | 'uploaded' | 'analyzed' | 'submitted' | 'activing'
 
+export interface CVPersonalInfo {
+  fullName?: string
+  email?: string
+  phone?: string
+  address?: string
+  summary?: string
+  position?: string
+  avatarBase64?: string
+  website?: string
+  [key: string]: any
+}
+
+export interface CVData {
+  personalInfo?: CVPersonalInfo
+  experiences?: any[]
+  educations?: any[]
+  skills?: any[]
+  templateType?: string
+  [key: string]: any
+}
+
 export interface CV {
   id: string
   name: string
@@ -10,6 +31,7 @@ export interface CV {
   score?: number
   evidence?: string[]
   fileUrl?: string
+  cvData?: CVData
 }
 
 export interface CreateCVInput {
@@ -20,6 +42,7 @@ export interface CreateCVInput {
 
 export interface UpdateCVInput extends Partial<CreateCVInput> {
   id: string
+  cvData?: CVData
 }
 
 export interface AnalyzeResult {
@@ -107,6 +130,7 @@ export interface User {
   updatedAt?: string
   isActive?: boolean
   isDeleted?: boolean
+  avatarBase64?: string
 }
 
 export interface AuthContextType {
@@ -116,5 +140,5 @@ export interface AuthContextType {
   ggregister: (email: string, name: string, role: string) => Promise<any>
   register: (displayName: string, email: string, password: string, role: string) => Promise<any>
   logout: () => Promise<void>
+  updateProfile: (payload: Partial<Pick<User, 'displayName' | 'email' | 'avatarBase64'>>) => Promise<any>
 }
-

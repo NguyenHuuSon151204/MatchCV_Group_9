@@ -40,8 +40,17 @@ builder.Services.AddAuthentication(options =>
 .AddCookie(options =>
 {
     options.Cookie.HttpOnly = true;
-    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-    options.Cookie.SameSite = SameSiteMode.None;
+    // In dev we run over HTTP, so allow non-secure cookies; tighten in prod.
+    if (builder.Environment.IsDevelopment())
+    {
+        options.Cookie.SecurePolicy = CookieSecurePolicy.None;
+        options.Cookie.SameSite = SameSiteMode.Lax;
+    }
+    else
+    {
+        options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+        options.Cookie.SameSite = SameSiteMode.None;
+    }
 
     // expiry
     options.ExpireTimeSpan = TimeSpan.FromHours(1);
@@ -79,6 +88,7 @@ builder.Services.AddScoped<IDocumentService, DocumentService>();
 builder.Services.AddScoped<IJobService, JobService>();
 builder.Services.AddScoped<ITemplateService, TemplateService>();
 builder.Services.AddScoped<ICVService, CVService>();
+builder.Services.AddScoped<IExportService, ExportService>();
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 builder.Services.AddScoped<EmailService>();
 builder.Services.AddScoped<IGeminiService, GeminiService>();
@@ -165,6 +175,15 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// =============================
+// Seed sample data (templates + demo CVs/JD) for local/dev usage
+// =============================
+using (var scope = app.Services.CreateScope())
+{
+    await TemplateSeedData.InitializeAsync(scope.ServiceProvider);
+    await SampleDataSeed.InitializeAsync(scope.ServiceProvider);
+}
 
 // =============================
 // SPA fallback

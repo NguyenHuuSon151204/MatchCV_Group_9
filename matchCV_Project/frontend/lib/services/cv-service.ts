@@ -3,6 +3,8 @@ import {
   AnalyzeResult,
   CreateCVInput,
   CV,
+  CVData,
+  CVStatus,
   UpdateCVInput,
   UploadResult,
 } from '@/lib/types'
@@ -73,6 +75,7 @@ interface DocumentDto {
   SkillsCount?: number
   ExperiencesCount?: number
   EducationsCount?: number
+  CvData?: CVData
 }
 
 // Map backend DocumentDto to frontend CV
@@ -99,15 +102,33 @@ function mapDocumentDtoToCV(dto: DocumentDto | any): CV {
     }
   }
   
+  const cvData = dto.CvData || dto.cvData
+  const name =
+    dto.OriginalName ||
+    dto.originalName ||
+    dto.Title ||
+    dto.title ||
+    dto.name ||
+    'Untitled CV'
+  const position =
+    dto.position ||
+    dto.Position ||
+    dto.DocType ||
+    dto.docType ||
+    dto.TemplateType ||
+    dto.templateType ||
+    (cvData?.personalInfo?.position ?? '')
+
   return {
     id: dto.Id?.toString() || dto.id?.toString() || '',
-    name: dto.OriginalName || dto.name || 'Untitled CV',
-    position: dto.DocType || dto.position || '',
-    description: dto.FileName || dto.description,
+    name,
+    position,
+    description: dto.FileName || dto.fileName || dto.description,
     modifiedAt,
     status: mapBackendStatusToFrontend(dto.Status || dto.status || 'draft'),
     score: dto.TotalScore ?? dto.AiConfidence ?? dto.score,
     fileUrl: dto.FileName ? `/uploads/${dto.FileName}` : undefined,
+    cvData,
   }
 }
 
@@ -140,13 +161,30 @@ export const cvService = {
     return withFallback(
       async () => {
         // Backend: GET /api/cv/user/{userId}
-        const userId = typeof window !== 'undefined' ? window.localStorage.getItem('matchcv-userId') : null
+        let userId: string | null = null
+        if (typeof window !== 'undefined') {
+          userId =
+            window.localStorage.getItem('matchcv-userId') ||
+            window.localStorage.getItem('userId')
+        }
         if (!userId) {
+          console.warn('[cvService.getCVs] userId not found in localStorage')
           throw new Error('User ID not found')
         }
+        console.info('[cvService.getCVs] fetching CVs for userId', userId)
         const response = await apiClient.get<CV[]>(`/cv/user/${userId}`)
-        // Backend returns array of DocumentDto, need to map to CV
-        return Array.isArray(response.data) ? response.data.map(mapDocumentDtoToCV) : []
+        console.info('[cvService.getCVs] raw response data', response.data)
+
+        // Unwrap possible shapes
+        const payload = Array.isArray(response.data)
+          ? response.data
+          : Array.isArray((response.data as any)?.data)
+            ? (response.data as any).data
+            : []
+
+        const mapped = payload.map(mapDocumentDtoToCV)
+        console.info('[cvService.getCVs] mapped count', mapped.length)
+        return mapped
       },
       async () => {
         await delay(300)
@@ -158,8 +196,17 @@ export const cvService = {
   async getCV(id: string): Promise<CV | null> {
     return withFallback(
       async () => {
+        let userId: string | null = null
+        if (typeof window !== 'undefined') {
+          userId =
+            window.localStorage.getItem('matchcv-userId') ||
+            window.localStorage.getItem('userId')
+        }
+        console.info('[cvService.getCV] fetching CV by id', id, 'userId', userId)
         // Backend: GET /api/cv/{id}?userId={userId}
-        const response = await apiClient.get<CV>(`/cv/${id}`)
+        const response = await apiClient.get<CV>(`/cv/${id}`, {
+          params: userId ? { userId: parseInt(userId, 10) } : undefined,
+        })
         return mapDocumentDtoToCV(response.data)
       },
       async () => {
@@ -208,12 +255,22 @@ export const cvService = {
         const response = await apiClient.put<CV>(`/cv/${payload.id}`, {
           OriginalName: payload.name,
           DocType: 'CV',
+          ...(payload.cvData ? { CvData: payload.cvData } : {}),
         })
         return mapDocumentDtoToCV(response.data)
       },
       async () => {
         await delay(200)
-        cvStore = cvStore.map((cv) => (cv.id === payload.id ? { ...cv, ...payload } : cv))
+        cvStore = cvStore.map((cv) =>
+          cv.id === payload.id
+            ? {
+                ...cv,
+                ...payload,
+                cvData: payload.cvData ?? cv.cvData,
+                modifiedAt: new Date().toISOString(),
+              }
+            : cv
+        )
         const updated = cvStore.find((cv) => cv.id === payload.id)
         if (!updated) {
           throw new Error('CV not found')
@@ -334,9 +391,16 @@ export const cvService = {
     return withFallback(
       async () => {
         // Backend: DELETE /api/cv/{id}?userId={userId}
-        await apiClient.delete(`/cv/${id}`)
+        const userId =
+          (typeof window !== 'undefined' && (window.localStorage.getItem('matchcv-userId') || window.localStorage.getItem('userId'))) ||
+          undefined
+        await apiClient.delete(`/cv/${id}`, {
+          params: userId ? { userId: parseInt(userId, 10) } : undefined,
+        })
+        console.info('[cvService.deleteCV] deleted from backend', id)
       },
       async () => {
+        console.warn('[cvService.deleteCV] backend delete failed, using mock store', id)
         await delay(150)
         cvStore = cvStore.filter((cv) => cv.id !== id)
       }
@@ -346,16 +410,33 @@ export const cvService = {
   async exportCV(id: string, format: 'pdf' | 'docx' | 'json'): Promise<Blob> {
     return withFallback(
       async () => {
-        const response = await apiClient.get(`/cv/${id}/export`, {
-          params: { format },
-          responseType: 'blob',
-        })
+        // Prefer rendering from cvData (template export) if available
+        const detail = await this.getCV(id)
+        const cvData = detail?.cvData
+        console.info('[cvService.exportCV] detail for export', detail)
+
+        if (cvData) {
+          const response = await apiClient.post('/Template/export/pdf', cvData, {
+            responseType: 'blob',
+          })
+          return response.data
+        }
+
+        // Fallback to backend export endpoint with stored file
+        const response = await apiClient.post(
+          '/export/cv',
+          { CvId: parseInt(id, 10), Format: format },
+          { responseType: 'blob' }
+        )
         return response.data
       },
       async () => {
         await delay(200)
         const cv = cvStore.find((item) => item.id === id)
-        if (!cv) throw new Error('CV not found')
+        if (!cv) {
+          const fallback = 'Preview unavailable (CV not found in mock store).'
+          return new Blob([fallback], { type: 'text/plain' })
+        }
         const content = `CV: ${cv.name}\nPosition: ${cv.position}\nStatus: ${cv.status}\nScore: ${
           cv.score ?? 'N/A'
         }\nGenerated: ${new Date().toISOString()}`

@@ -52,7 +52,11 @@ export function RecruiterManagementPage() {
       if (filters.accountType) params.accountType = filters.accountType
 
       const response = await adminService.getRecruiters(params)
-      let recruitersList = Array.isArray(response.data) ? response.data : []
+      const raw =
+        (response as any)?.data ??
+        (response as any)?.Data ??
+        response
+      let recruitersList = Array.isArray(raw) ? raw : []
 
       let filtered = recruitersList.map((r: any) => ({
         id: r.id || r.Id,
@@ -93,8 +97,12 @@ export function RecruiterManagementPage() {
 
       setRecruiters(filtered)
     } catch (err: any) {
-      console.error('Failed to load recruiters:', err)
-      setError(err.message || 'Failed to load recruiters. Please try again.')
+      console.error('Failed to load recruiters:', err?.response?.data || err)
+      const message =
+        err?.response?.data?.message ||
+        err?.message ||
+        'Failed to load recruiters. Please try again.'
+      setError(message)
       setRecruiters([])
     } finally {
       setLoading(false)

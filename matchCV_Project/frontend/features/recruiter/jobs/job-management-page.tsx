@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { recruiterService } from '@/lib/services/recruiter-service'
 import { ArrowUp, ArrowDown, Eye, Trash2 } from 'lucide-react'
+import { useToastContext } from '@/contexts/toast-context'
+import { cn } from '@/lib/utils'
 
 interface Job {
   id: number
@@ -34,10 +36,31 @@ export function JobManagementPage() {
   })
   const [sortBy, setSortBy] = useState('createdAt')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
+  const [verificationStatus, setVerificationStatus] = useState<string | null>(null)
+  const toast = useToastContext()
 
   useEffect(() => {
     loadJobs()
   }, [filters, sortBy, sortOrder])
+
+  useEffect(() => {
+    const fetchVerification = async () => {
+      try {
+        const recruiterId =
+          typeof window !== 'undefined'
+            ? parseInt(localStorage.getItem('matchcv-userId') || localStorage.getItem('userId') || '0')
+            : 0
+        if (!recruiterId) return
+        const statusRes = await recruiterService.getVerificationStatus(recruiterId)
+        const status =
+          statusRes?.status || statusRes?.Status || statusRes?.verificationStatus || statusRes?.VerificationStatus
+        if (status) setVerificationStatus(status.toString())
+      } catch (err: any) {
+        console.warn('Unable to load verification status', err)
+      }
+    }
+    fetchVerification()
+  }, [])
 
   const loadJobs = async () => {
     try {
@@ -116,6 +139,8 @@ export function JobManagementPage() {
       setLoading(false)
     }
   }
+
+  const canPostJob = !verificationStatus || verificationStatus.toLowerCase() === 'approved'
 
   const handleFilterChange = (field: string, value: string) => {
     setFilters((prev) => ({ ...prev, [field]: value }))
@@ -238,13 +263,30 @@ export function JobManagementPage() {
             Export CSV
           </button>
           <Link
-            href="/recruiter/jobs/create"
-            className="px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90 text-sm"
+            href={canPostJob ? '/recruiter/jobs/create' : '#'}
+            onClick={(e) => {
+              if (!canPostJob) {
+                e.preventDefault()
+                toast.error('Verification required', 'You cannot post jobs while verification is pending.')
+              }
+            }}
+            className={cn(
+              'px-4 py-2 rounded text-sm',
+              canPostJob
+                ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                : 'bg-muted text-muted-foreground cursor-not-allowed'
+            )}
           >
             + Create New Job
           </Link>
         </div>
       </div>
+
+      {!canPostJob && (
+        <div className="mb-4 rounded-2xl border border-amber-300 bg-amber-100/60 px-4 py-3 text-sm text-amber-900">
+          Verification pending or not approved. Please complete recruiter verification to post new jobs.
+        </div>
+      )}
 
       {selectedJobs.length > 0 && (
         <div className="mb-4 p-4 bg-accent rounded-lg flex justify-between items-center">

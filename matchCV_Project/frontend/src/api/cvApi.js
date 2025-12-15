@@ -21,6 +21,8 @@ export const saveCV = async (cvData) => {
         const userId = getUserId();
         // userId must be a query parameter as per CVController
         const response = await api.post(`${BASE_PATH}/save?userId=${userId}`, { ...cvData, userId });
+        console.log('[cvApi.saveCV] payload', { ...cvData, userId });
+        console.log('[cvApi.saveCV] response raw', response?.data);
         return unwrapResponse(response);
     } catch (error) {
         console.error('Error saving CV:', error);

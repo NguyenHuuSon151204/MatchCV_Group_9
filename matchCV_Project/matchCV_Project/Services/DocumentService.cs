@@ -90,40 +90,72 @@ public class DocumentService : IDocumentService
         return MapToDto(document);
     }
 
+    // Explicit method to ensure CvData is loaded (e.g., for export)
+    public async Task<DocumentDto> GetDocumentWithCvDataAsync(int id, int userId)
+    {
+        var document = await _documentRepository.GetByIdAsync(id);
+        if (document == null)
+            throw new ArgumentException($"Document with ID {id} not found");
+
+        if (document.UserId != userId)
+            throw new UnauthorizedAccessException("You are not allowed to access this CV");
+
+        return MapToDto(document);
+    }
+
     public async Task<IEnumerable<DocumentDto>> GetUserDocumentsAsync(int userId)
     {
-        // Use the summary query to avoid fetching heavy CvData
-        var documents = await _documentRepository.GetUserDocumentsSummaryAsync(userId);
-        return documents.Select(MapToDto).ToList();
+        _logger.LogInformation("Fetching documents for user {UserId}", userId);
+        try
+        {
+            // Use the summary query to avoid fetching heavy CvData
+            var documents = await _documentRepository.GetUserDocumentsSummaryAsync(userId);
+            var list = documents.Select(MapToDto).ToList();
+            _logger.LogInformation("Fetched {Count} documents for user {UserId}", list.Count, userId);
+            return list;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving documents for user {UserId}", userId);
+            throw;
+        }
     }
 
     // ... (rest of methods)
 
     private DocumentDto MapToDto(Document document)
     {
-        return new DocumentDto
+        try
         {
-            Id = document.Id,
-            UserId = (int)document.UserId,
-            OriginalName = document.OriginalName,
-            Title = document.OriginalName, // Map Title from OriginalName
-            TemplateType = document.CvTemplate?.Key ?? "professional", // Map TemplateType
-            DocType = document.DocType,
-            FileName = document.FileName,
-            ContentType = document.ContentType,
-            FileSize = document.FileSize,
-            AiConfidence = (float)document.AiConfidence,
-            TotalScore = (float?)document.TotalScore,
-            Status = document.Status,
-            CreatedAt = document.CreatedAt,
-            UpdatedAt = document.UpdatedAt,
-            SkillsCount = document.DocumentSkills?.Count ?? 0,
-            ExperiencesCount = document.Experiences?.Count ?? 0,
-            EducationsCount = document.Educations?.Count ?? 0,
-            CvData = !string.IsNullOrEmpty(document.CvData) 
-                ? JsonSerializer.Deserialize<object>(document.CvData) 
-                : null
-        };
+            return new DocumentDto
+            {
+                Id = document.Id,
+                UserId = document.UserId ?? 0,
+                OriginalName = document.OriginalName ?? string.Empty,
+                Title = document.OriginalName ?? string.Empty, // Map Title from OriginalName
+                TemplateType = document.CvTemplate?.Key ?? "professional", // Map TemplateType
+                DocType = document.DocType ?? string.Empty,
+                FileName = document.FileName ?? string.Empty,
+                ContentType = document.ContentType ?? string.Empty,
+                FileSize = document.FileSize,
+                AiConfidence = document.AiConfidence.HasValue ? (float?)document.AiConfidence.Value : null,
+                TotalScore = document.TotalScore.HasValue ? (float?)document.TotalScore.Value : null,
+                Status = document.Status ?? "Draft",
+                CreatedAt = document.CreatedAt,
+                UpdatedAt = document.UpdatedAt,
+                SkillsCount = document.DocumentSkills?.Count ?? 0,
+                ExperiencesCount = document.Experiences?.Count ?? 0,
+                EducationsCount = document.Educations?.Count ?? 0,
+                CvData = !string.IsNullOrEmpty(document.CvData)
+                    ? JsonSerializer.Deserialize<object>(document.CvData)
+                    : null
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to map Document to DTO. DocumentId={DocumentId}, UserId={UserId}", document.Id, document.UserId);
+            throw;
+        }
     }
 
     public async Task<DocumentDto> UpdateDocumentAsync(int id, UpdateDocumentDto dto, int userId)

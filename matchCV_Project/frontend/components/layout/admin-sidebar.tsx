@@ -89,6 +89,18 @@ export function AdminSidebar({ collapsed = false, onToggle }: AdminSidebarProps)
         </nav>
 
         <div className="border-t border-sidebar-border px-6 py-4">
+          <Link
+            href="/recruiter/settings"
+            className={cn(
+              'flex items-center gap-2 rounded-2xl border border-sidebar-border bg-sidebar/80 px-4 py-3 text-sm font-semibold text-sidebar-foreground/80 transition hover:bg-sidebar-accent/60 hover:text-sidebar-accent-foreground',
+              collapsed && 'justify-center px-3'
+            )}
+            title={collapsed ? 'Settings' : undefined}
+          >
+            <Settings className="size-5" />
+            {!collapsed && <span>Settings</span>}
+          </Link>
+
           {!collapsed && (
             <div className="rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 p-4 text-sm text-sidebar-foreground/80">
               <p className="font-semibold">Admin Panel</p>

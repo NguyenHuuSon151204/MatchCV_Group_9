@@ -167,6 +167,7 @@ public class AdminController : ControllerBase
                 .Count(j => j.UserId == u.Id);
 
             var license = _db.LicenseKeys
+                .AsNoTracking()
                 .FirstOrDefault(l => l.AssignedUserId == u.Id && l.IsActive);
 
             return new
