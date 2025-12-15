@@ -2,26 +2,47 @@
 
 import { useState } from 'react'
 import { aiService } from '@/lib/services/ai-service'
-import type { JDAnalysisResult, RewritePayload, RewriteResponse } from '@/lib/types'
+import type { JDAnalysisResult, RewriteResponse, ScoringResult } from '@/lib/types'
 
 export function useAnalyze() {
   const [jdAnalysis, setJdAnalysis] = useState<JDAnalysisResult | null>(null)
+  const [jdError, setJdError] = useState<string | null>(null)
   const [analysisLoading, setAnalysisLoading] = useState(false)
   const [rewriteLoading, setRewriteLoading] = useState(false)
   const [rewriteResult, setRewriteResult] = useState<RewriteResponse | null>(null)
 
-  const analyzeJD = async (description: string) => {
+  const analyzeJD = async (description: string, cvText: string, industry?: string, level?: string) => {
     setAnalysisLoading(true)
+    setJdError(null)
     try {
-      const data = await aiService.analyzeJD(description)
-      setJdAnalysis(data)
-      return data
+      const data: ScoringResult = await aiService.analyzeJD({ description, cvText, industry, level })
+      // Map scoring result to existing JDAnalysisResult shape for UI reuse
+      const priorities = Object.entries(data.breakdown || {})
+        .sort((a, b) => b[1] - a[1])
+        .map(([k, v]) => `${k}: ${v}%`)
+        .slice(0, 6)
+
+      const mapped: JDAnalysisResult = {
+        skills: data.highlights || [],
+        priorities,
+        suggestions: data.warnings || [],
+        // Enrich with score info for UI if needed
+        // @ts-expect-error allow optional fields
+        totalScore: data.totalScore,
+        // @ts-expect-error
+        label: data.label,
+        // @ts-expect-error
+        color: data.color,
+      }
+
+      setJdAnalysis(mapped)
+      return mapped
     } finally {
       setAnalysisLoading(false)
     }
   }
 
-  const rewriteSection = async (payload: RewritePayload) => {
+  const rewriteSection = async (payload: { text: string; section?: string; instructions?: string }) => {
     setRewriteLoading(true)
     try {
       const data = await aiService.rewriteSection(payload)
@@ -34,6 +55,7 @@ export function useAnalyze() {
 
   return {
     jdAnalysis,
+    jdError,
     analysisLoading,
     rewriteLoading,
     rewriteResult,

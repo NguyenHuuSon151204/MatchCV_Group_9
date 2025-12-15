@@ -98,6 +98,7 @@ builder.Services.AddScoped<PortfolioScorer>();
 builder.Services.AddScoped<RedFlagDetector>();
 builder.Services.AddScoped<CertificationDatabase>();
 builder.Services.AddScoped<ScoringEngine>();
+builder.Services.AddSingleton<UsageLimitService>();
 builder.Services.AddHttpClient();
 
 // =============================

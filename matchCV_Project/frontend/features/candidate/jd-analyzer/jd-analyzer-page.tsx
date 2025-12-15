@@ -10,6 +10,7 @@ import { useAnalyze } from '@/hooks/useAnalyze'
 import { useCV } from '@/hooks/useCV'
 import { activityService } from '@/lib/services/activity-service'
 import { savedJdService, type SavedJd } from '@/lib/services/saved-jd-service'
+import { useToastContext } from '@/contexts/toast-context'
 
 export function JDAnalyzerPage() {
   const location = useLocation()
@@ -18,6 +19,7 @@ export function JDAnalyzerPage() {
   const [selectedCvId, setSelectedCvId] = useState<string | null>(null)
   const { analyzeJD, jdAnalysis, jdError, analysisLoading } = useAnalyze()
   const { cvs, loading: cvsLoading } = useCV()
+  const toast = useToastContext()
   const selectedCvName = cvs.find((cv) => cv.id === selectedCvId)?.name || 'CV'
   const [savedJds, setSavedJds] = useState<SavedJd[]>([])
 
@@ -39,12 +41,21 @@ export function JDAnalyzerPage() {
 
   const handleAnalyze = async () => {
     if (!jobDescription.trim() || !selectedCvId) return
-    const result = await analyzeJD(jobDescription)
+    const selectedCv = cvs.find((cv) => cv.id === selectedCvId)
+    const cvText =
+      selectedCv?.description ||
+      selectedCv?.cvData?.personalInfo?.summary ||
+      selectedCv?.name ||
+      'CV Content'
+    const result = await analyzeJD(jobDescription, cvText, undefined, undefined)
     if (result) {
       activityService.add({
         title: 'JD Analyzed',
         description: `Ran JD analysis for CV "${selectedCvName}"`,
       })
+      toast.success('JD analyzed', `Score: ${result.totalScore ?? ''} ${result.label ?? ''}`.trim())
+    } else {
+      toast.error('JD analyze failed', 'Please try again later')
     }
   }
 

@@ -5,8 +5,9 @@ import { Loader2, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFooter } from '@/components/ui/dialog'
 import { useCV } from '@/hooks/useCV'
-import apiClient from '@/lib/services/api-client'
 import type { CV } from '@/lib/types'
+import { useToastContext } from '@/contexts/toast-context'
+import { aiService } from '@/lib/services/ai-service'
 
 interface AnalyzeJDDialogProps {
   open: boolean
@@ -34,6 +35,7 @@ export function AnalyzeJDDialog({ open, onOpenChange, job, onAnalysisComplete }:
   const [selectedCV, setSelectedCV] = useState<string | null>(null)
   const [analyzing, setAnalyzing] = useState(false)
   const [analysisResult, setAnalysisResult] = useState<any>(null)
+  const toast = useToastContext()
 
   const handleAnalyze = async () => {
     if (!selectedCV || !job) return
@@ -41,16 +43,18 @@ export function AnalyzeJDDialog({ open, onOpenChange, job, onAnalysisComplete }:
     setAnalyzing(true)
     try {
       const selectedCVData = cvs.find(cv => cv.id === selectedCV)
-      
-      // Call API to score CV vs Job
-      const response = await apiClient.post<ScoringResult>('/analyzer/score', {
-        cvText: selectedCVData?.description || 'CV Content',
-        jobDescription: job.jobDescription || '',
-        industry: 'IT',
-        level: 'Mid'
-      })
+      const cvText =
+        selectedCVData?.description ||
+        selectedCVData?.cvData?.personalInfo?.summary ||
+        selectedCVData?.name ||
+        'CV Content'
 
-      const scoringResult = response.data
+      const scoringResult = await aiService.analyzeJD({
+        description: job.jobDescription || '',
+        cvText,
+        industry: 'IT',
+        level: 'Mid',
+      })
       const result = {
         cvId: selectedCV,
         cvName: selectedCVData?.name || 'Unknown CV',
@@ -70,8 +74,10 @@ export function AnalyzeJDDialog({ open, onOpenChange, job, onAnalysisComplete }:
       }
 
       setAnalysisResult(result)
+      toast.success('JD analyzed', `Score: ${result.matchScore}%`)
     } catch (error) {
       console.error('Error analyzing:', error)
+      toast.error('Analyze failed', error instanceof Error ? error.message : 'Quota exceeded or server error')
       // Fallback to mock data on error
       const selectedCVData = cvs.find(cv => cv.id === selectedCV)
       const mockResult = {

@@ -92,6 +92,15 @@ export interface RewriteResponse {
   highlights: string[]
 }
 
+export interface ScoringResult {
+  totalScore: number
+  label: string
+  color: string
+  breakdown: Record<string, number>
+  highlights: string[]
+  warnings: string[]
+}
+
 export interface Job {
   id: number
   userId: number
@@ -100,6 +109,9 @@ export interface Job {
   rawText?: string
   jobDescription?: string
   status: string
+  deadline?: string | null
+  maxApplicants?: number | null
+  applications?: number
   createdAt: string
   updatedAt: string
 }
@@ -109,6 +121,8 @@ export interface CreateJobInput {
   company: string
   jobDescription?: string
   rawText?: string
+  deadline?: string
+  maxApplicants?: number
 }
 
 export interface UpdateJobInput {
@@ -118,6 +132,8 @@ export interface UpdateJobInput {
   jobDescription?: string
   rawText?: string
   status?: string
+  deadline?: string
+  maxApplicants?: number
 }
 
 export interface User {
