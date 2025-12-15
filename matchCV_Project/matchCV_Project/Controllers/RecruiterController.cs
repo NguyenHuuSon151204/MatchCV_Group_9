@@ -27,7 +27,9 @@ public class RecruiterController : ControllerBase
         string? Company,
         string Description,
         List<string>? Skills,
-        int? RecruiterId
+        int? RecruiterId,
+        DateTime? Deadline,
+        int? MaxApplicants
     );
 
 
@@ -339,7 +341,6 @@ public class RecruiterController : ControllerBase
 
             var jobList = await query
                 .OrderByDescending(j => j.CreatedAt)
-                .AsNoTracking()
                 .ToListAsync();
 
             if (jobList.Count == 0)
@@ -380,6 +381,11 @@ public class RecruiterController : ControllerBase
                 {
                     // Get applications for this job
                     var applications = applicationsByJob.ContainsKey(j.Id) ? applicationsByJob[j.Id] : new List<Application>();
+                var isClosed = IsJobClosed(j, applications.Count);
+                if (isClosed && !string.Equals(j.Status, "Closed", StringComparison.OrdinalIgnoreCase))
+                {
+                    await EnsureJobClosedAsync(j, applications.Count);
+                }
                     
                     // Calculate average score
                     var scores = applications
@@ -406,6 +412,9 @@ public class RecruiterController : ControllerBase
                         title = j.Title ?? "",
                         company = j.Company,
                         createdAt = j.CreatedAt,
+                        deadline = j.Deadline,
+                        maxApplicants = j.MaxApplicants,
+                        status = isClosed ? "Closed" : (j.Status ?? "Active"),
                         applicants = applications.Count,
                         avgScore,
                         topSkill
@@ -459,7 +468,16 @@ public class RecruiterController : ControllerBase
                 return Forbid();
             }
         }
-        
+
+        var trackedJob = await _db.Jobs
+            .Include(j => j.Applications)
+            .FirstOrDefaultAsync(j => j.Id == id);
+        if (trackedJob != null)
+        {
+            var applicationCount = trackedJob.Applications?.Count ?? await _db.Applications.CountAsync(a => a.JobId == trackedJob.Id);
+            await EnsureJobClosedAsync(trackedJob, applicationCount);
+        }
+
         var job = await BuildJobDetailDto(id);
         return job is null ? NotFound("Job not found.") : Ok(job);
     }
@@ -497,12 +515,17 @@ public class RecruiterController : ControllerBase
             Company = string.IsNullOrWhiteSpace(input.Company) ? "Your Company" : input.Company.Trim(),
             RawText = input.Description.Trim(),
             UserId = recruiterId.Value,
-            CreatedAt = DateTime.UtcNow
+            Deadline = input.Deadline,
+            MaxApplicants = input.MaxApplicants,
+            Status = "Active",
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
         };
 
         _db.Jobs.Add(job);
         await _db.SaveChangesAsync();
 
+        await EnsureJobClosedAsync(job, 0);
         await ReplaceJobSkillsAsync(job, input.Skills);
 
         var result = await BuildJobDetailDto(job.Id);
@@ -529,8 +552,13 @@ public class RecruiterController : ControllerBase
         job.Title = input.Title.Trim();
         job.Company = string.IsNullOrWhiteSpace(input.Company) ? job.Company : input.Company.Trim();
         job.RawText = input.Description.Trim();
+        job.Deadline = input.Deadline;
+        job.MaxApplicants = input.MaxApplicants;
+        job.UpdatedAt = DateTime.UtcNow;
 
         await _db.SaveChangesAsync();
+        var applicationCount = await _db.Applications.CountAsync(a => a.JobId == job.Id);
+        await EnsureJobClosedAsync(job, applicationCount);
         await ReplaceJobSkillsAsync(job, input.Skills);
 
         var result = await BuildJobDetailDto(job.Id);
@@ -738,22 +766,54 @@ public class RecruiterController : ControllerBase
         if (job is null || cv is null || user is null)
             return BadRequest("Invalid Job/CV/User.");
 
+        // Block apply when job is closed by status, deadline, or max applicants
+        var existingApplications = await _db.Applications.CountAsync(a => a.JobId == job.Id);
+        if (IsJobClosed(job, existingApplications))
+        {
+            return BadRequest("This job is closed and no longer accepts applications.");
+        }
+
+        // Enforce at most one active application per candidate per job.
+        // If an existing (non-cancelled) application is found, update it to use the latest CV
+        // instead of creating a duplicate record. This matches the requirement:
+        //  - Candidate can apply once
+        //  - Re-applying will use the newest CV, unless the previous application was cancelled.
+        var existingActiveApp = await _db.Applications
+            .Where(a => a.JobId == job.Id && a.CandidateId == user.Id && a.Status != "Cancelled")
+            .OrderByDescending(a => a.CreatedAt)
+            .FirstOrDefaultAsync();
+
         var score = _ai.ScoreMatch(job, cv);
         var summary = _ai.SummarizeCv(cv);
 
-        var app = new Application
-        {
-            JobId = job.Id,
-            DocumentId = cv.Id,
-            CandidateId = user.Id,
-            Status = "Pending",
-            ScoreSnapshot = score,
-            Summary = summary,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
-        };
+        Application app;
 
-        _db.Applications.Add(app);
+        if (existingActiveApp != null)
+        {
+            // Update existing application with the latest CV and refreshed score/summary
+            app = existingActiveApp;
+            app.DocumentId = cv.Id;
+            app.ScoreSnapshot = score;
+            app.Summary = summary;
+            app.Status = "Pending";
+            app.UpdatedAt = DateTime.UtcNow;
+        }
+        else
+        {
+            app = new Application
+            {
+                JobId = job.Id,
+                DocumentId = cv.Id,
+                CandidateId = user.Id,
+                Status = "Pending",
+                ScoreSnapshot = score,
+                Summary = summary,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+
+            _db.Applications.Add(app);
+        }
         _db.AdminLogs.Add(new AdminLog
         {
             Actor = user.Email,
@@ -765,6 +825,9 @@ public class RecruiterController : ControllerBase
         });
 
         await _db.SaveChangesAsync();
+
+        // Auto-close the job if it reached max applicants after this apply
+        await EnsureJobClosedAsync(job, existingApplications + 1);
 
         // Email notification disabled - SendNewApplicationAsync method not implemented
         /*
@@ -932,6 +995,41 @@ public class RecruiterController : ControllerBase
         return NoContent();
     }
 
+    private bool IsJobClosed(Job job, int applicationsCount)
+    {
+        if (job.Status?.Equals("Closed", StringComparison.OrdinalIgnoreCase) == true)
+        {
+            return true;
+        }
+
+        if (job.Deadline.HasValue && DateTime.UtcNow > job.Deadline.Value)
+        {
+            return true;
+        }
+
+        if (job.MaxApplicants.HasValue && applicationsCount >= job.MaxApplicants.Value)
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    private async Task EnsureJobClosedAsync(Job job, int applicationsCount)
+    {
+        if (!IsJobClosed(job, applicationsCount))
+        {
+            return;
+        }
+
+        if (!string.Equals(job.Status, "Closed", StringComparison.OrdinalIgnoreCase))
+        {
+            job.Status = "Closed";
+            job.UpdatedAt = DateTime.UtcNow;
+            await _db.SaveChangesAsync();
+        }
+    }
+
     private async Task<object?> BuildJobDetailDto(int id)
     {
         return await _db.Jobs
@@ -944,6 +1042,9 @@ public class RecruiterController : ControllerBase
                 j.Company,
                 j.RawText,
                 j.UserId,
+                j.Status,
+                j.Deadline,
+                j.MaxApplicants,
                 j.CreatedAt,
                 skills = j.RequiredSkills
                     .Where(rs => rs.Skill != null)

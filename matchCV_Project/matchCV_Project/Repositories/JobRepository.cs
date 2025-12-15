@@ -18,13 +18,16 @@ public class JobRepository : BaseRepository<Job>, IJobRepository
     {
         return await _context.Jobs
             .Where(j => j.UserId == userId)
+            .Include(j => j.Applications)
             .OrderByDescending(j => j.CreatedAt)
             .ToListAsync();
     }
 
     public async Task<IEnumerable<Job>> SearchJobsAsync(string? searchTerm, string? status = null)
     {
-        var query = _context.Jobs.AsQueryable();
+        var query = _context.Jobs
+            .Include(j => j.Applications)
+            .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(searchTerm))
         {
@@ -42,8 +45,16 @@ public class JobRepository : BaseRepository<Job>, IJobRepository
             query = query.Where(j => j.Status == status);
         }
 
+        // Auto-sort JD list:
+        //  - Open jobs first (Status != "Closed")
+        //  - Then by nearest deadline (null deadlines go last)
+        //  - Then by number of applications (descending)
+        //  - Finally by created date (newest first)
         return await query
-            .OrderByDescending(j => j.CreatedAt)
+            .OrderBy(j => j.Status == "Closed") // false (open) comes first
+            .ThenBy(j => j.Deadline ?? DateTime.MaxValue)
+            .ThenByDescending(j => j.Applications.Count)
+            .ThenByDescending(j => j.CreatedAt)
             .ToListAsync();
     }
 
@@ -52,7 +63,13 @@ public class JobRepository : BaseRepository<Job>, IJobRepository
         return await _context.Jobs
             .Include(j => j.User)
             .Include(j => j.MatchRuns)
+            .Include(j => j.Applications)
             .FirstOrDefaultAsync(j => j.Id == id);
+    }
+
+    public async Task<int> GetApplicationsCountAsync(int jobId)
+    {
+        return await _context.Applications.CountAsync(a => a.JobId == jobId);
     }
 }
 
