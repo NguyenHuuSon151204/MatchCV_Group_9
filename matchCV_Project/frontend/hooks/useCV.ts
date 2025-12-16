@@ -98,6 +98,33 @@ export function useCV() {
     [toast]
   )
 
+  const viewCV = useCallback(
+    async (id: string) => {
+      try {
+        const blob = await cvService.downloadCV(id)
+        const url = URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        const cvName = cvs.find((cv) => cv.id === id)?.name || 'CV'
+        const safeName = cvName.replace(/[^a-zA-Z0-9-_]+/g, '_').replace(/_{2,}/g, '_')
+
+        // Determine file extension from blob type
+        const ext = blob.type.includes('pdf') ? 'pdf' :
+          blob.type.includes('word') || blob.type.includes('document') ? 'docx' : 'pdf'
+
+        link.href = url
+        link.download = `${safeName}.${ext}`
+        link.click()
+        URL.revokeObjectURL(url)
+        toast.success('CV downloaded', `Downloaded as ${ext.toUpperCase()}`)
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Failed to download CV'
+        toast.error('Download failed', message)
+        throw err
+      }
+    },
+    [toast, cvs]
+  )
+
   const exportCV = useCallback(
     async (id: string, format: 'pdf' | 'docx' | 'json') => {
       try {
@@ -129,6 +156,7 @@ export function useCV() {
     createCV,
     deleteCV,
     analyzeCV,
+    viewCV,
     exportCV,
     setCvs,
     updateCV,

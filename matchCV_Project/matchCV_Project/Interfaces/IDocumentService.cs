@@ -13,4 +13,5 @@ public interface IDocumentService
     Task<DocumentDto> UploadFileAsync(int documentId, IFormFile file, int userId);
     Task<DocumentDto> CreateAndUploadAsync(IFormFile file, int userId, string? title = null);
     Task<AnalysisResultDto> AnalyzeDocumentAsync(int documentId, int userId);
+    Task<(byte[] FileContents, string ContentType, string FileName)> GetDocumentFileAsync(int id, int userId);
 }

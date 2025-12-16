@@ -27,16 +27,24 @@ export function ViewCvDialog({ open, onClose, cv }: ViewCvDialogProps) {
     }, [blobUrl])
 
     useEffect(() => {
-        if (open && cv && !cv.fileUrl) {
+        if (open && cv) {
             const fetchPreview = async () => {
                 setLoading(true)
                 try {
-                    // Generate PDF preview for builder CVs
-                    const blob = await cvService.exportCV(cv.id, 'pdf')
-                    const url = URL.createObjectURL(blob)
-                    setBlobUrl(url)
+                    // Check if CV has uploaded file (status = 'uploaded')
+                    if (cv.status === 'uploaded' || cv.fileUrl) {
+                        // For uploaded CVs, use download API
+                        const blob = await cvService.downloadCV(cv.id)
+                        const url = URL.createObjectURL(blob)
+                        setBlobUrl(url)
+                    } else {
+                        // For draft/other CVs, generate PDF preview
+                        const blob = await cvService.exportCV(cv.id, 'pdf')
+                        const url = URL.createObjectURL(blob)
+                        setBlobUrl(url)
+                    }
                 } catch (error) {
-                    console.error('Failed to generate preview', error)
+                    console.error('Failed to load preview', error)
                 } finally {
                     setLoading(false)
                 }
@@ -51,22 +59,7 @@ export function ViewCvDialog({ open, onClose, cv }: ViewCvDialogProps) {
 
     const backendBaseUrl = 'http://localhost:5185'
     let viewerUrl = blobUrl
-    let isPdf = !!blobUrl // Blob from export is always PDF
-
-    if (cv.fileUrl && !blobUrl) {
-        // Use the download endpoint instead of static file path to ensuring we get the correct file associated with this ID
-        // and avoid caching issues or filename collisions.
-        const userId = typeof window !== 'undefined' ? window.localStorage.getItem('matchcv-userId') : '1'
-
-        // We can use the relative API path since proxying handles it, or full URL to be safe for iframe
-        // Using backendBaseUrl from above
-        viewerUrl = `${backendBaseUrl}/api/cv/download/${cv.id}?userId=${userId}`
-
-        // Check file extension from fileUrl to determine type
-        if (cv.fileUrl.toLowerCase().endsWith('.pdf')) {
-            isPdf = true
-        }
-    }
+    let isPdf = !!blobUrl // Blob is always PDF
 
     return (
         <Dialog open={open} onOpenChange={onClose}>
@@ -121,12 +114,20 @@ export function ViewCvDialog({ open, onClose, cv }: ViewCvDialogProps) {
 
                 <div className="flex justify-end gap-2 mt-4">
                     {viewerUrl && (
-                        <Button variant="outline" asChild>
-                            <a href={viewerUrl} target="_blank" rel="noopener noreferrer">
-                                <ExternalLink className="mr-2 h-4 w-4" />
-                                Open in New Tab
-                            </a>
-                        </Button>
+                        <>
+                            <Button variant="outline" asChild>
+                                <a href={viewerUrl} download>
+                                    <Download className="mr-2 h-4 w-4" />
+                                    Download
+                                </a>
+                            </Button>
+                            <Button variant="outline" asChild>
+                                <a href={viewerUrl} target="_blank" rel="noopener noreferrer">
+                                    <ExternalLink className="mr-2 h-4 w-4" />
+                                    Open in New Tab
+                                </a>
+                            </Button>
+                        </>
                     )}
                     <Button onClick={onClose}>Close</Button>
                 </div>

@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Http;
+
 namespace matchCV_Project.Models.Dtos;
 
 public class SubmitVerificationRequest
@@ -7,4 +9,6 @@ public class SubmitVerificationRequest
     public string? CompanyPhone { get; set; }
     public string? CompanyAddress { get; set; }
     public string? TaxCode { get; set; }
+    public IFormFile? BusinessLicenseFile { get; set; }
+    public IFormFile? CompanyProofFile { get; set; }
 }

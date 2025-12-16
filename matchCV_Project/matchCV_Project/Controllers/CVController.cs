@@ -2,6 +2,7 @@
 using matchCV_Project.Models.Dtos;
 using Microsoft.AspNetCore.Mvc;
 using System.Linq;
+using System.IO;
 
 namespace matchCV_Project.Controllers;
 
@@ -325,6 +326,123 @@ public class CvController : ControllerBase
                 StatusCodes.Status500InternalServerError,
                 BaseResponseDto<DocumentDto>.FailureResponse("An error occurred while uploading the file. Please try again later.")
             );
+        }
+    }
+
+    /// <summary>
+    /// Upload a local PDF/DOCX file to create a new CV.
+    /// This endpoint is specifically for the 'upload from local' feature in Candidate section.
+    /// </summary>
+    [HttpPost("upload-local")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> UploadLocalCv([FromQuery] int userId, IFormFile file)
+    {
+        try
+        {
+            // Validate file exists
+            if (file == null || file.Length == 0)
+                return BadRequest(BaseResponseDto<DocumentDto>.FailureResponse("No file provided"));
+
+            // Validate file extension
+            var allowedExtensions = new[] { ".pdf", ".doc", ".docx" };
+            var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+            if (string.IsNullOrEmpty(extension) || !allowedExtensions.Contains(extension))
+            {
+                return BadRequest(BaseResponseDto<DocumentDto>.FailureResponse(
+                    "Invalid file format. Only PDF, DOC, and DOCX files are allowed."));
+            }
+
+            // Validate file size (10MB limit)
+            const long maxFileSize = 10 * 1024 * 1024; // 10MB
+            if (file.Length > maxFileSize)
+            {
+                var fileSizeMB = file.Length / 1024.0 / 1024.0;
+                return BadRequest(BaseResponseDto<DocumentDto>.FailureResponse(
+                    $"File size exceeds the 10MB limit. Current size: {fileSizeMB:F2}MB"));
+            }
+
+            // Validate content type
+            var allowedContentTypes = new[]
+            {
+                "application/pdf",
+                "application/msword",
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            };
+            if (string.IsNullOrEmpty(file.ContentType) || 
+                !allowedContentTypes.Contains(file.ContentType.ToLowerInvariant()))
+            {
+                return BadRequest(BaseResponseDto<DocumentDto>.FailureResponse(
+                    "Invalid content type. Please upload a valid PDF or Word document."));
+            }
+
+            _logger.LogInformation("Processing local file upload for user {UserId}: {FileName}", userId, file.FileName);
+
+            // Create new CV and upload file using existing service
+            var result = await _documentService.CreateAndUploadAsync(file, userId);
+            
+            return Ok(BaseResponseDto<DocumentDto>.SuccessResponse(result, "Local CV uploaded and processed successfully"));
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Invalid local file upload request from user {UserId}", userId);
+            return BadRequest(BaseResponseDto<DocumentDto>.FailureResponse(ex.Message));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            _logger.LogWarning(ex, "Unauthorized local upload attempt by user {UserId}", userId);
+            return StatusCode(
+                StatusCodes.Status403Forbidden,
+                BaseResponseDto<DocumentDto>.FailureResponse("You are not allowed to perform this action")
+            );
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error uploading local file for user {UserId}", userId);
+            return StatusCode(
+                StatusCodes.Status500InternalServerError,
+                BaseResponseDto<DocumentDto>.FailureResponse("An error occurred while uploading the file. Please try again later.")
+            );
+        }
+    }
+
+    /// <summary>
+    /// Download the CV file (PDF/DOCX)
+    /// </summary>
+    [HttpGet("download/{id}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> DownloadCv(int id, [FromQuery] int userId)
+    {
+        try
+        {
+            var (fileContents, contentType, fileName) = await _documentService.GetDocumentFileAsync(id, userId);
+            
+            // Return as downloadable file
+            return File(fileContents, contentType, fileName);
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "CV {CvId} not found for download by user {UserId}", id, userId);
+            return NotFound(BaseResponseDto<object>.FailureResponse(ex.Message));
+        }
+        catch (FileNotFoundException ex)
+        {
+             _logger.LogWarning(ex, "File for CV {CvId} not found on server", id);
+             return NotFound(BaseResponseDto<object>.FailureResponse(ex.Message));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            _logger.LogWarning(ex, "Unauthorized download attempt to CV {CvId} by user {UserId}", id, userId);
+            return StatusCode(StatusCodes.Status403Forbidden, BaseResponseDto<object>.FailureResponse("You are not allowed to access this CV"));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error downloading CV {CvId} for user {UserId}", id, userId);
+            return StatusCode(StatusCodes.Status500InternalServerError, BaseResponseDto<object>.FailureResponse("An error occurred while downloading the file."));
         }
     }
 

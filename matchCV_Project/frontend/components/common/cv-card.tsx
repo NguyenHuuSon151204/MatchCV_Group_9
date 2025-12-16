@@ -11,11 +11,11 @@ interface CVCardProps {
   onEdit: (id: string) => void
   onAnalyze: (id: string) => void
   onRewrite: (id: string) => void
-  onExport: (id: string, format: 'pdf' | 'docx' | 'json') => void
+  onDownload: (id: string) => void
   onDelete: (id: string) => void
 }
 
-export function CVCard({ cv, onView, onEdit, onAnalyze, onRewrite, onExport, onDelete }: CVCardProps) {
+export function CVCard({ cv, onView, onEdit, onAnalyze, onRewrite, onDownload, onDelete }: CVCardProps) {
   return (
     <div className="rounded-3xl border border-border/40 bg-card/70 p-4 shadow-lg shadow-black/5">
       <div className="flex items-start gap-3">
@@ -67,10 +67,11 @@ export function CVCard({ cv, onView, onEdit, onAnalyze, onRewrite, onExport, onD
           Rewrite
         </button>
         <button
-          onClick={() => onExport(cv.id, 'pdf')}
+          onClick={() => onDownload(cv.id)}
           className="rounded-2xl border border-border/40 px-3 py-2 text-muted-foreground hover:border-muted-foreground/50"
+          title="Download CV"
         >
-          Export
+          Download
         </button>
         <button
           onClick={() => onDelete(cv.id)}

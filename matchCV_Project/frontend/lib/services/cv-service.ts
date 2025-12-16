@@ -101,7 +101,7 @@ function mapDocumentDtoToCV(dto: DocumentDto | any): CV {
       // Keep default if parsing fails
     }
   }
-  
+
   const cvData = dto.CvData || dto.cvData
   const name =
     dto.OriginalName ||
@@ -142,7 +142,7 @@ function mapDocumentDtoToCV(dto: DocumentDto | any): CV {
 // Map backend status to frontend CVStatus (case-insensitive)
 function mapBackendStatusToFrontend(status: string): CVStatus {
   if (!status) return 'draft'
-  
+
   const statusLower = status.toLowerCase()
   const statusMap: Record<string, CVStatus> = {
     draft: 'draft',
@@ -285,11 +285,11 @@ export const cvService = {
         cvStore = cvStore.map((cv) =>
           cv.id === payload.id
             ? {
-                ...cv,
-                ...payload,
-                cvData: payload.cvData ?? cv.cvData,
-                modifiedAt: new Date().toISOString(),
-              }
+              ...cv,
+              ...payload,
+              cvData: payload.cvData ?? cv.cvData,
+              modifiedAt: new Date().toISOString(),
+            }
             : cv
         )
         const updated = cvStore.find((cv) => cv.id === payload.id)
@@ -327,12 +327,12 @@ export const cvService = {
             params.userId = userIdNum
           }
         }
-        
+
         // Don't set Content-Type header - axios will set it automatically with boundary for FormData
         const response = await apiClient.post<any>(`/cv/upload`, formData, {
           params,
         })
-        
+
         // Backend returns DocumentDto wrapped in BaseResponseDto
         const payload = response.data?.data ?? response.data
         const doc = payload?.data ?? payload
@@ -365,7 +365,7 @@ export const cvService = {
         const response = await apiClient.post<any>(`/cv/analyze/${id}`)
         // Backend returns AnalysisResultDto: { DocumentId, Score, Confidence, Evidence (string), Skills, Experiences, Educations }
         const data = response.data
-        
+
         // Handle Evidence - could be string, array, or JSON string
         let evidence: string[] = []
         if (data.Evidence) {
@@ -376,7 +376,7 @@ export const cvService = {
               evidence = Array.isArray(parsed) ? parsed : [data.Evidence]
             } catch {
               // If not JSON, check if it's comma-separated
-              evidence = data.Evidence.includes(',') 
+              evidence = data.Evidence.includes(',')
                 ? data.Evidence.split(',').map((e: string) => e.trim()).filter(Boolean)
                 : [data.Evidence]
             }
@@ -386,7 +386,7 @@ export const cvService = {
         } else if (data.EvidenceList && Array.isArray(data.EvidenceList)) {
           evidence = data.EvidenceList
         }
-        
+
         return {
           score: Math.round(data.Score || data.TotalScore || 0),
           evidence,
@@ -399,12 +399,12 @@ export const cvService = {
         cvStore = cvStore.map((cv) =>
           cv.id === id
             ? {
-                ...cv,
-                status: 'analyzed',
-                score,
-                evidence: ['Strong quantifiable impact', 'Clear growth trajectory', 'Relevant keyword density'],
-                modifiedAt: new Date().toISOString(),
-              }
+              ...cv,
+              status: 'analyzed',
+              score,
+              evidence: ['Strong quantifiable impact', 'Clear growth trajectory', 'Relevant keyword density'],
+              modifiedAt: new Date().toISOString(),
+            }
             : cv
         )
         return {
@@ -443,29 +443,31 @@ export const cvService = {
   async downloadCV(id: string): Promise<Blob> {
     return withFallback(
       async () => {
-        // Fetch detail to get fileUrl
-        const detail = await this.getCV(id)
-        const fileUrl = detail?.fileUrl || detail?.description // description may contain FileName
-
-        if (!fileUrl) {
-          throw new Error('CV file not found on server. Please re-upload this CV.')
+        // Use backend download API: GET /api/cv/download/{id}?userId={userId}
+        let userId: string | null = null
+        if (typeof window !== 'undefined') {
+          userId =
+            window.localStorage.getItem('matchcv-userId') ||
+            window.localStorage.getItem('userId')
         }
 
-        // Build absolute URL to static file (served outside /api)
-        const origin = getBackendOrigin()
-        const normalizedPath = fileUrl.startsWith('/')
-          ? fileUrl
-          : `/${fileUrl.replace(/^api\//, '').replace(/^\/api\//, '')}`
-        const absoluteUrl = fileUrl.startsWith('http') ? fileUrl : `${origin}${normalizedPath}`
-
-        const response = await fetch(absoluteUrl, { credentials: 'include' })
-        if (!response.ok) {
-          if (response.status === 404) {
-            throw new Error('CV file not found on server. Please re-upload this CV.')
+        const params: { userId?: number } = {}
+        if (userId) {
+          const userIdNum = parseInt(userId, 10)
+          if (!isNaN(userIdNum) && userIdNum > 0) {
+            params.userId = userIdNum
           }
-          throw new Error(`Failed to fetch CV file (status ${response.status})`)
         }
-        return await response.blob()
+
+        console.info('[cvService.downloadCV] downloading CV', id, 'userId', userId)
+
+        // Use axios to download file
+        const response = await apiClient.get(`/cv/download/${id}`, {
+          params,
+          responseType: 'blob',
+        })
+
+        return response.data
       },
       async () => {
         await delay(200)
@@ -511,9 +513,8 @@ export const cvService = {
           const fallback = 'Preview unavailable (CV not found in mock store).'
           return new Blob([fallback], { type: 'text/plain' })
         }
-        const content = `CV: ${cv.name}\nPosition: ${cv.position}\nStatus: ${cv.status}\nScore: ${
-          cv.score ?? 'N/A'
-        }\nGenerated: ${new Date().toISOString()}`
+        const content = `CV: ${cv.name}\nPosition: ${cv.position}\nStatus: ${cv.status}\nScore: ${cv.score ?? 'N/A'
+          }\nGenerated: ${new Date().toISOString()}`
         return new Blob([content], { type: 'text/plain' })
       }
     )

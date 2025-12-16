@@ -88,6 +88,25 @@ export function MyCVsPage() {
     setViewOpen(true)
   }
 
+  const handleDownload = async (id: string) => {
+    try {
+      const cv = cvs.find(c => c.id === id)
+
+      // Download the CV file directly
+      if (cv?.status === 'uploaded') {
+        // Download original uploaded file
+        await viewCV(id)
+      } else {
+        // Export and download PDF from template
+        await exportCV(id, 'pdf')
+      }
+    } catch (error: any) {
+      console.error('Download error:', error)
+      const errorMsg = error instanceof Error ? error.message : 'Download failed'
+      alert(`Download Error: ${errorMsg}`)
+    }
+  }
+
   const handleExport = async (id: string, format: 'pdf' | 'docx' | 'json') => {
     try {
       await exportCV(id, format)
@@ -279,6 +298,7 @@ export function MyCVsPage() {
                           onClick={() => handleView(cv.id)}
                           disabled={busyId === cv.id}
                           aria-label="View CV"
+                          title="View CV"
                         >
                           <Eye className="size-4" />
                         </Button>
@@ -313,8 +333,9 @@ export function MyCVsPage() {
                           size="icon"
                           className="rounded-full bg-muted/40 text-muted-foreground"
                           variant="ghost"
-                          onClick={() => handleExport(cv.id, 'pdf')}
-                          aria-label="Export CV"
+                          onClick={() => handleDownload(cv.id)}
+                          aria-label="Download CV"
+                          title="Download CV"
                         >
                           <Download className="size-4" />
                         </Button>
@@ -364,7 +385,7 @@ export function MyCVsPage() {
                 onEdit={(id) => setEditOptionId(id)}
                 onAnalyze={handleAnalyze}
                 onRewrite={(id) => navigate('/ai-rewrite', { state: { cvId: id } })}
-                onExport={(id, format) => handleExport(id, format)}
+                onDownload={handleDownload}
                 onDelete={handleDelete}
               />
             ))

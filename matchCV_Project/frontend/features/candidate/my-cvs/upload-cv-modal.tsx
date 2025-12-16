@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Modal } from '@/components/common/modal'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -27,6 +27,15 @@ export function UploadCvModal({ open, onClose, cvId, onUploadSuccess }: UploadCv
     position: '',
     description: ''
   })
+
+  // Reset state when modal closes
+  useEffect(() => {
+    if (!open) {
+      setFile(null)
+      setError(null)
+      setFormData({ name: '', fullName: '', position: '', description: '' })
+    }
+  }, [open])
 
   // Pre-fill CV name if file selected and name is empty
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -74,8 +83,8 @@ export function UploadCvModal({ open, onClose, cvId, onUploadSuccess }: UploadCv
       setFormData({ name: '', fullName: '', position: '', description: '' })
       onClose()
 
-      // If we created a new one, we need to trigger success callback to refresh list
-      if (!cvId && onUploadSuccess) {
+      // Trigger success callback to refresh list (for both new and updated CVs)
+      if (onUploadSuccess) {
         onUploadSuccess()
       }
 
@@ -92,7 +101,7 @@ export function UploadCvModal({ open, onClose, cvId, onUploadSuccess }: UploadCv
       open={open}
       onClose={onClose}
       title={cvId ? "Upload New Version" : "Create & Upload CV"}
-      description="Fill in the details and attach your CV file."
+      description={cvId ? "Replace the current CV file with a new one." : "Fill in the details and attach your CV file."}
       footer={
         <>
           <Button variant="outline" onClick={onClose}>
@@ -105,6 +114,15 @@ export function UploadCvModal({ open, onClose, cvId, onUploadSuccess }: UploadCv
       }
     >
       <div className="space-y-4">
+        {/* Warning message when editing existing CV */}
+        {cvId && (
+          <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-3">
+            <p className="text-sm text-yellow-600 dark:text-yellow-500">
+              ⚠️ The current file will be replaced with the new upload.
+            </p>
+          </div>
+        )}
+
         {/* Only show form inputs when creating new CV */}
         {!cvId && (
           <>
