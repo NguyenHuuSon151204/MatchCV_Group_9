@@ -2,12 +2,13 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useLocation } from 'react-router-dom'
-import { RotateCcw, Sparkles } from 'lucide-react'
+import { AlertCircle, RotateCcw, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useCV } from '@/hooks/useCV'
 import { useAnalyze } from '@/hooks/useAnalyze'
+import { useAiUsage } from '@/hooks/useAiUsage'
 import { activityService } from '@/lib/services/activity-service'
 import { useToastContext } from '@/contexts/toast-context'
 import type { RewriteSection } from '@/lib/types'
@@ -38,10 +39,11 @@ export function AIRewritePage() {
   const state = (location.state as RewriteLocationState | null) ?? null
   const { cvs, updateCV } = useCV()
   const toast = useToastContext()
+  const { usage, loading: usageLoading, error: usageError, refresh: refreshUsage, reset } = useAiUsage()
   const [selectedCV, setSelectedCV] = useState<string | undefined>()
   const [section, setSection] = useState<RewriteSection>('summary')
   const [instructions, setInstructions] = useState('')
-  const { rewriteResult, rewriteSection, rewriteLoading } = useAnalyze()
+  const { rewriteResult, rewriteError, clearRewriteError, rewriteSection, rewriteLoading } = useAnalyze()
   const [applying, setApplying] = useState(false)
   const [history, setHistory] = useState<RewriteHistoryItem[]>([])
 
@@ -81,11 +83,24 @@ export function AIRewritePage() {
 
   const handleRewrite = async () => {
     if (!selectedCV) return
-    await rewriteSection({
-      cvId: selectedCV,
+    const text =
+      selectedCvMeta?.cvData?.personalInfo?.summary ||
+      selectedCvMeta?.description ||
+      ''
+
+    if (!text.trim()) {
+      toast.error('No content to rewrite', 'Please add a summary/description to this CV first.')
+      return
+    }
+
+    const result = await rewriteSection({
+      text,
       section,
       instructions,
     })
+    if (result) {
+      refreshUsage()
+    }
   }
 
   const handleApply = async () => {
@@ -124,6 +139,7 @@ export function AIRewritePage() {
         description: `Applied rewrite for ${section} on "${selectedCvMeta?.name || 'CV'}"`,
       })
       toast.success('Rewrite applied', 'Changes saved to CV')
+      refreshUsage()
     } finally {
       setApplying(false)
     }
@@ -157,9 +173,55 @@ export function AIRewritePage() {
   }
 
   const lastApplied = history.find((h) => h.applied && !h.rolledBack)
+  const formatRemaining = (val?: number) => {
+    if (val === undefined || val === null) return '-'
+    if (usage?.plan === 'Pro') return 'Unlimited'
+    const cap = 5
+    const shown = Math.min(val, cap)
+    return `${shown}/${cap}`
+  }
 
   return (
     <section className="space-y-6">
+      <Card className="border-none bg-card/80 shadow-lg shadow-black/10">
+        <CardContent className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between py-4">
+          <div>
+            <p className="text-sm uppercase tracking-[0.3em] text-muted-foreground">Plan</p>
+            <p className="text-lg font-semibold text-card-foreground">
+              {usageLoading ? 'Loading…' : usage?.plan || 'Free'}
+            </p>
+            {usageError && <p className="text-xs text-destructive">{usageError}</p>}
+          </div>
+          <div className="flex flex-wrap gap-4 text-sm">
+            <div className="rounded-2xl border border-border/60 bg-background/70 px-4 py-2">
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">Rewrite remaining</p>
+              <p className="text-card-foreground font-semibold">
+                {usageLoading ? '…' : formatRemaining(usage?.remainingRewrite)}
+              </p>
+            </div>
+            <div className="rounded-2xl border border-border/60 bg-background/70 px-4 py-2">
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">JD analyze remaining</p>
+              <p className="text-card-foreground font-semibold">
+                {usageLoading ? '…' : formatRemaining(usage?.remainingJdAnalyze)}
+              </p>
+            </div>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="rounded-full border border-border/60"
+              onClick={reset}
+              disabled={usageLoading}
+            >
+              Reset (demo)
+            </Button>
+            <Button asChild className="rounded-full" variant="outline">
+              <a href="/app/payos" target="_blank" rel="noreferrer">
+                Upgrade to Pro
+              </a>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
       <div className="flex flex-col gap-2">
         <p className="text-sm uppercase tracking-[0.4em] text-muted-foreground">AI Rewrite</p>
         <h1 className="text-3xl font-semibold text-card-foreground">Rewrite Assistant</h1>
@@ -256,7 +318,7 @@ export function AIRewritePage() {
               <Button
                 className="w-full rounded-full"
                 variant="secondary"
-                disabled={!rewriteResult || applying || selectedCvMeta?.status === 'uploaded'}
+                disabled={!rewriteResult || applying}
                 onClick={handleApply}
               >
                 {applying ? 'Applying...' : 'Apply to CV'}
@@ -277,11 +339,6 @@ export function AIRewritePage() {
               <div className="rounded-3xl border border-border/30 bg-background/30 p-4 text-xs text-muted-foreground">
                 Working on <span className="font-semibold text-card-foreground">{selectedCvMeta.name}</span>{' '}
                 {selectedCvMeta.position}
-                {selectedCvMeta.status === 'uploaded' && (
-                  <div className="mt-2 text-destructive">
-                    Apply is disabled for uploaded CV files.
-                  </div>
-                )}
               </div>
             )}
           </CardContent>
@@ -341,6 +398,55 @@ export function AIRewritePage() {
           )}
         </CardContent>
       </Card>
+
+      {rewriteError && rewriteError.toLowerCase().includes('quota') ? (
+        <Card className="border border-primary/40 bg-primary/5 p-4 text-primary">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="flex items-center gap-2 text-sm">
+              <AlertCircle className="size-4" />
+              <span>Rewrite quota exceeded. Upgrade to Pro for unlimited runs.</span>
+            </div>
+            <Button asChild className="rounded-full" variant="secondary">
+              <a href="/app/payos" target="_blank" rel="noreferrer">
+                Upgrade to Pro
+              </a>
+            </Button>
+          </div>
+        </Card>
+      ) : rewriteError ? (
+        <Card className="border border-destructive/30 bg-destructive/10 p-4 text-destructive">
+          <div className="flex items-center gap-2 text-sm">
+            <AlertCircle className="size-4" />
+            <span>{rewriteError}</span>
+          </div>
+        </Card>
+      ) : null}
+
+      {rewriteError && rewriteError.toLowerCase().includes('quota') && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+          <div className="w-full max-w-lg space-y-4 rounded-3xl bg-card p-6 shadow-2xl shadow-black/30">
+            <div className="flex items-center gap-3">
+              <AlertCircle className="size-6 text-primary" />
+              <div>
+                <p className="text-lg font-semibold text-card-foreground">Out of AI Rewrite runs</p>
+                <p className="text-sm text-muted-foreground">
+                  You’ve reached today’s free limit. Upgrade to Pro for unlimited rewrites.
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-wrap justify-end gap-2">
+              <Button variant="ghost" className="rounded-full" onClick={clearRewriteError}>
+                Close
+              </Button>
+              <Button asChild className="rounded-full">
+                <a href="/app/payos" target="_blank" rel="noreferrer">
+                  Go to PayOS
+                </a>
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   )
 }

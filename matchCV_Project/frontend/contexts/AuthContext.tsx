@@ -27,6 +27,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
           avatarBase64: extrasMatch ? extras.avatarBase64 ?? res.data.user?.avatarBase64 : res.data.user?.avatarBase64,
           displayName: extrasMatch ? extras.displayName ?? res.data.user?.displayName : res.data.user?.displayName,
           email: extrasMatch ? extras.email ?? res.data.user?.email : res.data.user?.email,
+          isActive: res.data.user?.isActive,
+          isDeleted: res.data.user?.isDeleted,
         });
         // Save userId to localStorage for other components
         if (res.data.user?.id) {
@@ -57,6 +59,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         avatarBase64: extrasMatch ? extras.avatarBase64 ?? res.data.user?.avatarBase64 : res.data.user?.avatarBase64,
         displayName: extrasMatch ? extras.displayName ?? res.data.user?.displayName : res.data.user?.displayName,
         email: extrasMatch ? extras.email ?? res.data.user?.email : res.data.user?.email,
+        isActive: res.data.user?.isActive,
+        isDeleted: res.data.user?.isDeleted,
       });
       // Save userId to localStorage
       if (res.data.user?.id) {
@@ -86,6 +90,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         avatarBase64: extrasMatch ? extras.avatarBase64 ?? res.data.user?.avatarBase64 : res.data.user?.avatarBase64,
         displayName: extrasMatch ? extras.displayName ?? res.data.user?.displayName : res.data.user?.displayName,
         email: extrasMatch ? extras.email ?? res.data.user?.email : res.data.user?.email,
+        isActive: res.data.user?.isActive,
+        isDeleted: res.data.user?.isDeleted,
       });
       // Save userId to localStorage
       if (res.data.user?.id) {

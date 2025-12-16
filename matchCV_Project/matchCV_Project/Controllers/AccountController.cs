@@ -74,7 +74,7 @@ namespace matchCV_Project.Controllers
             return Ok(new
             {
                 message = "Login successful",
-                user = new { user.Id, user.Email, user.DisplayName, user.Role }
+                user = new { user.Id, user.Email, user.DisplayName, user.Role, user.IsActive, user.IsDeleted }
             });
         }
 
@@ -149,7 +149,7 @@ namespace matchCV_Project.Controllers
 
             return Ok(new
             {
-                user = new { user.Id, user.Email, user.DisplayName, user.Role }
+                user = new { user.Id, user.Email, user.DisplayName, user.Role, user.IsActive, user.IsDeleted }
             });
         }
 

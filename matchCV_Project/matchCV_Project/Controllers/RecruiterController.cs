@@ -2,6 +2,7 @@
 using System.Linq;
 using System.IO;
 using System.IO.Compression;
+using System.Text;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -9,6 +10,11 @@ using matchCV_Project.Data;
 using matchCV_Project.Interfaces;
 using matchCV_Project.Models;
 using matchCV_Project.Services;
+using matchCV_Project.Services.Scoring;
+using Microsoft.AspNetCore.Hosting;
+using ApiRestFul.Services;
+using ApiRestFul.DTOs;
+using System.Text.Json;
 
 namespace matchCV_Project.Controllers;
 
@@ -18,8 +24,11 @@ public class RecruiterController : ControllerBase
 {
     private readonly MatchCvContext _db;
     private readonly IAiService _ai;
+    private readonly ScoringEngine _scoring;
+    private readonly ITemplateService _templateService;
     private readonly EmailService _email;
     private readonly IFileService _fileService;
+    private readonly IWebHostEnvironment _env;
     private readonly ILogger<RecruiterController> _logger;
 
     public record JobRequestDto(
@@ -33,12 +42,15 @@ public class RecruiterController : ControllerBase
     );
 
 
-    public RecruiterController(MatchCvContext db, IAiService ai, EmailService email, IFileService fileService, ILogger<RecruiterController> logger)
+    public RecruiterController(MatchCvContext db, IAiService ai, ScoringEngine scoring, ITemplateService templateService, EmailService email, IFileService fileService, IWebHostEnvironment env, ILogger<RecruiterController> logger)
     {
         _db = db;
         _ai = ai;
+        _scoring = scoring;
+        _templateService = templateService;
         _email = email;
         _fileService = fileService;
+        _env = env;
         _logger = logger;
     }
 
@@ -514,6 +526,7 @@ public class RecruiterController : ControllerBase
             Title = input.Title.Trim(),
             Company = string.IsNullOrWhiteSpace(input.Company) ? "Your Company" : input.Company.Trim(),
             RawText = input.Description.Trim(),
+            JobDescription = input.Description.Trim(),
             UserId = recruiterId.Value,
             Deadline = input.Deadline,
             MaxApplicants = input.MaxApplicants,
@@ -552,6 +565,7 @@ public class RecruiterController : ControllerBase
         job.Title = input.Title.Trim();
         job.Company = string.IsNullOrWhiteSpace(input.Company) ? job.Company : input.Company.Trim();
         job.RawText = input.Description.Trim();
+        job.JobDescription = input.Description.Trim();
         job.Deadline = input.Deadline;
         job.MaxApplicants = input.MaxApplicants;
         job.UpdatedAt = DateTime.UtcNow;
@@ -707,24 +721,52 @@ public class RecruiterController : ControllerBase
 
             foreach (var item in applications)
             {
-                if (string.IsNullOrWhiteSpace(item.Document.StoragePath))
+                var originalName = string.IsNullOrWhiteSpace(item.Document.OriginalName)
+                    ? $"cv_{item.Document.Id}"
+                    : Path.GetFileName(item.Document.OriginalName);
+
+                var storagePath = item.Document.StoragePath;
+                if (string.IsNullOrWhiteSpace(storagePath) && !string.IsNullOrWhiteSpace(item.Document.FileName))
                 {
-                    continue;
+                    storagePath = Path.Combine("uploads", item.Document.FileName);
                 }
 
-                var fileBytes = await _fileService.GetFileAsync(item.Document.StoragePath);
+                var fileBytes = await _fileService.GetFileAsync(storagePath ?? string.Empty);
+                var usedFallback = false;
                 if (fileBytes.Length == 0)
                 {
-                    _logger.LogWarning("Skip missing file for application {AppId} with storage path {Path}", item.App.Id, item.Document.StoragePath);
-                    continue;
+                    _logger.LogWarning("File missing for application {AppId}, attempting template export", item.App.Id);
+                    try
+                    {
+                        var cvData = BuildCvDataForExport(item.Document, item.Candidate);
+                        fileBytes = await _templateService.ExportToPdfAsync(cvData);
+                        item.Document.ContentType = "application/pdf";
+                        originalName = string.IsNullOrWhiteSpace(cvData.PersonalInfo?.FullName)
+                            ? originalName
+                            : $"CV_{cvData.PersonalInfo.FullName.Replace(" ", "_")}.pdf";
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Template export failed for app {AppId}, using text fallback", item.App.Id);
+                    }
+
+                    if (fileBytes.Length == 0)
+                    {
+                        _logger.LogWarning("File still missing for application {AppId}, building text fallback", item.App.Id);
+                        fileBytes = BuildFallbackDocumentBytes(item.Document, item.Candidate, item.App);
+                        usedFallback = true;
+                    }
                 }
 
                 var candidateName = string.IsNullOrWhiteSpace(item.Candidate.DisplayName)
                     ? "candidate"
                     : item.Candidate.DisplayName!;
-                var originalName = string.IsNullOrWhiteSpace(item.Document.OriginalName)
-                    ? $"cv_{item.Document.Id}"
-                    : Path.GetFileName(item.Document.OriginalName);
+
+                // If using fallback, ensure a .txt extension
+                if (usedFallback && string.IsNullOrWhiteSpace(Path.GetExtension(originalName)))
+                {
+                    originalName = $"{originalName}.txt";
+                }
 
                 var safeName = SanitizeFileName($"{candidateName}_{originalName}");
                 var finalName = safeName;
@@ -783,8 +825,80 @@ public class RecruiterController : ControllerBase
             .OrderByDescending(a => a.CreatedAt)
             .FirstOrDefaultAsync();
 
-        var score = _ai.ScoreMatch(job, cv);
-        var summary = _ai.SummarizeCv(cv);
+        // Use text-based ScoringEngine (same logic as candidate JD analyzer)
+        var cvText = cv.Content;
+        if (string.IsNullOrWhiteSpace(cvText) && !string.IsNullOrWhiteSpace(cv.CvData))
+        {
+            cvText = cv.CvData;
+        }
+        if (string.IsNullOrWhiteSpace(cvText))
+        {
+            cvText = cv.OriginalName;
+        }
+
+        var jdText = job.JobDescription ?? job.RawText ?? job.Title ?? string.Empty;
+
+        var scoringResult = await _scoring.CalculateAsync(
+            new CandidateScoringInput
+            {
+                CvText = cvText ?? string.Empty,
+                PortfolioUrl = string.Empty,
+                ExpectedSalary = null,
+                GithubUsername = null
+            },
+            new JobScoringInput
+            {
+                JdText = jdText,
+                Industry = "IT",
+                Level = "Mid",
+                BudgetMin = null,
+                BudgetMax = null
+            });
+
+        var score = scoringResult.TotalScore;
+        var summary = scoringResult.Highlights != null && scoringResult.Highlights.Count > 0
+            ? string.Join("; ", scoringResult.Highlights)
+            : _ai.SummarizeCv(cv);
+
+        // Persist rendered PDF for recruiter download if StoragePath is missing but we have (or can build) CvData
+        if (string.IsNullOrWhiteSpace(cv.StoragePath))
+        {
+            try
+            {
+                var cvData = BuildCvDataForExport(cv, user);
+                if (cvData != null)
+                {
+                    var pdfBytes = await _templateService.ExportToPdfAsync(cvData);
+                    var baseName = string.IsNullOrWhiteSpace(cvData.PersonalInfo?.FullName)
+                        ? cv.OriginalName
+                        : $"CV_{cvData.PersonalInfo.FullName.Replace(" ", "_")}";
+                    var fileName = $"{SanitizeFileName(baseName)}.pdf";
+
+                    // Save to wwwroot/uploads/{userId}/
+                    var webRoot = string.IsNullOrWhiteSpace(_env.WebRootPath)
+                        ? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot")
+                        : _env.WebRootPath;
+                    var uploadsFolder = Path.Combine(webRoot, "uploads", (cv.UserId ?? user.Id).ToString());
+                    Directory.CreateDirectory(uploadsFolder);
+                    var storagePath = Path.Combine("uploads", (cv.UserId ?? user.Id).ToString(), fileName);
+                    var fullPath = Path.Combine(webRoot, storagePath);
+                    await System.IO.File.WriteAllBytesAsync(fullPath, pdfBytes);
+
+                    cv.StoragePath = storagePath.Replace("\\", "/");
+                    cv.FileName = fileName;
+                    cv.ContentType = "application/pdf";
+                    cv.FileSize = pdfBytes.Length;
+                    cv.Status = "Uploaded";
+                    cv.UpdatedAt = DateTime.UtcNow;
+                    // Persist cvData so future downloads use the same structured data
+                    cv.CvData = JsonSerializer.Serialize(cvData);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to persist generated PDF for CV {CvId}", cv.Id);
+            }
+        }
 
         Application app;
 
@@ -948,6 +1062,10 @@ public class RecruiterController : ControllerBase
             }
         }
 
+        var fileName = string.IsNullOrWhiteSpace(app.Document.OriginalName)
+            ? $"cv_{app.Document.Id}.pdf"
+            : app.Document.OriginalName;
+
         // Prefer StoragePath; fall back to FileName relative to uploads if needed
         var storagePath = app.Document.StoragePath;
         if (string.IsNullOrWhiteSpace(storagePath) && !string.IsNullOrWhiteSpace(app.Document.FileName))
@@ -956,14 +1074,47 @@ public class RecruiterController : ControllerBase
         }
 
         var fileBytes = await _fileService.GetFileAsync(storagePath ?? string.Empty);
+        var usedFallback = false;
         if (fileBytes.Length == 0)
         {
-            return NotFound("Document file not found on server.");
+            _logger.LogWarning("File missing for application {AppId}, attempting template export", app.Id);
+            // Try to render from CvData
+            if (!string.IsNullOrWhiteSpace(app.Document.CvData))
+            {
+                try
+                {
+                    var cvData = BuildCvDataForExport(app.Document, app.Candidate);
+                    fileBytes = await _templateService.ExportToPdfAsync(cvData);
+                    app.Document.ContentType = "application/pdf";
+                    fileName = string.IsNullOrWhiteSpace(cvData.PersonalInfo?.FullName)
+                        ? fileName
+                        : $"CV_{cvData.PersonalInfo.FullName.Replace(" ", "_")}.pdf";
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Template export failed for app {AppId}, using text fallback", app.Id);
+                }
+            }
+
+            if (fileBytes.Length == 0)
+            {
+                _logger.LogWarning("File still missing for application {AppId}, building text fallback", app.Id);
+                fileBytes = BuildFallbackDocumentBytes(app.Document, app.Candidate, app);
+                usedFallback = true;
+            }
         }
 
-        var fileName = SanitizeFileName(string.IsNullOrWhiteSpace(app.Document.OriginalName)
-            ? $"cv_{app.Document.Id}.pdf"
-            : app.Document.OriginalName);
+        fileName = SanitizeFileName(fileName);
+
+        // If fallback, force .txt extension and content type
+        if (usedFallback)
+        {
+            if (string.IsNullOrWhiteSpace(Path.GetExtension(fileName)))
+            {
+                fileName = $"{fileName}.txt";
+            }
+            return File(fileBytes, "text/plain", fileName);
+        }
 
         return File(fileBytes, app.Document.ContentType ?? "application/octet-stream", fileName);
     }
@@ -1041,6 +1192,7 @@ public class RecruiterController : ControllerBase
                 j.Title,
                 j.Company,
                 j.RawText,
+                j.JobDescription,
                 j.UserId,
                 j.Status,
                 j.Deadline,
@@ -1053,6 +1205,149 @@ public class RecruiterController : ControllerBase
                     .ToList()
             })
             .FirstOrDefaultAsync();
+    }
+
+    private static byte[] BuildFallbackDocumentBytes(Document doc, User? candidate, Application? app = null)
+    {
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine($"CV: {doc.OriginalName}");
+        if (candidate != null)
+        {
+            sb.AppendLine($"Candidate: {candidate.DisplayName} ({candidate.Email})");
+        }
+        if (!string.IsNullOrWhiteSpace(app?.Summary))
+        {
+            sb.AppendLine($"Summary: {app.Summary}");
+        }
+        if (!string.IsNullOrWhiteSpace(doc.Content))
+        {
+            sb.AppendLine();
+            sb.AppendLine(doc.Content);
+        }
+        else if (!string.IsNullOrWhiteSpace(doc.CvData))
+        {
+            sb.AppendLine();
+            sb.AppendLine(doc.CvData);
+        }
+
+        var content = sb.ToString();
+        if (string.IsNullOrWhiteSpace(content))
+        {
+            content = "CV file not available on server.";
+        }
+
+        return System.Text.Encoding.UTF8.GetBytes(content);
+    }
+
+    private CVDataDto BuildCvDataForExport(Document doc, User? candidate)
+    {
+        CVDataDto data = null;
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(doc.CvData))
+            {
+                data = JsonSerializer.Deserialize<CVDataDto>(doc.CvData);
+            }
+        }
+        catch
+        {
+            // ignore deserialize errors
+        }
+
+        data ??= new CVDataDto();
+        data.TemplateType ??= "professional";
+        data.PersonalInfo ??= new PersonalInfoDto();
+
+        var info = data.PersonalInfo;
+        if (string.IsNullOrWhiteSpace(info.FullName))
+            info.FullName = candidate?.DisplayName ?? doc.OriginalName ?? "Candidate";
+        if (string.IsNullOrWhiteSpace(info.Email))
+            info.Email = candidate?.Email ?? "email@example.com";
+        if (string.IsNullOrWhiteSpace(info.Position))
+            info.Position = doc.OriginalName ?? "Position";
+        if (string.IsNullOrWhiteSpace(info.Phone))
+            info.Phone = "N/A";
+        if (string.IsNullOrWhiteSpace(info.Address))
+            info.Address = "N/A";
+        if (string.IsNullOrWhiteSpace(info.Summary))
+        {
+            var summary = doc.Content;
+            if (!string.IsNullOrWhiteSpace(summary))
+            {
+                // Use first paragraph/line as summary
+                var first = summary.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
+                if (!string.IsNullOrWhiteSpace(first))
+                {
+                    info.Summary = first.Length > 500 ? first.Substring(0, 500) + "..." : first;
+                }
+                else
+                {
+                    info.Summary = summary.Length > 500 ? summary.Substring(0, 500) + "..." : summary;
+                }
+            }
+            else if (!string.IsNullOrWhiteSpace(doc.CvData))
+            {
+                info.Summary = "CV generated from stored data.";
+            }
+        }
+
+        data.Skills ??= new List<SkillDto>();
+        if (data.Skills.Count == 0)
+        {
+            var skills = _db.DocumentSkills
+                .Where(ds => ds.DocumentId == doc.Id)
+                .Join(_db.Skills, ds => ds.SkillId, s => s.Id, (ds, s) => s.NormName)
+                .Distinct()
+                .Take(10)
+                .ToList();
+            data.Skills.AddRange(skills.Select(name => new SkillDto { Name = name, Level = "Experienced" }));
+        }
+
+        // Experiences
+        data.Experiences ??= new List<ExperienceDto>();
+        if (data.Experiences.Count == 0)
+        {
+            var experiences = _db.Experiences
+                .Where(e => e.DocumentId == doc.Id)
+                .OrderByDescending(e => e.EndDate ?? e.StartDate)
+                .Take(5)
+                .ToList();
+            foreach (var e in experiences)
+            {
+                data.Experiences.Add(new ExperienceDto
+                {
+                    Company = e.CompanyName ?? "Company",
+                    Position = e.JobTitle ?? "Position",
+                    Description = e.Description ?? "",
+                    StartDate = e.StartDate?.ToDateTime(TimeOnly.MinValue),
+                    EndDate = e.EndDate?.ToDateTime(TimeOnly.MinValue)
+                });
+            }
+        }
+
+        // Educations
+        data.Educations ??= new List<EducationDto>();
+        if (data.Educations.Count == 0)
+        {
+            var educations = _db.Educations
+                .Where(ed => ed.DocumentId == doc.Id)
+                .OrderByDescending(ed => ed.EndDate ?? ed.StartDate)
+                .Take(3)
+                .ToList();
+            foreach (var ed in educations)
+            {
+                data.Educations.Add(new EducationDto
+                {
+                    Institution = ed.SchoolName ?? "School",
+                    Degree = ed.Degree ?? "Degree",
+                    FieldOfStudy = ed.FieldOfStudy ?? "",
+                    StartYear = ed.StartDate?.Year,
+                    EndYear = ed.EndDate?.Year
+                });
+            }
+        }
+
+        return data;
     }
 
     private async Task ReplaceJobSkillsAsync(Job job, IEnumerable<string>? skillNames)

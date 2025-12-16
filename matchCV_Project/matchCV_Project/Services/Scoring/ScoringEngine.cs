@@ -84,14 +84,22 @@ public class ScoringEngine
         // 7. Salary Fit
         int salaryBonus = SalaryFit(candidate.ExpectedSalary, jd.BudgetMin, jd.BudgetMax);
         result.Breakdown["salary"] = salaryBonus;
-        total += salaryBonus;
+        // Cap downside to avoid overly harsh penalty
+        total += Math.Max(salaryBonus, -10);
         if (salaryBonus < 0) warnings.Add("Expected salary may exceed JD budget.");
 
         // 8. Red Flag Penalty
         int redflagPenalty = await _redFlagDetector.DetectPenaltyAsync(candidate.CvText);
         result.Breakdown["redflag"] = redflagPenalty;
-        total += redflagPenalty;
+        // Cap downside to avoid overly harsh penalty
+        total += Math.Max(redflagPenalty, -15);
         if (redflagPenalty < 0) warnings.Add("Potential red flags detected in work history.");
+
+        // Soft bonus when core signals are strong to reduce harshness
+        if (total < 70 && keywordScore >= 70 && expScore >= 80)
+        {
+            total += 10;
+        }
 
         result.TotalScore = Math.Clamp(total, 0, 100);
         result.Highlights = highlights.Distinct().ToList();

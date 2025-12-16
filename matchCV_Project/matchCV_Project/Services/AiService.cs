@@ -35,6 +35,7 @@ public class AiService : IAiService
                     cvSkills.Add(s);
         }
 
+        // If job has no required skills, return a neutral score
         if (reqSkills.Count == 0)
             return 60;
 
@@ -53,7 +54,12 @@ public class AiService : IAiService
         }
 
         var ratio = score / totalWeight;
-        return Math.Clamp((int)(50 + 50 * ratio), 0, 100);
+
+        // Scale to 0-100 (instead of 50-100) so low matches show up as low scores
+        // Keep a small floor to avoid always-zero when skills missing
+        var finalScore = Math.Clamp((int)Math.Round(100 * ratio), 0, 100);
+        if (finalScore < 20) finalScore = 20; // soft floor
+        return finalScore;
     }
 
     public string SummarizeCv(Document cv)

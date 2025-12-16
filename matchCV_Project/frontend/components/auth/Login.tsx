@@ -33,11 +33,11 @@ export default function Login() {
 
       // Redirect based on role
       if (userRole === "Admin") {
-        router.push("/admin");
+        window.location.href = "/admin";
       } else if (userRole === "Recruiter") {
-        router.push("/recruiter");
+        window.location.href = "/recruiter";
       } else {
-        router.push("/app");
+        window.location.href = "/app";
       }
     } catch (err: any) {
       console.error(err);

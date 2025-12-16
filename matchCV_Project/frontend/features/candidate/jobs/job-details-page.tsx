@@ -417,6 +417,7 @@ export function JobDetailsPage() {
                 title: job.title,
                 company: job.company,
                 jobDescription: job.jobDescription,
+                rawText: job.rawText,
               }
             : undefined
         }

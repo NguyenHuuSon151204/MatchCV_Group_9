@@ -19,7 +19,8 @@ public class DynamicWeightService
         if (_matrix.TryGetValue(industry, out var levels) && levels.TryGetValue(level, out var weight))
             return weight;
 
-        return new Weight { keyword = 35, exp = 25, achievement = 20, portfolio = 15, leadership = 5 };
+        // Softer default mix to avoid overly harsh scoring when industry/level not defined
+        return new Weight { keyword = 45, exp = 25, achievement = 15, portfolio = 10, leadership = 5, certification = 5 };
     }
 }
 

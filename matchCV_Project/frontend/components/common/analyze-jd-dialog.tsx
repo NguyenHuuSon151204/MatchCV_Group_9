@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogBody, DialogFoo
 import { useCV } from '@/hooks/useCV'
 import { useToastContext } from '@/contexts/toast-context'
 import { aiService } from '@/lib/services/ai-service'
+import { cvService } from '@/lib/services/cv-service'
 
 interface AnalyzeJDDialogProps {
   open: boolean
@@ -18,6 +19,7 @@ interface AnalyzeJDDialogProps {
     title: string
     company: string
     jobDescription?: string
+    rawText?: string
   }
 }
 
@@ -28,6 +30,53 @@ interface ScoringResult {
   breakdown: Record<string, number>
   highlights: string[]
   warnings: string[]
+}
+
+function buildCvText(cv: any): string {
+  const parts: string[] = []
+  const personal = cv?.cvData?.personalInfo
+  if (personal?.summary) parts.push(personal.summary)
+  if (personal?.position) parts.push(`Position: ${personal.position}`)
+  if (personal?.fullName) parts.push(`Name: ${personal.fullName}`)
+
+  if (Array.isArray(cv?.cvData?.experiences)) {
+    parts.push(
+      ...cv.cvData.experiences
+        .map((exp: any) =>
+          [exp.position, exp.company, exp.description, exp.summary]
+            .filter(Boolean)
+            .join(' - ')
+        )
+        .filter(Boolean)
+    )
+  }
+
+  if (Array.isArray(cv?.cvData?.educations)) {
+    parts.push(
+      ...cv.cvData.educations
+        .map((edu: any) => [edu.degree, edu.school, edu.description].filter(Boolean).join(' - '))
+        .filter(Boolean)
+    )
+  }
+
+  if (Array.isArray(cv?.cvData?.skills)) {
+    const skillsLine = cv.cvData.skills
+      .map((skill: any) => skill?.name || skill?.title || skill?.skill || skill)
+      .filter(Boolean)
+      .join(', ')
+    if (skillsLine) parts.push(`Skills: ${skillsLine}`)
+  }
+
+  if (Array.isArray(cv?.cvData?.customSections)) {
+    parts.push(
+      ...cv.cvData.customSections
+        .map((sec: any) => [sec.title, sec.content].filter(Boolean).join(': '))
+        .filter(Boolean)
+    )
+  }
+
+  if (cv?.description) parts.push(cv.description)
+  return parts.join('\n').trim()
 }
 
 export function AnalyzeJDDialog({ open, onOpenChange, job, onAnalysisComplete }: AnalyzeJDDialogProps) {
@@ -41,9 +90,10 @@ export function AnalyzeJDDialog({ open, onOpenChange, job, onAnalysisComplete }:
   const handleAnalyze = async () => {
     if (!selectedCV || !job) return
 
-    // Validate job description before calling API to avoid 400 from backend
-    if (!job.jobDescription || job.jobDescription.trim().length === 0) {
-      const message = 'This job has no description. Please add a job description before analyzing.'
+    // Prefer jobDescription, fall back to rawText or title to avoid blocking the flow
+    const jobText = (job.jobDescription || job.rawText || job.title || '').trim()
+    if (!jobText) {
+      const message = 'Job is missing description. Please add a description before analyzing.'
       setErrorMessage(message)
       toast.error('Analyze failed', message)
       return
@@ -52,20 +102,59 @@ export function AnalyzeJDDialog({ open, onOpenChange, job, onAnalysisComplete }:
     setAnalyzing(true)
     setErrorMessage(null)
     try {
-      const selectedCVData = cvs.find(cv => cv.id === selectedCV)
-      const cvText =
-        selectedCVData?.description ||
-        selectedCVData?.cvData?.personalInfo?.summary ||
-        selectedCVData?.name ||
-        'CV Content'
+      let selectedCVData = cvs.find((cv) => cv.id === selectedCV)
+
+      // Fetch full CV detail if we don't have structured data locally
+      if ((!selectedCVData?.cvData || Object.keys(selectedCVData.cvData || {}).length === 0) && selectedCV) {
+        try {
+          const detail = await cvService.getCV(selectedCV)
+          if (detail) {
+            selectedCVData = { ...selectedCVData, ...detail }
+          }
+        } catch (err) {
+          console.warn('[AnalyzeJDDialog] fetch CV detail failed', err)
+        }
+      }
+
+      const cvText = buildCvText(selectedCVData) || selectedCVData?.name || 'CV Content'
+
+      console.info('[AnalyzeJDDialog] analyzing', {
+        jobId: job.id,
+        jobTitle: job.title,
+        jobCompany: job.company,
+        jobTextLength: jobText.length,
+        cvId: selectedCV,
+        cvName: selectedCVData?.name,
+        cvTextLength: cvText.length,
+        hasCvData: !!selectedCVData?.cvData,
+      })
 
       const scoringResult: ScoringResult = await aiService.analyzeJD({
-        description: job.jobDescription || '',
+        description: jobText,
         cvText,
         industry: 'IT',
         level: 'Mid',
       })
-      const breakdownEntries = Object.entries(scoringResult.breakdown || {}).sort((a, b) => b[1] - a[1])
+      const breakdown = scoringResult.breakdown || {}
+      const breakdownEntries = Object.entries(breakdown).sort((a, b) => b[1] - a[1])
+
+      // Enrich matched/missing skills to make UI more actionable
+      const matchedSkills: string[] = [...(scoringResult.highlights || [])]
+      const missingSkills: string[] = [...(scoringResult.warnings || [])]
+
+      if ((breakdown.keyword ?? 0) >= 70) matchedSkills.push('Strong keyword overlap with the JD.')
+      if ((breakdown.experience ?? 0) >= 70) matchedSkills.push('Experience meets or exceeds JD requirements.')
+      if ((breakdown.leadership ?? 0) >= 20) matchedSkills.push('Leadership or mentoring signals detected.')
+      if ((breakdown.portfolio ?? 0) > 0) matchedSkills.push('Portfolio/case study link included.')
+
+      if ((breakdown.keyword ?? 0) < 60) missingSkills.push('Add more JD keywords to the CV.')
+      if ((breakdown.experience ?? 0) < 60) missingSkills.push('State years of experience that match the JD.')
+      if ((breakdown.portfolio ?? 0) <= 0) missingSkills.push('Add a portfolio or case-study link.')
+      if ((breakdown.certification ?? 0) <= 0) missingSkills.push('List relevant certifications (if any).')
+
+      const uniqueMatched = Array.from(new Set(matchedSkills)).slice(0, 12)
+      const uniqueMissing = Array.from(new Set(missingSkills)).slice(0, 12)
+
       const result = {
         cvId: selectedCV,
         cvName: selectedCVData?.name || 'Unknown CV',
@@ -75,8 +164,8 @@ export function AnalyzeJDDialog({ open, onOpenChange, job, onAnalysisComplete }:
         matchScore: scoringResult.totalScore,
         scoreLabel: scoringResult.label,
         scoreColor: scoringResult.color,
-        matchedSkills: scoringResult.highlights || [],
-        missingSkills: scoringResult.warnings || [],
+        matchedSkills: uniqueMatched,
+        missingSkills: uniqueMissing,
         recommendations: breakdownEntries.map(([key, value]) => `${key}: ${value}%`).slice(0, 5),
         breakdown: scoringResult.breakdown || {},
         timestamp: new Date().toISOString(),

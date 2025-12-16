@@ -32,7 +32,8 @@ public class AiController : ControllerBase
         _scoring = scoring;
         _usage = usage;
         _logger = logger;
-        _disableUsageLimit = config.GetValue<bool>("Features:DisableUsageLimit") || env.IsDevelopment();
+        // Always enforce usage limits (set to false for consistent demo)
+        _disableUsageLimit = false;
     }
 
     private async Task<(int userId, string plan)> ResolveUserAsync(int? userIdFromRequest)
@@ -67,6 +68,39 @@ public class AiController : ControllerBase
     }
 
     public record AnalyzeJdRequest(string JobDescription, string CvText, string? Industry, string? Level, int? UserId);
+    public record UsageResponse(string Plan, int RemainingRewrite, int RemainingJdAnalyze);
+
+    [HttpGet("usage")]
+    public async Task<IActionResult> GetUsage([FromQuery] int? userId)
+    {
+        var (resolvedUserId, plan) = await ResolveUserAsync(userId);
+        if (resolvedUserId == 0)
+        {
+            return Unauthorized(new { success = false, message = "User not identified." });
+        }
+
+        var remainingRewrite = _disableUsageLimit ? int.MaxValue : _usage.GetRemaining(resolvedUserId, plan, "rewrite");
+        var remainingJd = _disableUsageLimit ? int.MaxValue : _usage.GetRemaining(resolvedUserId, plan, "jd-analyze");
+
+        return Ok(new
+        {
+            success = true,
+            data = new UsageResponse(plan, remainingRewrite, remainingJd)
+        });
+    }
+
+    [HttpPost("usage/reset")]
+    public async Task<IActionResult> ResetUsage([FromQuery] int? userId)
+    {
+        var (resolvedUserId, _) = await ResolveUserAsync(userId);
+        if (resolvedUserId == 0)
+        {
+            return Unauthorized(new { success = false, message = "User not identified." });
+        }
+
+        _usage.ResetForUser(resolvedUserId);
+        return Ok(new { success = true, message = "Usage reset for today." });
+    }
 
     [HttpPost("analyze-jd")]
     public async Task<IActionResult> AnalyzeJd([FromBody] AnalyzeJdRequest request)
@@ -162,4 +196,3 @@ public class AiController : ControllerBase
         });
     }
 }
-

@@ -11,7 +11,13 @@ namespace matchCV_Project.Controllers;
 public class AdminController : ControllerBase
 {
     private readonly MatchCvContext _db;
-    public AdminController(MatchCvContext db) => _db = db;
+    private readonly ILogger<AdminController> _logger;
+
+    public AdminController(MatchCvContext db, ILogger<AdminController> logger)
+    {
+        _db = db;
+        _logger = logger;
+    }
 
     [HttpGet("summary")]
     public async Task<IActionResult> Summary([FromQuery] DateTime? from, [FromQuery] DateTime? to)
@@ -414,87 +420,99 @@ public class AdminController : ControllerBase
     [HttpGet("ai-status")]
     public async Task<IActionResult> GetAIStatus()
     {
-        var now = DateTime.UtcNow;
-        var last30Days = now.AddDays(-30);
-
-        // Total AI calls
-        var totalCalls = _db.ApicallLogs != null
-            ? await _db.ApicallLogs.CountAsync()
-            : 0;
-
-        // Recent calls (last 30 days)
-        var recentCalls = _db.ApicallLogs != null
-            ? await _db.ApicallLogs
-                .Where(l => l.CreatedAt >= last30Days)
-                .ToListAsync()
-            : new List<ApicallLog>();
-
-        // Success rate
-        var successCount = recentCalls.Count(l => l.Status == "success" || l.Status == "Success");
-        var successRate = recentCalls.Count > 0
-            ? (double)successCount / recentCalls.Count * 100
-            : 0;
-
-        // Average latency
-        var avgLatency = recentCalls.Any(l => l.LatencyMs.HasValue)
-            ? recentCalls.Where(l => l.LatencyMs.HasValue).Average(l => l.LatencyMs!.Value)
-            : 0;
-
-        // Most used model
-        var mostUsedModel = recentCalls
-            .GroupBy(l => l.Model)
-            .OrderByDescending(g => g.Count())
-            .Select(g => g.Key)
-            .FirstOrDefault() ?? "gemini-pro";
-
-        // Most used provider
-        var mostUsedProvider = recentCalls
-            .GroupBy(l => l.Provider)
-            .OrderByDescending(g => g.Count())
-            .Select(g => g.Key)
-            .FirstOrDefault() ?? "Google";
-
-        // Total tokens
-        var totalTokensIn = recentCalls.Sum(l => l.TokensIn ?? 0);
-        var totalTokensOut = recentCalls.Sum(l => l.TokensOut ?? 0);
-
-        // Total cost estimate
-        var totalCost = recentCalls.Sum(l => l.CostEstimate ?? 0);
-
-        // Recent activity (last 10 calls)
-        var recentActivity = _db.ApicallLogs != null
-            ? (await _db.ApicallLogs
-                .OrderByDescending(l => l.CreatedAt)
-                .Take(10)
-                .Select(l => new
-                {
-                    l.Id,
-                    l.Provider,
-                    l.Model,
-                    l.Status,
-                    l.LatencyMs,
-                    l.CreatedAt
-                })
-                .ToListAsync())
-                .Cast<object>()
-                .ToList()
-            : new List<object>();
-
-        return Ok(new
+        try
         {
-            IsOnline = true,
-            Model = mostUsedModel,
-            Provider = mostUsedProvider,
-            TotalCalls = totalCalls,
-            RecentCalls = recentCalls.Count,
-            SuccessRate = Math.Round(successRate, 2),
-            ResponseTime = Math.Round(avgLatency, 0),
-            TotalTokensIn = totalTokensIn,
-            TotalTokensOut = totalTokensOut,
-            TotalCost = Math.Round(totalCost, 4),
-            RecentActivity = recentActivity,
-            LastSync = DateTime.UtcNow
-        });
+            var now = DateTime.UtcNow;
+            var last30Days = now.AddDays(-30);
+
+            var totalCalls = _db.ApicallLogs != null
+                ? await _db.ApicallLogs.CountAsync()
+                : 0;
+
+            var recentCalls = _db.ApicallLogs != null
+                ? await _db.ApicallLogs
+                    .Where(l => l.CreatedAt >= last30Days)
+                    .ToListAsync()
+                : new List<ApicallLog>();
+
+            var successCount = recentCalls.Count(l => l.Status == "success" || l.Status == "Success");
+            var successRate = recentCalls.Count > 0
+                ? (double)successCount / recentCalls.Count * 100
+                : 0;
+
+            var avgLatency = recentCalls.Any(l => l.LatencyMs.HasValue)
+                ? recentCalls.Where(l => l.LatencyMs.HasValue).Average(l => l.LatencyMs!.Value)
+                : 0;
+
+            var mostUsedModel = recentCalls
+                .GroupBy(l => l.Model)
+                .OrderByDescending(g => g.Count())
+                .Select(g => g.Key)
+                .FirstOrDefault() ?? "gemini-pro";
+
+            var mostUsedProvider = recentCalls
+                .GroupBy(l => l.Provider)
+                .OrderByDescending(g => g.Count())
+                .Select(g => g.Key)
+                .FirstOrDefault() ?? "Google";
+
+            var totalTokensIn = recentCalls.Sum(l => l.TokensIn ?? 0);
+            var totalTokensOut = recentCalls.Sum(l => l.TokensOut ?? 0);
+            var totalCost = recentCalls.Sum(l => l.CostEstimate ?? 0);
+
+            var recentActivity = _db.ApicallLogs != null
+                ? (await _db.ApicallLogs
+                    .OrderByDescending(l => l.CreatedAt)
+                    .Take(10)
+                    .Select(l => new
+                    {
+                        l.Id,
+                        l.Provider,
+                        l.Model,
+                        l.Status,
+                        l.LatencyMs,
+                        l.CreatedAt
+                    })
+                    .ToListAsync())
+                    .Cast<object>()
+                    .ToList()
+                : new List<object>();
+
+            return Ok(new
+            {
+                isOnline = true,
+                model = mostUsedModel,
+                provider = mostUsedProvider,
+                totalCalls = totalCalls,
+                recentCalls = recentCalls.Count,
+                successRate = Math.Round(successRate, 2),
+                responseTime = Math.Round(avgLatency, 0),
+                totalTokensIn = totalTokensIn,
+                totalTokensOut = totalTokensOut,
+                totalCost = Math.Round(totalCost, 4),
+                recentActivity = recentActivity,
+                lastSync = DateTime.UtcNow
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to compute AI status. Returning fallback.");
+            return Ok(new
+            {
+                isOnline = true,
+                model = "gemini-pro",
+                provider = "Google",
+                totalCalls = 0,
+                recentCalls = 0,
+                successRate = 0,
+                responseTime = 0,
+                totalTokensIn = 0,
+                totalTokensOut = 0,
+                totalCost = 0,
+                recentActivity = new List<object>(),
+                lastSync = DateTime.UtcNow
+            });
+        }
     }
 
     [HttpGet("reports")]
@@ -618,48 +636,55 @@ public class AdminController : ControllerBase
     }
 
     // GET: /api/admin/licenses - Get all license keys
-    //[HttpGet("licenses")]
-    //public async Task<IActionResult> GetLicenses(
-    //    [FromQuery] string? search,
-    //    [FromQuery] string? status)
-    //{
-    //    var query = _db.LicenseKeys.AsQueryable();
+    [HttpGet("licenses")]
+    public async Task<IActionResult> GetLicenses(
+        [FromQuery] string? search,
+        [FromQuery] string? status)
+    {
+        var query = _db.LicenseKeys
+            .Include(l => l.AssignedUser)
+            .AsQueryable();
 
-    //    if (!string.IsNullOrWhiteSpace(search))
-    //    {
-    //        query = query.Where(l =>
-    //            l.Plan.Contains(search) ||
-    //            (l.OriginalKey != null && l.OriginalKey.Contains(search)));
-    //    }
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            query = query.Where(l =>
+                l.Plan.Contains(search) ||
+                l.KeyHash.Contains(search));
+        }
 
-    //    if (!string.IsNullOrWhiteSpace(status))
-    //    {
-    //        if (status.ToLower() == "active")
-    //            query = query.Where(l => l.IsActive);
-    //        else if (status.ToLower() == "inactive")
-    //            query = query.Where(l => !l.IsActive);
-    //    }
+        if (!string.IsNullOrWhiteSpace(status))
+        {
+            if (status.ToLower() == "active")
+                query = query.Where(l => l.IsActive);
+            else if (status.ToLower() == "inactive")
+                query = query.Where(l => !l.IsActive);
+        }
 
-    //    var licenses = await query
-    //        .OrderByDescending(l => l.CreatedAt)
-    //        .ToListAsync();
+        var licenses = await query
+            .OrderByDescending(l => l.CreatedAt)
+            .ToListAsync();
 
-    //    var result = licenses.Select(l => new
-    //    {
-    //        l.Id,
-    //        l.Plan,
-    //        l.OriginalKey,
-    //        l.AssignedUserId,
-    //        AssignedUserName = l.AssignedUserId != null
-    //            ? _db.Users.FirstOrDefault(u => u.Id == l.AssignedUserId)?.DisplayName
-    //            : null,
-    //        l.IsActive,
-    //        l.Expiry,
-    //        l.CreatedAt
-    //    }).ToList();
+        var result = licenses.Select(l => new
+        {
+            l.Id,
+            l.Plan,
+            OriginalKey = l.KeyHash,
+            l.AssignedUserId,
+            AssignedUser = l.AssignedUserId != null ? new
+            {
+                l.AssignedUserId,
+                Name = l.AssignedUser?.DisplayName,
+                Email = l.AssignedUser?.Email
+            } : null,
+            l.IsActive,
+            Status = l.IsActive ? "Active" : "Inactive",
+            l.Expiry,
+            DaysRemaining = l.Expiry.HasValue ? (int)(l.Expiry.Value.Date - DateTime.UtcNow.Date).TotalDays : (int?)null,
+            l.CreatedAt
+        }).ToList();
 
-    //    return Ok(result);
-    //}
+        return Ok(result);
+    }
 
     // GET: /api/admin/verifications - Get all recruiter verifications
     [HttpGet("verifications")]

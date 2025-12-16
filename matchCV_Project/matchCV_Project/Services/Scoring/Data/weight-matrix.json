@@ -8,11 +8,12 @@
       "leadership": 5
     },
     "Mid": {
-      "keyword": 35,
-      "exp": 20,
-      "achievement": 20,
-      "portfolio": 25,
-      "leadership": 10
+      "keyword": 50,
+      "exp": 25,
+      "achievement": 15,
+      "portfolio": 5,
+      "leadership": 5,
+      "certification": 5
     },
     "Senior": {
       "keyword": 25,

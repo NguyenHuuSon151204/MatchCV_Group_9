@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { AlertCircle, Sparkles, Save, Trash2, BookOpen } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useAnalyze } from '@/hooks/useAnalyze'
 import { useCV } from '@/hooks/useCV'
+import { useAiUsage } from '@/hooks/useAiUsage'
 import { activityService } from '@/lib/services/activity-service'
 import { savedJdService, type SavedJd } from '@/lib/services/saved-jd-service'
 
@@ -18,7 +19,49 @@ export function JDAnalyzerPage() {
   const [selectedCvId, setSelectedCvId] = useState<string | null>(null)
   const { analyzeJD, jdAnalysis, jdError, analysisLoading } = useAnalyze()
   const { cvs, loading: cvsLoading } = useCV()
-  const selectedCvName = cvs.find((cv) => cv.id === selectedCvId)?.name || 'CV'
+  const { usage, loading: usageLoading, error: usageError, refresh: refreshUsage, reset } = useAiUsage()
+  const unlimited = (val?: number) => usage?.plan === 'Pro' && val !== undefined && val !== null && val >= 1_000_000
+  const formatRemaining = (val?: number) => {
+    if (val === undefined || val === null) return '-'
+    if (usage?.plan === 'Pro') return 'Unlimited'
+    if (unlimited(val)) return 'Unlimited'
+    const cap = 5
+    const shown = Math.min(val, cap)
+    return `${shown}/${cap}`
+  }
+  const selectedCv = useMemo(() => cvs.find((cv) => cv.id === selectedCvId) || null, [cvs, selectedCvId])
+  const selectedCvName = selectedCv?.name || 'CV'
+  const selectedCvText = useMemo(() => {
+    if (!selectedCv) return ''
+
+    const parts: string[] = []
+    const personal = selectedCv.cvData?.personalInfo
+    if (personal?.summary) parts.push(personal.summary)
+    if (personal?.position) parts.push(`Position: ${personal.position}`)
+
+    if (Array.isArray(selectedCv.cvData?.experiences)) {
+      parts.push(
+        ...selectedCv.cvData.experiences
+          .map((exp: any) =>
+            [exp.position, exp.company, exp.description, exp.summary].filter(Boolean).join(' - ')
+          )
+          .filter(Boolean)
+      )
+    }
+
+    if (Array.isArray(selectedCv.cvData?.skills)) {
+      const skillsLine = selectedCv.cvData.skills
+        .map((skill: any) => skill?.name || skill?.title || skill?.skill || skill)
+        .filter(Boolean)
+        .join(', ')
+      if (skillsLine) {
+        parts.push(`Skills: ${skillsLine}`)
+      }
+    }
+
+    if (selectedCv.description) parts.push(selectedCv.description)
+    return parts.join('\n').trim()
+  }, [selectedCv])
   const [savedJds, setSavedJds] = useState<SavedJd[]>([])
 
   useEffect(() => {
@@ -39,12 +82,13 @@ export function JDAnalyzerPage() {
 
   const handleAnalyze = async () => {
     if (!jobDescription.trim() || !selectedCvId) return
-    const result = await analyzeJD(jobDescription)
+    const result = await analyzeJD(jobDescription, selectedCvText || selectedCvName || 'CV content placeholder')
     if (result) {
       activityService.add({
         title: 'JD Analyzed',
         description: `Ran JD analysis for CV "${selectedCvName}"`,
       })
+      refreshUsage()
     }
   }
 
@@ -68,6 +112,46 @@ export function JDAnalyzerPage() {
 
   return (
     <section className="space-y-6">
+      <Card className="border-none bg-card/80 shadow-lg shadow-black/10">
+        <CardContent className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between py-4">
+          <div>
+            <p className="text-sm uppercase tracking-[0.3em] text-muted-foreground">Plan</p>
+            <p className="text-lg font-semibold text-card-foreground">
+              {usageLoading ? 'Loading…' : usage?.plan || 'Free'}
+            </p>
+            {usageError && <p className="text-xs text-destructive">{usageError}</p>}
+          </div>
+          <div className="flex flex-wrap gap-4 text-sm">
+            <div className="rounded-2xl border border-border/60 bg-background/70 px-4 py-2">
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">Rewrite remaining</p>
+              <p className="text-card-foreground font-semibold">
+                {usageLoading ? '…' : formatRemaining(usage?.remainingRewrite)}
+              </p>
+            </div>
+            <div className="rounded-2xl border border-border/60 bg-background/70 px-4 py-2">
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">JD analyze remaining</p>
+              <p className="text-card-foreground font-semibold">
+                {usageLoading ? '…' : formatRemaining(usage?.remainingJdAnalyze)}
+              </p>
+            </div>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="rounded-full border border-border/60"
+              onClick={reset}
+              disabled={usageLoading}
+            >
+              Reset (demo)
+            </Button>
+            <Button asChild className="rounded-full" variant="outline">
+              <a href="/app/payos" target="_blank" rel="noreferrer">
+                Upgrade to Pro
+              </a>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       <div className="flex flex-col gap-2">
         <p className="text-sm uppercase tracking-[0.4em] text-muted-foreground">AI Copilot</p>
         <h1 className="text-3xl font-semibold text-card-foreground">JD Analyzer</h1>
@@ -211,16 +295,28 @@ export function JDAnalyzerPage() {
         </div>
       )}
 
-      {jdError && (
+      {jdError && jdError.toLowerCase().includes('quota') ? (
+        <Card className="border border-primary/40 bg-primary/5 p-4 text-primary">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="flex items-center gap-2 text-sm">
+              <AlertCircle className="size-4" />
+              <span>JD Analyzer quota exceeded. Upgrade to Pro for unlimited runs.</span>
+            </div>
+            <Button asChild className="rounded-full" variant="secondary">
+              <a href="/app/payos" target="_blank" rel="noreferrer">
+                Upgrade to Pro
+              </a>
+            </Button>
+          </div>
+        </Card>
+      ) : jdError ? (
         <Card className="border border-destructive/30 bg-destructive/10 p-4 text-destructive">
           <div className="flex items-center gap-2 text-sm">
             <AlertCircle className="size-4" />
             <span>{jdError}</span>
           </div>
         </Card>
-      )}
+      ) : null}
     </section>
   )
 }
-
-
